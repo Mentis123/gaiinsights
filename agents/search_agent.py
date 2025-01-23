@@ -18,11 +18,12 @@ class SearchAgent:
         for source in self.config['news_sources']:
             if source['type'] == 'web_search' and source['enabled']:
                 # Search web using SerpAPI
-                web_articles = search_web(
-                    self.config['news_sources'][0]['keywords'],
-                    cutoff_date
-                )
-                articles.extend(web_articles)
+                if 'keywords' in source:
+                    web_articles = search_web(
+                        source['keywords'],
+                        cutoff_date
+                    )
+                    articles.extend(web_articles)
             elif source['type'] == 'arxiv' and source['enabled']:
                 # Search ArXiv
                 arxiv_articles = search_arxiv(cutoff_date)

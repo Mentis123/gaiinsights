@@ -9,7 +9,11 @@ news_sources:
     enabled: true
   - type: web_search
     enabled: true
-    keywords: ["artificial intelligence", "machine learning", "AI technology"]
+    keywords:
+      - "artificial intelligence news"
+      - "AI technology breakthroughs"
+      - "machine learning developments"
+      - "AI industry updates"
 
 search_timeframe_days: 7
 
