@@ -2,9 +2,8 @@ import os
 from datetime import datetime, timedelta
 import re
 from openai import OpenAI
-from llama_index import VectorStoreIndex, SimpleDirectoryReader
-from llama_index.node_parser import SimpleNodeParser
-from llama_index.readers import BeautifulSoupWebReader
+from llama_index.core import Document
+from llama_index.readers.web import BeautifulSoupWebReader
 from bs4 import BeautifulSoup
 import requests
 from serpapi import Client as SerpAPIClient
@@ -45,23 +44,23 @@ class SearchAgent:
             expanded_keywords = []
             for kw in keywords:
                 expanded_keywords.extend([
-                    f"AI {kw}",
-                    f"artificial intelligence {kw}",
-                    f"machine learning {kw}"
+                    f"{kw} artificial intelligence",
+                    f"{kw} AI news",
+                    f"{kw} machine learning"
                 ])
             return expanded_keywords
         except:
             # Broader fallback keywords
             return [
-                "artificial intelligence news",
-                "AI technology breakthroughs",
+                "artificial intelligence breakthrough",
+                "AI technology innovation",
                 "machine learning developments",
                 "AI industry updates",
                 "AI research papers",
-                "artificial intelligence innovation",
-                "AI startup news",
+                "artificial intelligence startup",
+                "AI business impact",
                 "machine learning applications",
-                "AI business impact"
+                "AI ethics news"
             ]
 
     def fetch_article_content(self, url):
@@ -73,11 +72,7 @@ class SearchAgent:
             documents = reader.load_data([url])
 
             if documents:
-                parser = SimpleNodeParser()
-                nodes = parser.get_nodes_from_documents(documents)
-
-                if nodes:
-                    return nodes[0].text
+                return documents[0].text
 
             # Fallback to basic request if LlamaIndex fails
             response = requests.get(url)
@@ -134,13 +129,23 @@ class SearchAgent:
         retries = 0
         while len(articles) < self.min_articles and retries < self.max_retries:
             retries += 1
+            print(f"Not enough articles ({len(articles)}), retrying with broader search...")
+
             # Expand timeframe
             cutoff_date = datetime.now() - timedelta(days=self.timeframe_days * (retries + 1))
+
             # Get more general keywords
-            broader_keywords = [k.replace("artificial intelligence", "AI").split()[-1] for k in keywords]
-            broader_keywords.extend(["AI", "artificial intelligence", "machine learning"])
+            broader_keywords = [k.split()[-1] for k in keywords]  # Take last word of each phrase
+            broader_keywords.extend([
+                "artificial intelligence news",
+                "AI developments",
+                "machine learning updates",
+                "AI technology"
+            ])
+
             # Search again
             new_articles = self._search_with_keywords(broader_keywords, cutoff_date)
+
             # Add new unique articles
             articles.extend([a for a in new_articles if a['url'] not in [existing['url'] for existing in articles]])
 
@@ -152,7 +157,14 @@ class SearchAgent:
                     article['published_date'] = self.parse_date(article['published_date'])
                 unique_articles[article['url']] = article
 
-        return list(unique_articles.values())
+        # Sort by date
+        sorted_articles = sorted(
+            unique_articles.values(),
+            key=lambda x: x['published_date'],
+            reverse=True
+        )
+
+        return sorted_articles
 
     def _search_with_keywords(self, keywords, cutoff_date):
         """
@@ -167,6 +179,7 @@ class SearchAgent:
                 "engine": "google",
                 "q": f"{keyword}",
                 "tbm": "nws",
+                "num": 10,  # Request more results
             }
 
             try:
@@ -176,13 +189,14 @@ class SearchAgent:
                     # Fetch full content using LlamaIndex
                     content = self.fetch_article_content(result['link'])
 
-                    articles.append({
-                        'title': result['title'],
-                        'url': result['link'],
-                        'source': result['source'],
-                        'published_date': result.get('date', datetime.now().strftime('%Y-%m-%d')),
-                        'content': content
-                    })
+                    if content:  # Only add articles where we successfully got content
+                        articles.append({
+                            'title': result['title'],
+                            'url': result['link'],
+                            'source': result['source'],
+                            'published_date': result.get('date', datetime.now().strftime('%Y-%m-%d')),
+                            'content': content
+                        })
             except Exception as e:
                 print(f"Error searching for keyword {keyword}: {str(e)}")
 

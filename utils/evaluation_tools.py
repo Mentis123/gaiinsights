@@ -1,6 +1,6 @@
 from openai import OpenAI
-from llama_index import VectorStoreIndex, Document
-from llama_index.embeddings import OpenAIEmbedding
+from llama_index.core import Document
+from llama_index.embeddings.openai import OpenAIEmbedding
 import os
 
 def calculate_relevance_score(content, criteria):
