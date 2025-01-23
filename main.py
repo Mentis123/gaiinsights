@@ -246,6 +246,13 @@ def main():
                             file_name="ai_news_report.csv",
                             mime="text/csv"
                         )
+
+                # Add button to return to review step
+                st.divider()
+                if st.button("Back to Results"):
+                    st.session_state.current_step = 'review'
+                    st.rerun()
+
         except Exception as e:
             st.error(f"Error generating reports: {str(e)}")
             if st.button("Retry Report Generation"):

@@ -29,10 +29,10 @@ def generate_pdf_report(articles, output_path):
 
     elements = []
 
-    # Create table data with clickable URLs
+    # Create table data with clickable URLs that open in new tab
     table_data = [['Article Title', 'Date', 'Score', 'Rationale']]
     for article in articles:
-        title_with_link = f'<link href="{article["url"]}">{article["title"]}</link>'
+        title_with_link = f'<link href="{article["url"]}" target="_blank">{article["title"]}</link>'
         table_data.append([
             Paragraph(title_with_link, styles['URLStyle']),
             article['published_date'].strftime('%Y-%m-%d'),
@@ -69,16 +69,20 @@ def generate_pdf_report(articles, output_path):
 
 def generate_csv_report(articles, output_path):
     """
-    Generates CSV report with all fields
+    Generates CSV report with clickable title and URL fields
     """
     with open(output_path, 'w', newline='', encoding='utf-8') as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(['Title', 'URL', 'Date', 'Score', 'Rationale'])
 
         for article in articles:
+            # Create hyperlink formulas that work in Excel
+            title_formula = f'=HYPERLINK("{article["url"]}","{article["title"]}")'
+            url_formula = f'=HYPERLINK("{article["url"]}","{article["url"]}")'
+
             writer.writerow([
-                article['title'],
-                article['url'],
+                title_formula,
+                url_formula,
                 article['published_date'].strftime('%Y-%m-%d'),
                 f"{article['relevance_score']:.1f}",
                 article['rationale']
