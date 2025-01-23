@@ -3,10 +3,8 @@ from reportlab.lib.pagesizes import landscape, letter
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
-from reportlab.pdfgen import canvas
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
 import csv
+from urllib.parse import quote
 
 def generate_pdf_report(articles, output_path):
     """
@@ -23,21 +21,24 @@ def generate_pdf_report(articles, output_path):
 
     # Create custom styles
     styles = getSampleStyleSheet()
-    styles.add(ParagraphStyle(
-        name='URLStyle',
+    link_style = ParagraphStyle(
+        'LinkStyle',
         parent=styles['Normal'],
         textColor=colors.blue,
         underline=True
-    ))
+    )
 
     elements = []
 
     # Create table data with clickable URLs
     table_data = [['Article Title', 'Date', 'Score', 'Rationale']]
     for article in articles:
-        # Use ReportLab's annotation for creating clickable links
-        from reportlab.platypus import Annotation
-        title_with_link = Annotation(article['title'], article['url'], (0,0,0), hAlign='left', vAlign='middle')
+        # Create a clickable link using ReportLab's paragraph with link
+        title_with_link = Paragraph(
+            f'<para><a href="{quote(article["url"])}">{article["title"]}</a></para>',
+            link_style
+        )
+
         table_data.append([
             title_with_link,
             article['published_date'].strftime('%Y-%m-%d'),
