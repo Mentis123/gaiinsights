@@ -6,6 +6,7 @@ from agents.review_agent import ReviewAgent
 import yaml
 import os
 import docx2txt
+from datetime import datetime
 
 def init_session_state():
     if 'articles' not in st.session_state:
@@ -53,27 +54,50 @@ def main():
         uploaded_file = st.file_uploader("Choose a file", type=['docx'])
 
         if uploaded_file is not None:
-            # Extract text from the Word document
-            criteria_text = docx2txt.process(uploaded_file)
-            st.session_state.evaluation_criteria = criteria_text
+            with st.spinner("Processing document..."):
+                # Extract text from the Word document
+                criteria_text = docx2txt.process(uploaded_file)
+                st.session_state.evaluation_criteria = criteria_text
 
-            st.success("Criteria uploaded successfully!")
-            st.markdown("### Preview of uploaded criteria:")
-            st.text_area("Criteria content", criteria_text, height=200)
+                st.success("Criteria uploaded successfully!")
+                st.markdown("### Preview of uploaded criteria:")
+                st.text_area("Criteria content", criteria_text, height=200)
 
-            if st.button("Proceed to Search"):
-                st.session_state.current_step = 'search'
-                st.rerun()
+                if st.button("Proceed to Search"):
+                    st.session_state.current_step = 'search'
+                    st.rerun()
 
     elif st.session_state.current_step == 'search':
         st.subheader("🔍 Searching for Articles")
         if st.session_state.evaluation_criteria:
-            with st.spinner("Fetching relevant AI news based on your criteria..."):
-                search_agent = SearchAgent(yaml.safe_load(open('config.yaml')))
-                articles = search_agent.search(st.session_state.evaluation_criteria)
-                st.session_state.articles = articles
-                st.session_state.current_step = 'evaluate'
-                st.rerun()
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+
+            try:
+                with st.spinner("Fetching relevant AI news..."):
+                    status_text.text("Initializing search...")
+                    progress_bar.progress(10)
+
+                    search_agent = SearchAgent(yaml.safe_load(open('config.yaml')))
+                    status_text.text("Searching for articles...")
+                    progress_bar.progress(30)
+
+                    articles = search_agent.search(st.session_state.evaluation_criteria)
+
+                    if not articles:
+                        st.error("No articles found. Please try again with different criteria.")
+                        return
+
+                    status_text.text(f"Found {len(articles)} articles...")
+                    progress_bar.progress(100)
+
+                    st.session_state.articles = articles
+                    st.session_state.current_step = 'evaluate'
+                    st.rerun()
+            except Exception as e:
+                st.error(f"Error during search: {str(e)}")
+                if st.button("Retry Search"):
+                    st.rerun()
         else:
             st.error("No evaluation criteria found. Please upload criteria first.")
             st.session_state.current_step = 'upload_criteria'
@@ -81,27 +105,37 @@ def main():
 
     elif st.session_state.current_step == 'evaluate':
         st.subheader("⚖️ Evaluating Articles")
-        with st.spinner("Evaluating articles against your criteria..."):
-            evaluation_agent = EvaluationAgent()
-            evaluated_articles = evaluation_agent.evaluate(
-                st.session_state.articles,
-                st.session_state.evaluation_criteria
-            )
-            st.session_state.articles = evaluated_articles
-            st.session_state.current_step = 'rationale'
-            st.rerun()
+        try:
+            with st.spinner("Evaluating articles against your criteria..."):
+                evaluation_agent = EvaluationAgent()
+                evaluated_articles = evaluation_agent.evaluate(
+                    st.session_state.articles,
+                    st.session_state.evaluation_criteria
+                )
+                st.session_state.articles = evaluated_articles
+                st.session_state.current_step = 'rationale'
+                st.rerun()
+        except Exception as e:
+            st.error(f"Error during evaluation: {str(e)}")
+            if st.button("Retry Evaluation"):
+                st.rerun()
 
     elif st.session_state.current_step == 'rationale':
         st.subheader("💡 Generating Rationales")
-        with st.spinner("Generating article rationales..."):
-            rationale_agent = RationaleAgent()
-            articles_with_rationales = rationale_agent.generate_rationales(
-                st.session_state.articles,
-                st.session_state.evaluation_criteria
-            )
-            st.session_state.articles = articles_with_rationales
-            st.session_state.current_step = 'review'
-            st.rerun()
+        try:
+            with st.spinner("Generating article rationales..."):
+                rationale_agent = RationaleAgent()
+                articles_with_rationales = rationale_agent.generate_rationales(
+                    st.session_state.articles,
+                    st.session_state.evaluation_criteria
+                )
+                st.session_state.articles = articles_with_rationales
+                st.session_state.current_step = 'review'
+                st.rerun()
+        except Exception as e:
+            st.error(f"Error generating rationales: {str(e)}")
+            if st.button("Retry Rationale Generation"):
+                st.rerun()
 
     elif st.session_state.current_step == 'review':
         st.subheader("👀 Review and Select Articles")
@@ -113,15 +147,12 @@ def main():
                 with col1:
                     st.markdown(f"### {article['title']}")
                     st.markdown(f"**Source:** {article['source']}")
-                    st.markdown(f"**Published:** {article['published_date'].strftime('%Y-%m-%d %H:%M')}")
-                    st.markdown(f"**Relevance Score:** {article['relevance_score']}/10")
+                    st.markdown(f"**URL:** [{article['url']}]({article['url']})")
+                    st.markdown(f"**Published:** {article['published_date'].strftime('%Y-%m-%d')}")
+                    st.markdown(f"**Relevance Score:** {article['relevance_score']:.1f}/10")
                     st.markdown("**Rationale:**")
                     rationale = st.text_area("Edit rationale", article['rationale'], key=f"rationale_{idx}")
                     article['rationale'] = rationale
-
-                    # Add a "View Full Article" button
-                    if st.button("View Full Article", key=f"view_{idx}"):
-                        st.markdown(f"[Open Article in New Tab]({article['url']})")
 
                 with col2:
                     if st.checkbox("Select", key=f"select_{idx}"):
@@ -143,28 +174,33 @@ def main():
     elif st.session_state.current_step == 'report':
         st.subheader("📊 Generated Reports")
 
-        with st.spinner("Generating reports..."):
-            review_agent = ReviewAgent()
-            pdf_path, csv_path = review_agent.generate_reports(st.session_state.selected_articles)
+        try:
+            with st.spinner("Generating reports..."):
+                review_agent = ReviewAgent()
+                pdf_path, csv_path = review_agent.generate_reports(st.session_state.selected_articles)
 
-            col1, col2 = st.columns(2)
-            with col1:
-                with open(pdf_path, 'rb') as pdf_file:
-                    st.download_button(
-                        label="Download PDF Report",
-                        data=pdf_file,
-                        file_name="ai_news_report.pdf",
-                        mime="application/pdf"
-                    )
+                col1, col2 = st.columns(2)
+                with col1:
+                    with open(pdf_path, 'rb') as pdf_file:
+                        st.download_button(
+                            label="Download PDF Report",
+                            data=pdf_file,
+                            file_name="ai_news_report.pdf",
+                            mime="application/pdf"
+                        )
 
-            with col2:
-                with open(csv_path, 'rb') as csv_file:
-                    st.download_button(
-                        label="Download CSV Report",
-                        data=csv_file,
-                        file_name="ai_news_report.csv",
-                        mime="text/csv"
-                    )
+                with col2:
+                    with open(csv_path, 'rb') as csv_file:
+                        st.download_button(
+                            label="Download CSV Report",
+                            data=csv_file,
+                            file_name="ai_news_report.csv",
+                            mime="text/csv"
+                        )
+        except Exception as e:
+            st.error(f"Error generating reports: {str(e)}")
+            if st.button("Retry Report Generation"):
+                st.rerun()
 
 if __name__ == "__main__":
     main()
