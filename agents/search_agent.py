@@ -14,22 +14,21 @@ class SearchAgent:
         articles = []
         cutoff_date = datetime.now() - timedelta(days=self.timeframe_days)
 
-        # Search web using SerpAPI
-        if self.config['news_sources']['web_search']['enabled']:
-            web_articles = search_web(
-                self.config['news_sources']['keywords'],
-                cutoff_date
-            )
-            articles.extend(web_articles)
-
-        # Search ArXiv
-        if self.config['news_sources']['arxiv']['enabled']:
-            arxiv_articles = search_arxiv(cutoff_date)
-            articles.extend(arxiv_articles)
-
-        # Scrape configured websites
+        # Process each news source from config
         for source in self.config['news_sources']:
-            if source['type'] == 'website':
+            if source['type'] == 'web_search' and source['enabled']:
+                # Search web using SerpAPI
+                web_articles = search_web(
+                    self.config['news_sources'][0]['keywords'],
+                    cutoff_date
+                )
+                articles.extend(web_articles)
+            elif source['type'] == 'arxiv' and source['enabled']:
+                # Search ArXiv
+                arxiv_articles = search_arxiv(cutoff_date)
+                articles.extend(arxiv_articles)
+            elif source['type'] == 'website':
+                # Scrape configured websites
                 website_articles = scrape_website(
                     source['url'],
                     source['name'],
