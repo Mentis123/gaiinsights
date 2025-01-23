@@ -1,33 +1,34 @@
 from openai import OpenAI
+from llama_index import VectorStoreIndex, Document
+from llama_index.embeddings import OpenAIEmbedding
 import os
 
 def calculate_relevance_score(content, criteria):
     """
-    Calculates relevance score using OpenAI embeddings
+    Calculates relevance score using LlamaIndex and OpenAI embeddings
     """
-    client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
-    
-    # Generate embeddings for content and criteria
-    content_embedding = get_embedding(content, client)
-    criteria_embedding = get_embedding(criteria, client)
-    
-    # Calculate cosine similarity
-    similarity = cosine_similarity(content_embedding, criteria_embedding)
-    
-    # Convert similarity to 1-10 score
-    score = round(similarity * 10)
-    
-    return max(1, min(10, score))
+    try:
+        # Initialize OpenAI embedding model
+        embed_model = OpenAIEmbedding()
 
-def get_embedding(text, client):
-    """
-    Gets embedding vector for text using OpenAI API
-    """
-    response = client.embeddings.create(
-        model="text-embedding-ada-002",
-        input=text[:8000]  # Limit text length
-    )
-    return response.data[0].embedding
+        # Create documents
+        content_doc = Document(text=content)
+        criteria_doc = Document(text=criteria)
+
+        # Get embeddings
+        content_embedding = embed_model.get_text_embedding(content_doc.text)
+        criteria_embedding = embed_model.get_text_embedding(criteria_doc.text)
+
+        # Calculate cosine similarity
+        similarity = cosine_similarity(content_embedding, criteria_embedding)
+
+        # Convert similarity to 1-10 score
+        score = round(similarity * 10)
+        return max(1, min(10, score))
+
+    except Exception as e:
+        print(f"Error calculating relevance score: {str(e)}")
+        return 1  # Return minimum score on error
 
 def cosine_similarity(vec1, vec2):
     """
