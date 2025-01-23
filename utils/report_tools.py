@@ -1,8 +1,11 @@
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import landscape, letter
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
+from reportlab.pdfgen import canvas
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 import csv
 
 def generate_pdf_report(articles, output_path):
@@ -29,19 +32,14 @@ def generate_pdf_report(articles, output_path):
 
     elements = []
 
-    # Create table data with clickable URLs that open in new tab
+    # Create table data with clickable URLs
     table_data = [['Article Title', 'Date', 'Score', 'Rationale']]
     for article in articles:
-        # Use special link tag for proper PDF hyperlinks
-        title_with_link = f'''
-        <para>
-            <link foreground="blue" uline="1" href="{article['url']}">
-                {article['title']}
-            </link>
-        </para>
-        '''
+        # Use ReportLab's annotation for creating clickable links
+        from reportlab.platypus import Annotation
+        title_with_link = Annotation(article['title'], article['url'], (0,0,0), hAlign='left', vAlign='middle')
         table_data.append([
-            Paragraph(title_with_link, styles['URLStyle']),
+            title_with_link,
             article['published_date'].strftime('%Y-%m-%d'),
             f"{article['relevance_score']:.1f}/10",
             Paragraph(article['rationale'], styles['Normal'])
