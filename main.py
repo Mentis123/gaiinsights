@@ -5,10 +5,7 @@ from agents.rationale_agent import RationaleAgent
 from agents.review_agent import ReviewAgent
 import yaml
 import os
-
-# Load configuration
-with open('config.yaml', 'r') as file:
-    config = yaml.safe_load(file)
+import docx2txt
 
 def init_session_state():
     if 'articles' not in st.session_state:
@@ -16,7 +13,9 @@ def init_session_state():
     if 'selected_articles' not in st.session_state:
         st.session_state.selected_articles = []
     if 'current_step' not in st.session_state:
-        st.session_state.current_step = 'search'
+        st.session_state.current_step = 'upload_criteria'
+    if 'evaluation_criteria' not in st.session_state:
+        st.session_state.evaluation_criteria = None
 
 def main():
     st.set_page_config(
@@ -30,32 +29,64 @@ def main():
     st.title("AI News Aggregation System")
 
     # Initialize agents
-    search_agent = SearchAgent(config)
-    evaluation_agent = EvaluationAgent()
-    rationale_agent = RationaleAgent()
-    review_agent = ReviewAgent()
+    search_agent = None
+    evaluation_agent = None
+    rationale_agent = None
+    review_agent = None
 
-    # Sidebar for controls
+    # Sidebar for controls and status
     with st.sidebar:
-        st.header("Controls")
-        if st.button("Start New Search"):
-            st.session_state.current_step = 'search'
+        st.header("Progress")
+        st.write(f"Current step: {st.session_state.current_step}")
+        if st.button("Reset Process"):
+            st.session_state.current_step = 'upload_criteria'
             st.session_state.articles = []
             st.session_state.selected_articles = []
+            st.session_state.evaluation_criteria = None
+            st.rerun()
 
     # Main workflow
-    if st.session_state.current_step == 'search':
+    if st.session_state.current_step == 'upload_criteria':
+        st.subheader("📄 Upload Evaluation Criteria")
+        st.write("Please upload your evaluation criteria document (Word format)")
+
+        uploaded_file = st.file_uploader("Choose a file", type=['docx'])
+
+        if uploaded_file is not None:
+            # Extract text from the Word document
+            criteria_text = docx2txt.process(uploaded_file)
+            st.session_state.evaluation_criteria = criteria_text
+
+            st.success("Criteria uploaded successfully!")
+            st.markdown("### Preview of uploaded criteria:")
+            st.text_area("Criteria content", criteria_text, height=200)
+
+            if st.button("Proceed to Search"):
+                st.session_state.current_step = 'search'
+                st.rerun()
+
+    elif st.session_state.current_step == 'search':
         st.subheader("🔍 Searching for Articles")
-        with st.spinner("Fetching recent AI news..."):
-            articles = search_agent.search()
-            st.session_state.articles = articles
-            st.session_state.current_step = 'evaluate'
+        if st.session_state.evaluation_criteria:
+            with st.spinner("Fetching relevant AI news based on your criteria..."):
+                search_agent = SearchAgent(yaml.safe_load(open('config.yaml')))
+                articles = search_agent.search(st.session_state.evaluation_criteria)
+                st.session_state.articles = articles
+                st.session_state.current_step = 'evaluate'
+                st.rerun()
+        else:
+            st.error("No evaluation criteria found. Please upload criteria first.")
+            st.session_state.current_step = 'upload_criteria'
             st.rerun()
 
     elif st.session_state.current_step == 'evaluate':
         st.subheader("⚖️ Evaluating Articles")
-        with st.spinner("Evaluating article relevance..."):
-            evaluated_articles = evaluation_agent.evaluate(st.session_state.articles)
+        with st.spinner("Evaluating articles against your criteria..."):
+            evaluation_agent = EvaluationAgent()
+            evaluated_articles = evaluation_agent.evaluate(
+                st.session_state.articles,
+                st.session_state.evaluation_criteria
+            )
             st.session_state.articles = evaluated_articles
             st.session_state.current_step = 'rationale'
             st.rerun()
@@ -63,14 +94,18 @@ def main():
     elif st.session_state.current_step == 'rationale':
         st.subheader("💡 Generating Rationales")
         with st.spinner("Generating article rationales..."):
-            articles_with_rationales = rationale_agent.generate_rationales(st.session_state.articles)
+            rationale_agent = RationaleAgent()
+            articles_with_rationales = rationale_agent.generate_rationales(
+                st.session_state.articles,
+                st.session_state.evaluation_criteria
+            )
             st.session_state.articles = articles_with_rationales
             st.session_state.current_step = 'review'
             st.rerun()
 
     elif st.session_state.current_step == 'review':
         st.subheader("👀 Review and Select Articles")
-        
+
         # Display articles for review
         for idx, article in enumerate(st.session_state.articles):
             with st.container():
@@ -78,11 +113,16 @@ def main():
                 with col1:
                     st.markdown(f"### {article['title']}")
                     st.markdown(f"**Source:** {article['source']}")
+                    st.markdown(f"**Published:** {article['published_date'].strftime('%Y-%m-%d %H:%M')}")
                     st.markdown(f"**Relevance Score:** {article['relevance_score']}/10")
-                    st.markdown(f"**Rationale:**")
+                    st.markdown("**Rationale:**")
                     rationale = st.text_area("Edit rationale", article['rationale'], key=f"rationale_{idx}")
                     article['rationale'] = rationale
-                
+
+                    # Add a "View Full Article" button
+                    if st.button("View Full Article", key=f"view_{idx}"):
+                        st.markdown(f"[Open Article in New Tab]({article['url']})")
+
                 with col2:
                     if st.checkbox("Select", key=f"select_{idx}"):
                         if article not in st.session_state.selected_articles:
@@ -90,7 +130,7 @@ def main():
                     else:
                         if article in st.session_state.selected_articles:
                             st.session_state.selected_articles.remove(article)
-                
+
                 st.divider()
 
         if st.button("Generate Reports"):
@@ -102,10 +142,11 @@ def main():
 
     elif st.session_state.current_step == 'report':
         st.subheader("📊 Generated Reports")
-        
+
         with st.spinner("Generating reports..."):
+            review_agent = ReviewAgent()
             pdf_path, csv_path = review_agent.generate_reports(st.session_state.selected_articles)
-            
+
             col1, col2 = st.columns(2)
             with col1:
                 with open(pdf_path, 'rb') as pdf_file:
@@ -115,7 +156,7 @@ def main():
                         file_name="ai_news_report.pdf",
                         mime="application/pdf"
                     )
-            
+
             with col2:
                 with open(csv_path, 'rb') as csv_file:
                     st.download_button(

@@ -6,30 +6,22 @@ class EvaluationAgent:
         # the newest OpenAI model is "gpt-4o" which was released May 13, 2024
         self.model = "gpt-4o"
 
-    def evaluate(self, articles):
+    def evaluate(self, articles, criteria_text):
         """
-        Evaluates articles based on relevance criteria
+        Evaluates articles based on provided criteria
         """
         evaluated_articles = []
-        
+
         for article in articles:
-            # Calculate relevance score using semantic similarity
+            # Calculate relevance score using semantic similarity against provided criteria
             relevance_score = calculate_relevance_score(
                 article['content'],
-                self.load_criteria()
+                criteria_text
             )
-            
+
             article['relevance_score'] = relevance_score
             evaluated_articles.append(article)
-            
+
         # Sort by relevance score
         evaluated_articles.sort(key=lambda x: x['relevance_score'], reverse=True)
         return evaluated_articles
-
-    def load_criteria(self):
-        """
-        Loads evaluation criteria from file
-        """
-        criteria_path = "data/criteria/default_criteria.txt"
-        with open(criteria_path, 'r') as f:
-            return f.read()

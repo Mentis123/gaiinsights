@@ -206,6 +206,12 @@ wheels = [
 ]
 
 [[package]]
+name = "docx2txt"
+version = "0.8"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/7d/7d/60ee3f2b16d9bfdfa72e8599470a2c1a5b759cb113c6fe1006be28359327/docx2txt-0.8.tar.gz", hash = "sha256:2c06d98d7cfe2d3947e5760a57d924e3ff07745b379c8737723922e7009236e5", size = 2814 }
+
+[[package]]
 name = "gitdb"
 version = "4.0.12"
 source = { registry = "https://pypi.org/simple" }
@@ -975,6 +981,7 @@ name = "repl-nix-workspace"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "docx2txt" },
     { name = "openai" },
     { name = "pyyaml" },
     { name = "reportlab" },
@@ -985,6 +992,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "docx2txt", specifier = ">=0.8" },
     { name = "openai", specifier = ">=1.60.0" },
     { name = "pyyaml", specifier = ">=6.0.2" },
     { name = "reportlab", specifier = ">=4.2.5" },
