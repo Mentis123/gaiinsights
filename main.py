@@ -140,30 +140,79 @@ def main():
     elif st.session_state.current_step == 'review':
         st.subheader("👀 Review and Select Articles")
 
-        # Display articles for review
-        for idx, article in enumerate(st.session_state.articles):
-            with st.container():
-                col1, col2 = st.columns([8, 2])
-                with col1:
-                    st.markdown(f"### {article['title']}")
-                    st.markdown(f"**Source:** {article['source']}")
-                    st.markdown(f"**URL:** [{article['url']}]({article['url']})")
-                    st.markdown(f"**Published:** {article['published_date'].strftime('%Y-%m-%d')}")
-                    st.markdown(f"**Relevance Score:** {article['relevance_score']:.1f}/10")
-                    st.markdown("**Rationale:**")
-                    rationale = st.text_area("Edit rationale", article['rationale'], key=f"rationale_{idx}")
-                    article['rationale'] = rationale
+        # Add filter and sort options
+        col1, col2 = st.columns(2)
+        with col1:
+            sort_by = st.selectbox(
+                "Sort by",
+                ["Relevance Score", "Date"],
+                key="sort_by"
+            )
+        with col2:
+            min_score = st.slider(
+                "Minimum Score",
+                0.0, 10.0, 0.0,
+                step=0.5,
+                key="min_score"
+            )
 
-                with col2:
-                    if st.checkbox("Select", key=f"select_{idx}"):
+        # Sort articles
+        if sort_by == "Relevance Score":
+            st.session_state.articles.sort(
+                key=lambda x: x['relevance_score'],
+                reverse=True
+            )
+        else:  # Date
+            st.session_state.articles.sort(
+                key=lambda x: x['published_date'],
+                reverse=True
+            )
+
+        # Filter by score
+        filtered_articles = [
+            article for article in st.session_state.articles
+            if article['relevance_score'] >= min_score
+        ]
+
+        # Display articles in a compact format
+        for idx, article in enumerate(filtered_articles):
+            with st.container():
+                # Use columns for better layout
+                select_col, content_col = st.columns([1, 6])
+
+                with select_col:
+                    if st.checkbox("Select", key=f"select_{idx}", value=article in st.session_state.selected_articles):
                         if article not in st.session_state.selected_articles:
                             st.session_state.selected_articles.append(article)
                     else:
                         if article in st.session_state.selected_articles:
                             st.session_state.selected_articles.remove(article)
 
+                with content_col:
+                    # Title and metadata row
+                    title_col, meta_col = st.columns([3, 1])
+                    with title_col:
+                        st.markdown(f"### [{article['title']}]({article['url']})")
+                    with meta_col:
+                        st.markdown(
+                            f"**Score:** {article['relevance_score']:.1f}/10 | "
+                            f"**Date:** {article['published_date'].strftime('%Y-%m-%d')}"
+                        )
+
+                    # Rationale with edit option
+                    st.markdown("**Rationale:**")
+                    new_rationale = st.text_area(
+                        "Edit rationale",
+                        article['rationale'],
+                        key=f"rationale_{idx}",
+                        height=80
+                    )
+                    article['rationale'] = new_rationale
+
                 st.divider()
 
+        # Show selected count and generate report button
+        st.markdown(f"**Selected Articles:** {len(st.session_state.selected_articles)}")
         if st.button("Generate Reports"):
             if len(st.session_state.selected_articles) > 0:
                 st.session_state.current_step = 'report'
