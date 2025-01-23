@@ -17,101 +17,68 @@ class SearchAgent:
         self.model = "gpt-4o"
         self.min_articles = 6
         self.max_retries = 3
+        self.request_timeout = 10  # seconds
+        self.max_keywords = 5  # Limit number of keywords per search
 
     def extract_keywords_from_criteria(self, criteria_text):
         """
-        Use OpenAI to extract relevant search keywords from criteria with broader scope
+        Extract focused keywords from criteria
         """
-        prompt = f"""
-        Extract 8-10 search keywords or phrases from the following evaluation criteria.
-        Include both specific technical terms and broader related concepts to ensure
-        comprehensive coverage. Format the output as a JSON array of strings.
-
-        Criteria:
-        {criteria_text}
-        """
-
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=[{"role": "user", "content": prompt}],
-            response_format={"type": "json_object"},
-            max_tokens=300,
-        )
-
         try:
+            prompt = f"""
+            Extract 5 specific and focused search keywords from the criteria below.
+            Focus on technical terms that would yield relevant AI news articles.
+            Format as JSON array of strings.
+
+            Criteria:
+            {criteria_text}
+            """
+
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                response_format={"type": "json_object"},
+                max_tokens=200,
+            )
+
             keywords = eval(response.choices[0].message.content)['keywords']
-            # Add variations to increase coverage
-            expanded_keywords = []
-            for kw in keywords:
-                expanded_keywords.extend([
-                    f"{kw} artificial intelligence",
-                    f"{kw} AI news",
-                    f"{kw} machine learning"
-                ])
-            return expanded_keywords
-        except:
-            # Broader fallback keywords
+            return keywords[:self.max_keywords]
+
+        except Exception as e:
+            print(f"Error extracting keywords: {str(e)}")
             return [
-                "artificial intelligence breakthrough",
-                "AI technology innovation",
-                "machine learning developments",
-                "AI industry updates",
-                "AI research papers",
-                "artificial intelligence startup",
-                "AI business impact",
-                "machine learning applications",
-                "AI ethics news"
+                "artificial intelligence news",
+                "AI developments",
+                "machine learning updates"
             ]
 
     def fetch_article_content(self, url):
         """
-        Fetch and process article content using LlamaIndex
+        Fetch and process article content using LlamaIndex with timeout
         """
         try:
-            reader = BeautifulSoupWebReader()
-            documents = reader.load_data([url])
-
-            if documents:
-                return documents[0].text
-
-            # Fallback to basic request if LlamaIndex fails
-            response = requests.get(url)
+            response = requests.get(url, timeout=self.request_timeout)
             soup = BeautifulSoup(response.text, 'html.parser')
-            # Remove scripts and styles
-            for script in soup(["script", "style"]):
-                script.decompose()
-            return soup.get_text()
+
+            # Remove scripts, styles, and other non-content elements
+            for element in soup(['script', 'style', 'meta', 'link', 'header', 'footer', 'nav']):
+                element.decompose()
+
+            # Get main content
+            article = soup.find('article') or soup.find('main') or soup.find('body')
+            if article:
+                return article.get_text(strip=True)
+            return soup.get_text(strip=True)
+
         except Exception as e:
             print(f"Error fetching content from {url}: {str(e)}")
             return ""
 
     def parse_date(self, date_str):
-        """
-        Parse various date formats and relative dates
-        """
+        """Parse date with fallback"""
         try:
-            # Try direct parsing
             return datetime.strptime(date_str, '%Y-%m-%d')
         except ValueError:
-            # Handle relative dates
-            if 'ago' in date_str:
-                num = int(re.search(r'\d+', date_str).group())
-                if 'hour' in date_str:
-                    return datetime.now() - timedelta(hours=num)
-                elif 'day' in date_str:
-                    return datetime.now() - timedelta(days=num)
-                elif 'week' in date_str:
-                    return datetime.now() - timedelta(weeks=num)
-                elif 'month' in date_str:
-                    return datetime.now() - timedelta(days=num*30)
-
-            # Try other common formats
-            for fmt in ['%b %d, %Y', '%B %d, %Y', '%Y/%m/%d', '%d-%m-%Y']:
-                try:
-                    return datetime.strptime(date_str, fmt)
-                except ValueError:
-                    continue
-
             return datetime.now()
 
     def search(self, criteria_text=None):
@@ -121,50 +88,57 @@ class SearchAgent:
         articles = []
         cutoff_date = datetime.now() - timedelta(days=self.timeframe_days)
 
-        # Start with normal search
-        keywords = self.extract_keywords_from_criteria(criteria_text)
-        articles = self._search_with_keywords(keywords, cutoff_date)
+        try:
+            # Start with focused search using limited keywords
+            keywords = self.extract_keywords_from_criteria(criteria_text)[:self.max_keywords]
+            articles = self._search_with_keywords(keywords, cutoff_date)
 
-        # If we don't have enough articles, gradually expand search
-        retries = 0
-        while len(articles) < self.min_articles and retries < self.max_retries:
-            retries += 1
-            print(f"Not enough articles ({len(articles)}), retrying with broader search...")
+            print(f"Initial search found {len(articles)} articles")
 
-            # Expand timeframe
-            cutoff_date = datetime.now() - timedelta(days=self.timeframe_days * (retries + 1))
+            # If we don't have enough articles, gradually expand search
+            retries = 0
+            while len(articles) < self.min_articles and retries < self.max_retries:
+                retries += 1
+                print(f"Retry {retries}: Not enough articles ({len(articles)})")
 
-            # Get more general keywords
-            broader_keywords = [k.split()[-1] for k in keywords]  # Take last word of each phrase
-            broader_keywords.extend([
-                "artificial intelligence news",
-                "AI developments",
-                "machine learning updates",
-                "AI technology"
-            ])
+                # Expand timeframe
+                expanded_cutoff = datetime.now() - timedelta(days=self.timeframe_days * (retries + 1))
 
-            # Search again
-            new_articles = self._search_with_keywords(broader_keywords, cutoff_date)
+                # Use more general keywords
+                broader_keywords = [
+                    "artificial intelligence news",
+                    "AI developments",
+                    "machine learning updates"
+                ]
 
-            # Add new unique articles
-            articles.extend([a for a in new_articles if a['url'] not in [existing['url'] for existing in articles]])
+                print(f"Searching with broader keywords: {broader_keywords}")
+                new_articles = self._search_with_keywords(broader_keywords, expanded_cutoff)
 
-        # Final deduplication and sorting
-        unique_articles = {}
-        for article in articles:
-            if article['url'] not in unique_articles:
-                if isinstance(article['published_date'], str):
-                    article['published_date'] = self.parse_date(article['published_date'])
-                unique_articles[article['url']] = article
+                # Add only unique articles
+                for article in new_articles:
+                    if article['url'] not in [a['url'] for a in articles]:
+                        articles.append(article)
 
-        # Sort by date
-        sorted_articles = sorted(
-            unique_articles.values(),
-            key=lambda x: x['published_date'],
-            reverse=True
-        )
+            # Final processing
+            processed_articles = []
+            for article in articles:
+                try:
+                    if isinstance(article['published_date'], str):
+                        article['published_date'] = self.parse_date(article['published_date'])
+                    processed_articles.append(article)
+                except Exception as e:
+                    print(f"Error processing article: {str(e)}")
+                    continue
 
-        return sorted_articles
+            # Sort by date
+            processed_articles.sort(key=lambda x: x['published_date'], reverse=True)
+
+            print(f"Final article count: {len(processed_articles)}")
+            return processed_articles
+
+        except Exception as e:
+            print(f"Error in search process: {str(e)}")
+            raise Exception(f"Search failed: {str(e)}")
 
     def _search_with_keywords(self, keywords, cutoff_date):
         """
@@ -172,24 +146,33 @@ class SearchAgent:
         """
         articles = []
         api_key = os.environ.get("SERPAPI_API_KEY")
+
+        if not api_key:
+            raise Exception("SERPAPI_API_KEY not found")
+
         client = SerpAPIClient(api_key=api_key)
 
         for keyword in keywords:
-            params = {
-                "engine": "google",
-                "q": f"{keyword}",
-                "tbm": "nws",
-                "num": 10,  # Request more results
-            }
-
             try:
+                params = {
+                    "engine": "google",
+                    "q": keyword,
+                    "tbm": "nws",
+                    "num": 5,  # Limit results per keyword
+                }
+
                 results = client.search(params).get("news_results", [])
+                print(f"Found {len(results)} results for keyword: {keyword}")
 
                 for result in results:
-                    # Fetch full content using LlamaIndex
+                    # Basic validation
+                    if not all(key in result for key in ['title', 'link', 'source']):
+                        continue
+
+                    # Get article content with timeout
                     content = self.fetch_article_content(result['link'])
 
-                    if content:  # Only add articles where we successfully got content
+                    if content:  # Only add articles where we got content
                         articles.append({
                             'title': result['title'],
                             'url': result['link'],
@@ -197,7 +180,9 @@ class SearchAgent:
                             'published_date': result.get('date', datetime.now().strftime('%Y-%m-%d')),
                             'content': content
                         })
+
             except Exception as e:
                 print(f"Error searching for keyword {keyword}: {str(e)}")
+                continue
 
         return articles
