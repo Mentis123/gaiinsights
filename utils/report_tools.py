@@ -32,12 +32,12 @@ def generate_pdf_report(articles, output_path):
     # Create table data with clickable URLs that open in new tab
     table_data = [['Article Title', 'Date', 'Score', 'Rationale']]
     for article in articles:
-        # Use special link tag with color and decoration for better visibility
+        # Use special link tag for proper PDF hyperlinks
         title_with_link = f'''
-        <para color="blue">
-            <a href="{article["url"]}" color="blue" underline="1" target="_blank">
-                {article["title"]}
-            </a>
+        <para>
+            <link foreground="blue" uline="1" href="{article['url']}">
+                {article['title']}
+            </link>
         </para>
         '''
         table_data.append([
