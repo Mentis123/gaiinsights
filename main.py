@@ -24,56 +24,59 @@ def main():
         menu_items={
             'Get Help': 'https://www.extremelycoolapp.com/help',
             'Report a bug': "https://www.extremelycoolapp.com/bug",
-            'About': "# AI News Aggregation System",
-            'Settings': {
-                'Test Mode': st.session_state.test_mode
-            }
+            'About': "# AI News Aggregation System"
         }
     )
 
     st.title("AI News Aggregation System")
 
-    # Sidebar with just the Fetch button
-    with st.sidebar:
-        if st.button("Fetch New Articles"):
-            with st.spinner("Fetching AI news from sources..."):
-                sources = load_source_sites(test_mode=st.session_state.test_mode)
-                all_articles = []
-                progress_bar = st.progress(0)
+    # Add Settings in the sidebar
+    if st.sidebar.button("⚙️ Settings"):
+        st.sidebar.markdown("### Settings")
+        test_mode = st.sidebar.toggle("Test Mode", value=st.session_state.test_mode)
+        if test_mode != st.session_state.test_mode:
+            st.session_state.test_mode = test_mode
 
-                # Create a placeholder for the source status
-                status_container = st.empty()
-                st.session_state.scan_status = []  # Clear previous status
+    # Fetch button in the sidebar
+    if st.sidebar.button("Fetch New Articles"):
+        with st.spinner("Fetching AI news from sources..."):
+            sources = load_source_sites(test_mode=st.session_state.test_mode)
+            all_articles = []
+            progress_bar = st.progress(0)
 
-                # Process sources in reverse order for display
-                for idx, source in enumerate(reversed(sources)):
-                    # Update the status at the top
-                    st.session_state.scan_status.insert(0, f"Currently Scanning:\n{source}")
+            # Create a placeholder for the source status
+            status_container = st.empty()
+            st.session_state.scan_status = []  # Clear previous status
 
-                    ai_articles = find_ai_articles(source)
-                    if ai_articles:
-                        st.session_state.scan_status.insert(0, f"Found {len(ai_articles)} AI articles from current source\n")
+            # Process sources in reverse order for display
+            for idx, source in enumerate(reversed(sources)):
+                # Update the status at the top
+                st.session_state.scan_status.insert(0, f"Currently Scanning:\n{source}")
 
-                    # Show last 5 status messages with proper line breaks
-                    status_text = "\n".join(st.session_state.scan_status[:5])
-                    status_container.markdown(status_text)
+                ai_articles = find_ai_articles(source)
+                if ai_articles:
+                    st.session_state.scan_status.insert(0, f"Found {len(ai_articles)} AI articles from current source\n")
 
-                    for article in ai_articles:
-                        content = extract_content(article['url'])
-                        if content:
-                            analysis = summarize_article(content)
-                            if analysis:
-                                all_articles.append({
-                                    **article,
-                                    **content,
-                                    **analysis
-                                })
-                    progress_bar.progress((idx + 1) / len(sources))
+                # Show last 5 status messages with proper line breaks
+                status_text = "\n".join(st.session_state.scan_status[:5])
+                status_container.markdown(status_text)
 
-                st.session_state.articles = all_articles
-                st.session_state.scan_status = []  # Clear status after completion
-                status_container.empty()
-                st.success(f"Found {len(all_articles)} AI-related articles!")
+                for article in ai_articles:
+                    content = extract_content(article['url'])
+                    if content:
+                        analysis = summarize_article(content)
+                        if analysis:
+                            all_articles.append({
+                                **article,
+                                **content,
+                                **analysis
+                            })
+                progress_bar.progress((idx + 1) / len(sources))
+
+            st.session_state.articles = all_articles
+            st.session_state.scan_status = []  # Clear status after completion
+            status_container.empty()
+            st.success(f"Found {len(all_articles)} AI-related articles!")
 
     # Main content area
     if st.session_state.articles:
