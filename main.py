@@ -100,16 +100,15 @@ def validate_ai_relevance(article):
     """Validate if an article is truly AI-related."""
     client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
     prompt = f"""
-    Strictly evaluate if this article is genuinely about artificial intelligence technology, development, or applications.
+    Evaluate if this article is genuinely about artificial intelligence technology, development, or applications.
 
-    Criteria for a TRUE AI article:
-    1. Must focus primarily on AI technology, not just mention AI in passing
-    2. Must discuss specific AI developments, applications, or research
-    3. Must contain substantial technical or business information about AI
-    4. Must NOT be about:
-       - Celebrity news or entertainment that happens to mention AI
-       - General tech news that briefly references AI
-       - Articles that use "AI" as a buzzword
+    Consider these criteria:
+    1. The article should primarily discuss AI technology or its applications
+    2. It should contain meaningful information about AI developments or impacts
+    3. Filter out articles that:
+       - Are primarily about celebrities or entertainment with only passing AI mentions
+       - Only use "AI" as a buzzword without substantial AI content
+       - Have no real connection to artificial intelligence technology
 
     Article Title: {article['title']}
     Summary: {article.get('summary', '')}
@@ -119,10 +118,11 @@ def validate_ai_relevance(article):
     {{
         "is_relevant": true/false,
         "confidence": 0-100,
-        "reason": "detailed explanation of why this is or isn't a genuine AI article"
+        "reason": "explanation of why this is or isn't an AI-related article"
     }}
 
-    Be extremely strict - when in doubt, mark as false.
+    If it's genuinely about AI technology or its applications, mark as true.
+    If it's clearly unrelated or only mentions AI in passing, mark as false.
     """
 
     try:
@@ -133,10 +133,10 @@ def validate_ai_relevance(article):
         )
         result = json.loads(response.choices[0].message.content)
 
-        # Only consider articles with high confidence
-        if result.get('is_relevant', False) and result.get('confidence', 0) > 85:
+        # Consider articles with moderate to high confidence
+        if result.get('is_relevant', False) and result.get('confidence', 0) > 70:
             return result
-        return {"is_relevant": False, "confidence": 0, "reason": result.get('reason', 'Did not meet strict AI relevance criteria')}
+        return {"is_relevant": False, "confidence": 0, "reason": result.get('reason', 'Did not meet AI relevance criteria')}
     except Exception as e:
         print(f"Error in AI validation: {str(e)}")
         return {"is_relevant": False, "confidence": 0, "reason": "Validation failed"}
