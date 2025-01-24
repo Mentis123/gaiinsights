@@ -21,50 +21,60 @@ def load_source_sites(test_mode: bool = True) -> List[str]:
 
 def extract_content(url: str) -> Dict[str, str]:
     """Extract content from a given URL using trafilatura."""
-    try:
-        downloaded = trafilatura.fetch_url(url)
-        if downloaded:
-            try:
-                content = trafilatura.extract(
-                    downloaded,
-                    include_links=True,
-                    include_images=True,
-                    include_tables=True,
-                    output_format='json',
-                    with_metadata=True
-                )
+    max_retries = 3
+    retry_delay = 1
 
-                if content:
-                    # Parse the JSON string into a dictionary
-                    if isinstance(content, str):
-                        import json
-                        content = json.loads(content)
+    for attempt in range(max_retries):
+        try:
+            downloaded = trafilatura.fetch_url(url)
+            if downloaded:
+                try:
+                    content = trafilatura.extract(
+                        downloaded,
+                        include_links=True,
+                        include_images=True,
+                        include_tables=True,
+                        output_format='json',
+                        with_metadata=True
+                    )
 
-                    # Parse and validate the date
-                    article_date = content.get('date', '')
-                    if article_date:
-                        try:
-                            date_obj = datetime.strptime(article_date[:10], '%Y-%m-%d')
-                            week_ago = datetime.now() - timedelta(days=7)
-                            if date_obj < week_ago:
-                                print(f"Article too old: {article_date}")
+                    if content:
+                        # Parse the JSON string into a dictionary
+                        if isinstance(content, str):
+                            import json
+                            content = json.loads(content)
+
+                        # Parse and validate the date
+                        article_date = content.get('date', '')
+                        if article_date:
+                            try:
+                                date_obj = datetime.strptime(article_date[:10], '%Y-%m-%d')
+                                week_ago = datetime.now() - timedelta(days=7)
+                                if date_obj < week_ago:
+                                    print(f"Article too old: {article_date}")
+                                    return None
+                            except ValueError:
+                                print(f"Invalid date format: {article_date}")
                                 return None
-                        except ValueError:
-                            print(f"Invalid date format: {article_date}")
-                            return None
 
-                    return {
-                        'title': content.get('title', ''),
-                        'text': content.get('text', ''),
-                        'date': article_date,
-                        'url': url
-                    }
-            except Exception as e:
-                print(f"Error parsing content from {url}: {e}")
-                return None
-    except Exception as e:
-        print(f"Error downloading content from {url}: {e}")
-        return None
+                        return {
+                            'title': content.get('title', ''),
+                            'text': content.get('text', ''),
+                            'date': article_date,
+                            'url': url
+                        }
+                except Exception as e:
+                    print(f"Error parsing content from {url}: {e}")
+                    if attempt < max_retries - 1:
+                        time.sleep(retry_delay)
+                        continue
+                    return None
+        except Exception as e:
+            print(f"Error downloading content from {url}: {e}")
+            if attempt < max_retries - 1:
+                time.sleep(retry_delay)
+                continue
+            return None
     return None
 
 def is_consent_or_main_page(text: str) -> bool:
@@ -95,16 +105,22 @@ def find_ai_articles(url: str) -> List[Dict[str, str]]:
         soup = BeautifulSoup(response.text, 'html.parser')
         articles = []
 
-        # AI-related keywords focusing on actual news and implementations
+        # AI implementation and news keywords (strict matching)
         ai_keywords = [
-            'launches ai', 'implements ai', 'deploys ai',
-            'ai technology', 'ai solution', 'ai platform',
-            'artificial intelligence', 'ai tool',
-            'machine learning', 'chatgpt', 'llm',
-            'ai-powered', 'ai startup', 'neural',
-            'generative ai', 'ai model', 'ai system',
-            'ai application', 'ai development',
-            'ai partnership', 'ai research'
+            'ai', 'artificial intelligence', 'machine learning',
+            'deep learning', 'neural network', 'generative ai',
+            'chatgpt', 'large language model', 'llm',
+            'ai development', 'ai technology', 'ai solution',
+            'ai platform', 'ai integration', 'ai implementation'
+        ]
+
+        # AI applications and use cases (less strict matching)
+        ai_applications = [
+            'automation', 'robotics', 'computer vision',
+            'nlp', 'natural language', 'predictive',
+            'algorithm', 'data science', 'analytics',
+            'intelligent', 'smart', 'autonomous',
+            'cognitive', 'digital assistant', 'virtual assistant'
         ]
 
         for link in soup.find_all('a', href=True):
@@ -123,8 +139,16 @@ def find_ai_articles(url: str) -> List[Dict[str, str]]:
             if is_consent_or_main_page(combined_text):
                 continue
 
-            # Include if it contains actual AI implementation/news keywords
-            if any(keyword in combined_text for keyword in ai_keywords):
+            # Check for AI keywords (strict matching)
+            ai_keyword_matches = sum(1 for keyword in ai_keywords if keyword.lower() in combined_text)
+
+            # Check for AI applications (less strict matching)
+            ai_application_matches = sum(1 for app in ai_applications if app.lower() in combined_text)
+
+            # Include article if:
+            # 1. Contains at least one AI keyword, or
+            # 2. Contains multiple AI application terms
+            if ai_keyword_matches > 0 or ai_application_matches >= 2:
                 articles.append({
                     'url': href,
                     'title': link.text.strip() or link.get('title', '').strip()

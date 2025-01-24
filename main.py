@@ -10,6 +10,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from io import BytesIO
+import traceback
 
 # Initialize session state
 if 'articles' not in st.session_state:
@@ -92,45 +93,54 @@ def main():
 
     # Fetch button in the sidebar
     if st.sidebar.button("Fetch New Articles"):
-        with st.spinner("Fetching AI news from sources..."):
-            sources = load_source_sites(test_mode=st.session_state.test_mode)
-            all_articles = []
-            progress_bar = st.progress(0)
+        try:
+            with st.spinner("Fetching AI news from sources..."):
+                sources = load_source_sites(test_mode=st.session_state.test_mode)
+                all_articles = []
+                progress_bar = st.progress(0)
 
-            # Create a placeholder for the source status
-            status_container = st.empty()
-            st.session_state.scan_status = []  # Clear previous status
+                # Create a placeholder for the source status
+                status_container = st.empty()
+                st.session_state.scan_status = []  # Clear previous status
 
-            # Process sources in reverse order for display
-            for idx, source in enumerate(reversed(sources)):
-                # Update the status at the top
-                st.session_state.scan_status.insert(0, f"Currently Scanning: {source}")
+                # Process sources in reverse order for display
+                for idx, source in enumerate(reversed(sources)):
+                    try:
+                        # Update the status at the top
+                        st.session_state.scan_status.insert(0, f"Currently Scanning: {source}")
 
-                ai_articles = find_ai_articles(source)
-                if ai_articles:
-                    st.session_state.scan_status.insert(0, f"Found {len(ai_articles)} AI articles from current source")
-                    st.session_state.scan_status.insert(0, "Analyzing and summarizing articles...")
+                        ai_articles = find_ai_articles(source)
+                        if ai_articles:
+                            st.session_state.scan_status.insert(0, f"Found {len(ai_articles)} AI articles from current source")
+                            st.session_state.scan_status.insert(0, "Analyzing and summarizing articles...")
 
-                # Show last 5 status messages with proper line breaks
-                status_text = "\n".join(st.session_state.scan_status[:5])
-                status_container.markdown(status_text)
+                        # Show last 5 status messages with proper line breaks
+                        status_text = "\n".join(st.session_state.scan_status[:5])
+                        status_container.markdown(status_text)
 
-                for article in ai_articles:
-                    content = extract_content(article['url'])
-                    if content:
-                        analysis = summarize_article(content)
-                        if analysis:
-                            all_articles.append({
-                                **article,
-                                **content,
-                                **analysis
-                            })
-                progress_bar.progress((idx + 1) / len(sources))
+                        for article in ai_articles:
+                            content = extract_content(article['url'])
+                            if content:
+                                analysis = summarize_article(content)
+                                if analysis:
+                                    all_articles.append({
+                                        **article,
+                                        **content,
+                                        **analysis
+                                    })
+                        progress_bar.progress((idx + 1) / len(sources))
+                    except Exception as e:
+                        st.error(f"Error processing source {source}: {str(e)}")
+                        print(f"Error details: {traceback.format_exc()}")
+                        continue
 
-            st.session_state.articles = all_articles
-            st.session_state.scan_status = []  # Clear status after completion
-            status_container.empty()
-            st.success(f"Found {len(all_articles)} AI-related articles!")
+                st.session_state.articles = all_articles
+                st.session_state.scan_status = []  # Clear status after completion
+                status_container.empty()
+                st.success(f"Found {len(all_articles)} AI-related articles!")
+        except Exception as e:
+            st.error(f"An error occurred while fetching articles: {str(e)}")
+            print(f"Error details: {traceback.format_exc()}")
 
     # Main content area
     if st.session_state.articles:
@@ -138,16 +148,20 @@ def main():
         col1, col2 = st.columns([1, 8])
         with col1:
             if st.button("Export All" if not st.session_state.selected_articles else "Export Selected"):
-                articles_to_export = st.session_state.selected_articles if st.session_state.selected_articles else st.session_state.articles
-                pdf_data = generate_pdf(articles_to_export)
+                try:
+                    articles_to_export = st.session_state.selected_articles if st.session_state.selected_articles else st.session_state.articles
+                    pdf_data = generate_pdf(articles_to_export)
 
-                # Create a download button for the PDF
-                st.download_button(
-                    "Download PDF",
-                    pdf_data,
-                    "ai_news_report.pdf",
-                    "application/pdf"
-                )
+                    # Create a download button for the PDF
+                    st.download_button(
+                        "Download PDF",
+                        pdf_data,
+                        "ai_news_report.pdf",
+                        "application/pdf"
+                    )
+                except Exception as e:
+                    st.error(f"Error generating PDF: {str(e)}")
+                    print(f"Error details: {traceback.format_exc()}")
 
         # Display articles with selection checkboxes
         st.write(f"Research Results")
