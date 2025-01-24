@@ -6,19 +6,13 @@ import pandas as pd
 import json
 import os
 
-def init_session_state():
+def main():
     if 'articles' not in st.session_state:
         st.session_state.articles = []
     if 'selected_articles' not in st.session_state:
         st.session_state.selected_articles = []
-    if 'test_mode' not in st.session_state:
-        st.session_state.test_mode = True
     if 'scan_status' not in st.session_state:
         st.session_state.scan_status = []
-
-def main():
-    # Initialize session state first
-    init_session_state()
 
     st.set_page_config(
         page_title="AI News Aggregator",
@@ -36,9 +30,6 @@ def main():
     # Sidebar for controls
     with st.sidebar:
         st.header("Controls")
-        test_mode = st.toggle("Test Mode", value=st.session_state.test_mode)
-        if test_mode != st.session_state.test_mode:
-            st.session_state.test_mode = test_mode
         if st.button("Fetch New Articles"):
             with st.spinner("Fetching AI news from sources..."):
                 sources = load_source_sites(test_mode=st.session_state.test_mode)
@@ -51,11 +42,16 @@ def main():
                 # Process sources in reverse order for display
                 for idx, source in enumerate(reversed(sources)):
                     # Update the status at the top
-                    st.session_state.scan_status.insert(0, f"Currently Scanning: {source}")
-                    status_text = "\n".join(st.session_state.scan_status[:5])  # Show last 5 status messages
-                    status_container.markdown(status_text)
+                    st.session_state.scan_status.insert(0, f"Currently Scanning:\n{source}")
 
                     ai_articles = find_ai_articles(source)
+                    if ai_articles:
+                        st.session_state.scan_status.insert(0, f"Found {len(ai_articles)} AI articles from current source\n")
+
+                    # Show last 5 status messages with proper line breaks
+                    status_text = "\n".join(st.session_state.scan_status[:5])
+                    status_container.markdown(status_text)
+
                     for article in ai_articles:
                         content = extract_content(article['url'])
                         if content:
