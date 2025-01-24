@@ -81,7 +81,7 @@ def is_consent_or_main_page(text: str) -> bool:
     return any(indicator in text_lower for indicator in consent_indicators)
 
 def find_ai_articles(url: str) -> List[Dict[str, str]]:
-    """Find AI-related articles from a given source URL."""
+    """Find AI-related articles from a given source URL with enhanced filtering."""
     try:
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
@@ -99,10 +99,12 @@ def find_ai_articles(url: str) -> List[Dict[str, str]]:
         ai_keywords = [
             'launches ai', 'implements ai', 'deploys ai',
             'ai technology', 'ai solution', 'ai platform',
-            'artificial intelligence system', 'ai tool',
-            'machine learning implementation',
-            'chatgpt integration', 'llm deployment',
-            'ai-powered', 'ai startup'
+            'artificial intelligence', 'ai tool',
+            'machine learning', 'chatgpt', 'llm',
+            'ai-powered', 'ai startup', 'neural',
+            'generative ai', 'ai model', 'ai system',
+            'ai application', 'ai development',
+            'ai partnership', 'ai research'
         ]
 
         for link in soup.find_all('a', href=True):
