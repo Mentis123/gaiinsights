@@ -11,6 +11,8 @@ def init_session_state():
         st.session_state.articles = []
     if 'selected_articles' not in st.session_state:
         st.session_state.selected_articles = []
+    if 'test_mode' not in st.session_state:
+        st.session_state.test_mode = True
 
 def main():
     st.set_page_config(
@@ -25,15 +27,24 @@ def main():
 
     # Sidebar for controls and filtering
     with st.sidebar:
+        st.header("Settings")
+        st.session_state.test_mode = st.toggle("Test Mode (First 3 Sources)", value=st.session_state.test_mode)
+
         st.header("Controls")
         if st.button("Fetch New Articles"):
             with st.spinner("Fetching AI news from sources..."):
-                sources = load_source_sites()
+                sources = load_source_sites(test_mode=st.session_state.test_mode)
                 all_articles = []
                 progress_bar = st.progress(0)
 
-                for idx, source in enumerate(sources):
-                    st.write(f"Scanning: {source}")
+                # Create a placeholder for the source status
+                status_container = st.empty()
+
+                # Process sources in reverse order for display
+                for idx, source in enumerate(reversed(sources)):
+                    # Update the status at the top
+                    status_container.markdown(f"**Currently Scanning:** {source}")
+
                     ai_articles = find_ai_articles(source)
                     for article in ai_articles:
                         content = extract_content(article['url'])
@@ -48,6 +59,8 @@ def main():
                     progress_bar.progress((idx + 1) / len(sources))
 
                 st.session_state.articles = all_articles
+                # Clear the status container after completion
+                status_container.empty()
                 st.success(f"Found {len(all_articles)} AI-related articles!")
 
         # Filtering options

@@ -4,10 +4,13 @@ from typing import List, Dict
 import requests
 from bs4 import BeautifulSoup
 
-def load_source_sites() -> List[str]:
+def load_source_sites(test_mode: bool = True) -> List[str]:
     """Load the source sites from the CSV file."""
     try:
         df = pd.read_csv('attached_assets/search_sites.csv', header=None)
+        if test_mode:
+            # Return only the first three sources in test mode
+            return df[0].head(3).tolist()
         return df[0].tolist()
     except Exception as e:
         print(f"Error loading source sites: {e}")
@@ -40,7 +43,7 @@ def find_ai_articles(url: str) -> List[Dict[str, str]]:
         response = requests.get(url, timeout=10)
         response.raise_for_status()
         soup = BeautifulSoup(response.text, 'html.parser')
-        
+
         # Find all links
         articles = []
         for link in soup.find_all('a', href=True):
@@ -51,7 +54,7 @@ def find_ai_articles(url: str) -> List[Dict[str, str]]:
                     href = url.rstrip('/') + href
                 else:
                     continue
-                    
+
             # Check if the link contains AI-related keywords
             link_text = link.text.lower()
             if any(keyword in link_text for keyword in ['ai', 'artificial intelligence', 'machine learning', 'ml', 'chatgpt', 'llm']):
@@ -59,7 +62,7 @@ def find_ai_articles(url: str) -> List[Dict[str, str]]:
                     'url': href,
                     'title': link.text.strip()
                 })
-                
+
         return articles
     except Exception as e:
         print(f"Error finding AI articles from {url}: {e}")
