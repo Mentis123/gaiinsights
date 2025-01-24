@@ -100,11 +100,16 @@ def validate_ai_relevance(article):
     """Validate if an article is truly AI-related."""
     client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
     prompt = f"""
-    Please analyze if this article is genuinely about AI technology, development, or applications.
-    Consider these aspects:
-    1. Does it discuss actual AI technology or just mention AI in passing?
-    2. Is it focused on current or future AI developments?
-    3. Does it provide substantive information about AI?
+    Strictly evaluate if this article is genuinely about artificial intelligence technology, development, or applications.
+
+    Criteria for a TRUE AI article:
+    1. Must focus primarily on AI technology, not just mention AI in passing
+    2. Must discuss specific AI developments, applications, or research
+    3. Must contain substantial technical or business information about AI
+    4. Must NOT be about:
+       - Celebrity news or entertainment that happens to mention AI
+       - General tech news that briefly references AI
+       - Articles that use "AI" as a buzzword
 
     Article Title: {article['title']}
     Summary: {article.get('summary', '')}
@@ -114,8 +119,10 @@ def validate_ai_relevance(article):
     {{
         "is_relevant": true/false,
         "confidence": 0-100,
-        "reason": "brief explanation"
+        "reason": "detailed explanation of why this is or isn't a genuine AI article"
     }}
+
+    Be extremely strict - when in doubt, mark as false.
     """
 
     try:
@@ -125,10 +132,14 @@ def validate_ai_relevance(article):
             response_format={"type": "json_object"}
         )
         result = json.loads(response.choices[0].message.content)
-        return result
+
+        # Only consider articles with high confidence
+        if result.get('is_relevant', False) and result.get('confidence', 0) > 85:
+            return result
+        return {"is_relevant": False, "confidence": 0, "reason": result.get('reason', 'Did not meet strict AI relevance criteria')}
     except Exception as e:
         print(f"Error in AI validation: {str(e)}")
-        return {"is_relevant": True, "confidence": 100, "reason": "Validation failed, accepting by default"}
+        return {"is_relevant": False, "confidence": 0, "reason": "Validation failed"}
 
 def main():
     st.set_page_config(
@@ -147,22 +158,18 @@ def main():
                 all_articles = []
                 progress_bar = st.progress(0)
 
-                # Create a placeholder for the source status
                 status_container = st.empty()
-                st.session_state.scan_status = []  # Clear previous status
+                st.session_state.scan_status = []
 
-                # Process sources in reverse order for display
                 for idx, source in enumerate(reversed(sources)):
                     try:
-                        # Update the status at the top
                         st.session_state.scan_status.insert(0, f"Currently Scanning: {source}")
 
                         ai_articles = find_ai_articles(source)
                         if ai_articles:
-                            st.session_state.scan_status.insert(0, f"Found {len(ai_articles)} AI articles from current source")
-                            st.session_state.scan_status.insert(0, "Analyzing and summarizing articles...")
+                            st.session_state.scan_status.insert(0, f"Found {len(ai_articles)} potential AI articles from current source")
+                            st.session_state.scan_status.insert(0, "Analyzing and validating articles...")
 
-                        # Show last 5 status messages with proper line breaks
                         status_text = "\n".join(st.session_state.scan_status[:5])
                         status_container.markdown(status_text)
 
@@ -171,11 +178,17 @@ def main():
                             if content:
                                 analysis = summarize_article(content)
                                 if analysis:
-                                    all_articles.append({
-                                        **article,
-                                        **content,
-                                        **analysis
-                                    })
+                                    # Validate AI relevance immediately
+                                    validation = validate_ai_relevance({**article, **analysis})
+                                    if validation['is_relevant']:
+                                        all_articles.append({
+                                            **article,
+                                            **content,
+                                            **analysis,
+                                            'ai_confidence': validation['confidence'],
+                                            'ai_validation': validation['reason']
+                                        })
+
                         progress_bar.progress((idx + 1) / len(sources))
                     except Exception as e:
                         st.error(f"Error processing source {source}: {str(e)}")
@@ -183,9 +196,9 @@ def main():
                         continue
 
                 st.session_state.articles = all_articles
-                st.session_state.scan_status = []  # Clear status after completion
+                st.session_state.scan_status = []
                 status_container.empty()
-                st.success(f"Found {len(all_articles)} AI-related articles!")
+                st.success(f"Found {len(all_articles)} validated AI-related articles!")
         except Exception as e:
             st.error(f"An error occurred while fetching articles: {str(e)}")
             print(f"Error details: {traceback.format_exc()}")
