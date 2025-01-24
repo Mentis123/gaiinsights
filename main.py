@@ -18,22 +18,28 @@ def main():
     st.set_page_config(
         page_title="AI News Aggregator",
         layout="wide",
-        initial_sidebar_state="expanded"
+        initial_sidebar_state="expanded",
+        menu_items={
+            'Get Help': 'https://www.extremelycoolapp.com/help',
+            'Report a bug': "https://www.extremelycoolapp.com/bug",
+            'About': "# AI News Aggregation System",
+            'Settings': {
+                'Test Mode': st.session_state.test_mode
+            }
+        }
     )
 
     init_session_state()
 
     st.title("AI News Aggregation System")
 
-    # Sidebar for controls and filtering
+    # Sidebar for controls
     with st.sidebar:
-        st.header("Settings")
-        st.session_state.test_mode = st.toggle("Test Mode (First 3 Sources)", value=st.session_state.test_mode)
-
         st.header("Controls")
         if st.button("Fetch New Articles"):
             with st.spinner("Fetching AI news from sources..."):
                 sources = load_source_sites(test_mode=st.session_state.test_mode)
+                st.write(f"Debug: Found {len(sources)} sources")  # Debug line
                 all_articles = []
                 progress_bar = st.progress(0)
 
@@ -45,7 +51,11 @@ def main():
                     # Update the status at the top
                     status_container.markdown(f"**Currently Scanning:** {source}")
 
+                    # Debug logging
+                    st.write(f"Debug: Searching {source}")
                     ai_articles = find_ai_articles(source)
+                    st.write(f"Debug: Found {len(ai_articles)} AI articles from {source}")
+
                     for article in ai_articles:
                         content = extract_content(article['url'])
                         if content:
@@ -63,23 +73,13 @@ def main():
                 status_container.empty()
                 st.success(f"Found {len(all_articles)} AI-related articles!")
 
-        # Filtering options
-        st.header("Filters")
-        min_impact = st.slider("Minimum Impact Score", 1, 10, 1)
-
     # Main content area
     if st.session_state.articles:
-        # Filter articles based on impact score
-        filtered_articles = [
-            article for article in st.session_state.articles 
-            if article.get('impact_score', 0) >= min_impact
-        ]
-
-        st.write(f"Showing {len(filtered_articles)} articles")
+        st.write(f"Showing {len(st.session_state.articles)} articles")
 
         # Display articles
-        for idx, article in enumerate(filtered_articles):
-            with st.expander(f"{article['title']} - Impact: {article.get('impact_score', 'N/A')}/10"):
+        for idx, article in enumerate(st.session_state.articles):
+            with st.expander(f"{article['title']}"):
                 cols = st.columns([3, 1])
                 with cols[0]:
                     st.markdown(f"**Source:** [{article['url']}]({article['url']})")
@@ -111,8 +111,7 @@ def main():
                     'Date': article.get('date', ''),
                     'Summary': article.get('summary', ''),
                     'Key Points': ', '.join(article.get('key_points', [])),
-                    'AI Relevance': article.get('ai_relevance', ''),
-                    'Impact Score': article.get('impact_score', '')
+                    'AI Relevance': article.get('ai_relevance', '')
                 })
 
             # CSV Export
@@ -131,8 +130,8 @@ def main():
             with cols[1]:
                 from reportlab.lib import colors
                 from reportlab.lib.pagesizes import letter
-                from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-                from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+                from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+                from reportlab.lib.styles import getSampleStyleSheet
 
                 pdf_path = "reports/ai_news_report.pdf"
                 os.makedirs("reports", exist_ok=True)
@@ -154,7 +153,6 @@ def main():
                     story.append(Paragraph("Key Points:", styles['Heading3']))
                     for point in article.get('key_points', []):
                         story.append(Paragraph(f"• {point}", styles['BodyText']))
-                    story.append(Paragraph(f"Impact Score: {article.get('impact_score', 'N/A')}/10", styles['BodyText']))
                     story.append(Spacer(1, 12))
 
                 doc.build(story)
