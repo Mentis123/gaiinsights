@@ -13,6 +13,8 @@ def init_session_state():
         st.session_state.selected_articles = []
     if 'test_mode' not in st.session_state:
         st.session_state.test_mode = True
+    if 'scan_status' not in st.session_state:
+        st.session_state.scan_status = []
 
 def main():
     # Initialize session state first
@@ -33,16 +35,13 @@ def main():
 
     # Sidebar for controls
     with st.sidebar:
-        st.header("Settings")
+        st.header("Controls")
         test_mode = st.toggle("Test Mode", value=st.session_state.test_mode)
         if test_mode != st.session_state.test_mode:
             st.session_state.test_mode = test_mode
-
-        st.header("Controls")
         if st.button("Fetch New Articles"):
             with st.spinner("Fetching AI news from sources..."):
                 sources = load_source_sites(test_mode=st.session_state.test_mode)
-                st.write(f"Debug: Found {len(sources)} sources")  # Debug line
                 all_articles = []
                 progress_bar = st.progress(0)
 
@@ -52,13 +51,11 @@ def main():
                 # Process sources in reverse order for display
                 for idx, source in enumerate(reversed(sources)):
                     # Update the status at the top
-                    status_container.markdown(f"**Currently Scanning:** {source}")
+                    st.session_state.scan_status.insert(0, f"Currently Scanning: {source}")
+                    status_text = "\n".join(st.session_state.scan_status[:5])  # Show last 5 status messages
+                    status_container.markdown(status_text)
 
-                    # Debug logging
-                    st.write(f"Debug: Searching {source}")
                     ai_articles = find_ai_articles(source)
-                    st.write(f"Debug: Found {len(ai_articles)} AI articles from {source}")
-
                     for article in ai_articles:
                         content = extract_content(article['url'])
                         if content:
@@ -72,7 +69,7 @@ def main():
                     progress_bar.progress((idx + 1) / len(sources))
 
                 st.session_state.articles = all_articles
-                # Clear the status container after completion
+                st.session_state.scan_status = []  # Clear status after completion
                 status_container.empty()
                 st.success(f"Found {len(all_articles)} AI-related articles!")
 

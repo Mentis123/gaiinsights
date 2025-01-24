@@ -59,17 +59,11 @@ def find_ai_articles(url: str) -> List[Dict[str, str]]:
         response = requests.get(url, headers=headers, timeout=10)
         response.raise_for_status()
 
-        print(f"Successfully accessed {url}")  # Debug log
-
         soup = BeautifulSoup(response.text, 'html.parser')
 
         # Find all links
         articles = []
-        links_found = 0
-        ai_articles_found = 0
-
         for link in soup.find_all('a', href=True):
-            links_found += 1
             href = link['href']
             # Make sure the URL is absolute
             if not href.startswith('http'):
@@ -88,13 +82,11 @@ def find_ai_articles(url: str) -> List[Dict[str, str]]:
                 'chatgpt', 'llm', 'gpt', 'openai', 'deep learning', 
                 'neural network', 'generative ai'
             ]):
-                ai_articles_found += 1
                 articles.append({
                     'url': href,
                     'title': link.text.strip() or link.get('title', '').strip()
                 })
 
-        print(f"Found {links_found} total links and {ai_articles_found} AI-related articles on {url}")  # Debug log
         return articles
     except Exception as e:
         print(f"Error finding AI articles from {url}: {e}")
