@@ -1,22 +1,16 @@
 import streamlit as st
-from agents.search_agent import SearchAgent
-from agents.evaluation_agent import EvaluationAgent
-from agents.rationale_agent import RationaleAgent
-from agents.review_agent import ReviewAgent
-import yaml
-import os
-import docx2txt
 from datetime import datetime
+from utils.content_extractor import load_source_sites, find_ai_articles, extract_content
+from utils.ai_analyzer import summarize_article
+import pandas as pd
+import json
+import os
 
 def init_session_state():
     if 'articles' not in st.session_state:
         st.session_state.articles = []
     if 'selected_articles' not in st.session_state:
         st.session_state.selected_articles = []
-    if 'current_step' not in st.session_state:
-        st.session_state.current_step = 'upload_criteria'
-    if 'evaluation_criteria' not in st.session_state:
-        st.session_state.evaluation_criteria = None
 
 def main():
     st.set_page_config(
@@ -29,234 +23,140 @@ def main():
 
     st.title("AI News Aggregation System")
 
-    # Initialize agents
-    search_agent = None
-    evaluation_agent = None
-    rationale_agent = None
-    review_agent = None
-
-    # Sidebar for controls and status
+    # Sidebar for controls and filtering
     with st.sidebar:
-        st.header("Progress")
-        st.write(f"Current step: {st.session_state.current_step}")
-        if st.button("Reset Process"):
-            st.session_state.current_step = 'upload_criteria'
-            st.session_state.articles = []
-            st.session_state.selected_articles = []
-            st.session_state.evaluation_criteria = None
-            st.rerun()
+        st.header("Controls")
+        if st.button("Fetch New Articles"):
+            with st.spinner("Fetching AI news from sources..."):
+                sources = load_source_sites()
+                all_articles = []
+                progress_bar = st.progress(0)
 
-    # Main workflow
-    if st.session_state.current_step == 'upload_criteria':
-        st.subheader("📄 Upload Evaluation Criteria")
-        st.write("Please upload your evaluation criteria document (Word format)")
+                for idx, source in enumerate(sources):
+                    st.write(f"Scanning: {source}")
+                    ai_articles = find_ai_articles(source)
+                    for article in ai_articles:
+                        content = extract_content(article['url'])
+                        if content:
+                            analysis = summarize_article(content)
+                            if analysis:
+                                all_articles.append({
+                                    **article,
+                                    **content,
+                                    **analysis
+                                })
+                    progress_bar.progress((idx + 1) / len(sources))
 
-        uploaded_file = st.file_uploader("Choose a file", type=['docx'])
+                st.session_state.articles = all_articles
+                st.success(f"Found {len(all_articles)} AI-related articles!")
 
-        if uploaded_file is not None:
-            with st.spinner("Processing document..."):
-                # Extract text from the Word document
-                criteria_text = docx2txt.process(uploaded_file)
-                st.session_state.evaluation_criteria = criteria_text
+        # Filtering options
+        st.header("Filters")
+        min_impact = st.slider("Minimum Impact Score", 1, 10, 1)
 
-                st.success("Criteria uploaded successfully!")
-                st.markdown("### Preview of uploaded criteria:")
-                st.text_area("Criteria content", criteria_text, height=200)
-
-                if st.button("Proceed to Search"):
-                    st.session_state.current_step = 'search'
-                    st.rerun()
-
-    elif st.session_state.current_step == 'search':
-        st.subheader("🔍 Searching for Articles")
-        if st.session_state.evaluation_criteria:
-            progress_bar = st.progress(0)
-            status_text = st.empty()
-
-            try:
-                with st.spinner("Fetching relevant AI news..."):
-                    status_text.text("Initializing search...")
-                    progress_bar.progress(10)
-
-                    search_agent = SearchAgent(yaml.safe_load(open('config.yaml')))
-                    status_text.text("Searching for articles...")
-                    progress_bar.progress(30)
-
-                    articles = search_agent.search(st.session_state.evaluation_criteria)
-
-                    if not articles:
-                        st.error("No articles found. Please try again with different criteria.")
-                        return
-
-                    status_text.text(f"Found {len(articles)} articles...")
-                    progress_bar.progress(100)
-
-                    st.session_state.articles = articles
-                    st.session_state.current_step = 'evaluate'
-                    st.rerun()
-            except Exception as e:
-                st.error(f"Error during search: {str(e)}")
-                if st.button("Retry Search"):
-                    st.rerun()
-        else:
-            st.error("No evaluation criteria found. Please upload criteria first.")
-            st.session_state.current_step = 'upload_criteria'
-            st.rerun()
-
-    elif st.session_state.current_step == 'evaluate':
-        st.subheader("⚖️ Evaluating Articles")
-        try:
-            with st.spinner("Evaluating articles against your criteria..."):
-                evaluation_agent = EvaluationAgent()
-                evaluated_articles = evaluation_agent.evaluate(
-                    st.session_state.articles,
-                    st.session_state.evaluation_criteria
-                )
-                st.session_state.articles = evaluated_articles
-                st.session_state.current_step = 'rationale'
-                st.rerun()
-        except Exception as e:
-            st.error(f"Error during evaluation: {str(e)}")
-            if st.button("Retry Evaluation"):
-                st.rerun()
-
-    elif st.session_state.current_step == 'rationale':
-        st.subheader("💡 Generating Rationales")
-        try:
-            with st.spinner("Generating article rationales..."):
-                rationale_agent = RationaleAgent()
-                articles_with_rationales = rationale_agent.generate_rationales(
-                    st.session_state.articles,
-                    st.session_state.evaluation_criteria
-                )
-                st.session_state.articles = articles_with_rationales
-                st.session_state.current_step = 'review'
-                st.rerun()
-        except Exception as e:
-            st.error(f"Error generating rationales: {str(e)}")
-            if st.button("Retry Rationale Generation"):
-                st.rerun()
-
-    elif st.session_state.current_step == 'review':
-        st.subheader("👀 Review and Select Articles")
-
-        # Add filter and sort options
-        col1, col2 = st.columns(2)
-        with col1:
-            sort_by = st.selectbox(
-                "Sort by",
-                ["Relevance Score", "Date"],
-                key="sort_by"
-            )
-        with col2:
-            min_score = st.slider(
-                "Minimum Score",
-                0.0, 10.0, 0.0,
-                step=0.5,
-                key="min_score"
-            )
-
-        # Sort articles
-        if sort_by == "Relevance Score":
-            st.session_state.articles.sort(
-                key=lambda x: x['relevance_score'],
-                reverse=True
-            )
-        else:  # Date
-            st.session_state.articles.sort(
-                key=lambda x: x['published_date'],
-                reverse=True
-            )
-
-        # Filter by score
+    # Main content area
+    if st.session_state.articles:
+        # Filter articles based on impact score
         filtered_articles = [
-            article for article in st.session_state.articles
-            if article['relevance_score'] >= min_score
+            article for article in st.session_state.articles 
+            if article.get('impact_score', 0) >= min_impact
         ]
 
-        # Display articles in a compact format
-        for idx, article in enumerate(filtered_articles):
-            with st.container():
-                # Use columns for better layout
-                select_col, content_col = st.columns([1, 6])
+        st.write(f"Showing {len(filtered_articles)} articles")
 
-                with select_col:
-                    if st.checkbox("Select", key=f"select_{idx}", value=article in st.session_state.selected_articles):
+        # Display articles
+        for idx, article in enumerate(filtered_articles):
+            with st.expander(f"{article['title']} - Impact: {article.get('impact_score', 'N/A')}/10"):
+                cols = st.columns([3, 1])
+                with cols[0]:
+                    st.markdown(f"**Source:** [{article['url']}]({article['url']})")
+                    st.markdown("**Summary:**")
+                    st.write(article.get('summary', 'No summary available'))
+                    st.markdown("**Key Points:**")
+                    for point in article.get('key_points', []):
+                        st.markdown(f"- {point}")
+                with cols[1]:
+                    st.markdown("**AI Relevance:**")
+                    st.write(article.get('ai_relevance', 'Not analyzed'))
+                    if st.checkbox("Select for Report", key=f"select_{idx}"):
                         if article not in st.session_state.selected_articles:
                             st.session_state.selected_articles.append(article)
-                    else:
-                        if article in st.session_state.selected_articles:
-                            st.session_state.selected_articles.remove(article)
+                    elif article in st.session_state.selected_articles:
+                        st.session_state.selected_articles.remove(article)
 
-                with content_col:
-                    # Title and metadata row
-                    title_col, meta_col = st.columns([3, 1])
-                    with title_col:
-                        st.markdown(f"### [{article['title']}]({article['url']})")
-                    with meta_col:
-                        st.markdown(
-                            f"**Score:** {article['relevance_score']:.1f}/10 | "
-                            f"**Date:** {article['published_date'].strftime('%Y-%m-%d')}"
-                        )
+        # Export options
+        if st.session_state.selected_articles:
+            st.header("Export Options")
+            cols = st.columns(2)
 
-                    # Rationale with edit option
-                    st.markdown("**Rationale:**")
-                    new_rationale = st.text_area(
-                        "Edit rationale",
-                        article['rationale'],
-                        key=f"rationale_{idx}",
-                        height=80
+            # Prepare export data
+            export_data = []
+            for article in st.session_state.selected_articles:
+                export_data.append({
+                    'Title': article['title'],
+                    'URL': article['url'],
+                    'Date': article.get('date', ''),
+                    'Summary': article.get('summary', ''),
+                    'Key Points': ', '.join(article.get('key_points', [])),
+                    'AI Relevance': article.get('ai_relevance', ''),
+                    'Impact Score': article.get('impact_score', '')
+                })
+
+            # CSV Export
+            with cols[0]:
+                df = pd.DataFrame(export_data)
+                csv = df.to_csv(index=False)
+                st.download_button(
+                    "Download CSV",
+                    csv,
+                    "ai_news_report.csv",
+                    "text/csv",
+                    key='download-csv'
+                )
+
+            # PDF Export
+            with cols[1]:
+                from reportlab.lib import colors
+                from reportlab.lib.pagesizes import letter
+                from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+                from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+
+                pdf_path = "reports/ai_news_report.pdf"
+                os.makedirs("reports", exist_ok=True)
+
+                doc = SimpleDocTemplate(pdf_path, pagesize=letter)
+                styles = getSampleStyleSheet()
+                story = []
+
+                # Title
+                story.append(Paragraph(f"AI News Report - {datetime.now().strftime('%Y-%m-%d')}", styles['Heading1']))
+                story.append(Spacer(1, 12))
+
+                # Articles
+                for article in st.session_state.selected_articles:
+                    story.append(Paragraph(article['title'], styles['Heading2']))
+                    story.append(Paragraph(f"Source: {article['url']}", styles['BodyText']))
+                    story.append(Paragraph("Summary:", styles['Heading3']))
+                    story.append(Paragraph(article.get('summary', 'No summary available'), styles['BodyText']))
+                    story.append(Paragraph("Key Points:", styles['Heading3']))
+                    for point in article.get('key_points', []):
+                        story.append(Paragraph(f"• {point}", styles['BodyText']))
+                    story.append(Paragraph(f"Impact Score: {article.get('impact_score', 'N/A')}/10", styles['BodyText']))
+                    story.append(Spacer(1, 12))
+
+                doc.build(story)
+
+                with open(pdf_path, "rb") as pdf_file:
+                    st.download_button(
+                        "Download PDF",
+                        pdf_file,
+                        "ai_news_report.pdf",
+                        "application/pdf",
+                        key='download-pdf'
                     )
-                    article['rationale'] = new_rationale
 
-                st.divider()
-
-        # Show selected count and generate report button
-        st.markdown(f"**Selected Articles:** {len(st.session_state.selected_articles)}")
-        if st.button("Generate Reports"):
-            if len(st.session_state.selected_articles) > 0:
-                st.session_state.current_step = 'report'
-                st.rerun()
-            else:
-                st.warning("Please select at least one article.")
-
-    elif st.session_state.current_step == 'report':
-        st.subheader("📊 Generated Reports")
-
-        try:
-            with st.spinner("Generating reports..."):
-                review_agent = ReviewAgent()
-                pdf_path, csv_path = review_agent.generate_reports(st.session_state.selected_articles)
-
-                col1, col2 = st.columns(2)
-                with col1:
-                    with open(pdf_path, 'rb') as pdf_file:
-                        st.download_button(
-                            label="Download PDF Report",
-                            data=pdf_file,
-                            file_name="ai_news_report.pdf",
-                            mime="application/pdf"
-                        )
-
-                with col2:
-                    with open(csv_path, 'rb') as csv_file:
-                        st.download_button(
-                            label="Download CSV Report",
-                            data=csv_file,
-                            file_name="ai_news_report.csv",
-                            mime="text/csv"
-                        )
-
-                # Add button to return to review step
-                st.divider()
-                if st.button("Back to Results"):
-                    st.session_state.current_step = 'review'
-                    st.rerun()
-
-        except Exception as e:
-            st.error(f"Error generating reports: {str(e)}")
-            if st.button("Retry Report Generation"):
-                st.rerun()
+    else:
+        st.info("Click 'Fetch New Articles' to start gathering AI news.")
 
 if __name__ == "__main__":
     main()
