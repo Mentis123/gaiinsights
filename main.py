@@ -6,14 +6,17 @@ import pandas as pd
 import json
 import os
 
-def main():
-    if 'articles' not in st.session_state:
-        st.session_state.articles = []
-    if 'selected_articles' not in st.session_state:
-        st.session_state.selected_articles = []
-    if 'scan_status' not in st.session_state:
-        st.session_state.scan_status = []
+# Initialize session state
+if 'articles' not in st.session_state:
+    st.session_state.articles = []
+if 'selected_articles' not in st.session_state:
+    st.session_state.selected_articles = []
+if 'scan_status' not in st.session_state:
+    st.session_state.scan_status = []
+if 'test_mode' not in st.session_state:
+    st.session_state.test_mode = True
 
+def main():
     st.set_page_config(
         page_title="AI News Aggregator",
         layout="wide",
@@ -21,15 +24,17 @@ def main():
         menu_items={
             'Get Help': 'https://www.extremelycoolapp.com/help',
             'Report a bug': "https://www.extremelycoolapp.com/bug",
-            'About': "# AI News Aggregation System"
+            'About': "# AI News Aggregation System",
+            'Settings': {
+                'Test Mode': st.session_state.test_mode
+            }
         }
     )
 
     st.title("AI News Aggregation System")
 
-    # Sidebar for controls
+    # Sidebar with just the Fetch button
     with st.sidebar:
-        st.header("Controls")
         if st.button("Fetch New Articles"):
             with st.spinner("Fetching AI news from sources..."):
                 sources = load_source_sites(test_mode=st.session_state.test_mode)
@@ -38,6 +43,7 @@ def main():
 
                 # Create a placeholder for the source status
                 status_container = st.empty()
+                st.session_state.scan_status = []  # Clear previous status
 
                 # Process sources in reverse order for display
                 for idx, source in enumerate(reversed(sources)):
