@@ -25,10 +25,7 @@ def main():
         menu_items={
             'Get Help': 'https://www.extremelycoolapp.com/help',
             'Report a bug': "https://www.extremelycoolapp.com/bug",
-            'About': "# AI News Aggregation System",
-            'Settings': {
-                'Test Mode': st.session_state.test_mode
-            }
+            'About': "# AI News Aggregation System"
         }
     )
 
@@ -36,6 +33,11 @@ def main():
 
     # Sidebar for controls
     with st.sidebar:
+        st.header("Settings")
+        test_mode = st.toggle("Test Mode", value=st.session_state.test_mode)
+        if test_mode != st.session_state.test_mode:
+            st.session_state.test_mode = test_mode
+
         st.header("Controls")
         if st.button("Fetch New Articles"):
             with st.spinner("Fetching AI news from sources..."):
