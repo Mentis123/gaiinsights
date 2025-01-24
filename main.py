@@ -44,12 +44,12 @@ def main():
             # Process sources in reverse order for display
             for idx, source in enumerate(reversed(sources)):
                 # Update the status at the top
-                st.session_state.scan_status.insert(0, f"Currently Scanning:\n{source}")
+                st.session_state.scan_status.insert(0, f"Currently Scanning: {source}")
 
                 ai_articles = find_ai_articles(source)
                 if ai_articles:
-                    st.session_state.scan_status.insert(0, f"Found {len(ai_articles)} AI articles from current source\n")
-                    st.session_state.scan_status.insert(0, f"Analyzing and summarizing articles...\n")
+                    st.session_state.scan_status.insert(0, f"Found {len(ai_articles)} AI articles from current source")
+                    st.session_state.scan_status.insert(0, "Analyzing and summarizing articles...")
 
                 # Show last 5 status messages with proper line breaks
                 status_text = "\n".join(st.session_state.scan_status[:5])
@@ -128,9 +128,9 @@ def main():
     else:
         st.info("Click 'Fetch New Articles' to start gathering AI news.")
 
-    # Settings in sidebar - after the main content to ensure it's always accessible
+    # Settings in sidebar - at the bottom
     with st.sidebar:
-        with st.expander("Settings"):
+        with st.expander("Settings", expanded=False):
             st.session_state.test_mode = st.toggle("Test Mode", value=st.session_state.test_mode)
 
 if __name__ == "__main__":
