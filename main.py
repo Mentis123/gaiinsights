@@ -6,11 +6,14 @@ import pandas as pd
 import json
 import os
 from reportlab.lib import colors
-from reportlab.lib.pagesizes import letter
+from reportlab.lib.pagesizes import letter, landscape
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
 from io import BytesIO
 import traceback
+from openai import OpenAI # Import OpenAI library
+
 
 # Initialize session state
 if 'articles' not in st.session_state:
@@ -23,9 +26,9 @@ if 'test_mode' not in st.session_state:
     st.session_state.test_mode = True
 
 def generate_pdf(articles):
-    """Generate a PDF report from the articles."""
+    """Generate a PDF report from the articles in landscape orientation."""
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    doc = SimpleDocTemplate(buffer, pagesize=landscape(letter))  # Changed to landscape
     styles = getSampleStyleSheet()
     story = []
 
@@ -34,7 +37,8 @@ def generate_pdf(articles):
         'CustomTitle',
         parent=styles['Heading1'],
         fontSize=24,
-        spaceAfter=30
+        spaceAfter=30,
+        alignment=1  # Center alignment
     )
     story.append(Paragraph("AI News Report", title_style))
     story.append(Spacer(1, 20))
@@ -44,43 +48,87 @@ def generate_pdf(articles):
         'DateStyle',
         parent=styles['Normal'],
         fontSize=12,
-        spaceAfter=30
+        spaceAfter=30,
+        alignment=1  # Center alignment
     )
     story.append(Paragraph(f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M')}", date_style))
     story.append(Spacer(1, 20))
 
+    # Create table data
+    table_data = [['Title', 'Summary', 'Key Points', 'Published Date']]
+
     # Articles
     for article in articles:
-        # Article Title with URL
-        title_style = ParagraphStyle(
-            'ArticleTitle',
-            parent=styles['Heading2'],
-            fontSize=14,
-            spaceAfter=10
-        )
-        story.append(Paragraph(f"{article['title']}", title_style))
-        story.append(Paragraph(f"Source: {article['url']}", styles['Italic']))
-        story.append(Spacer(1, 10))
-
-        # Summary
-        if article.get('summary'):
-            story.append(Paragraph("<b>Summary:</b>", styles['Normal']))
-            story.append(Paragraph(article['summary'], styles['Normal']))
-            story.append(Spacer(1, 10))
-
-        # Key Points
+        # Prepare key points as bullet points
+        key_points_text = ""
         if article.get('key_points'):
-            story.append(Paragraph("<b>Key Points:</b>", styles['Normal']))
-            for point in article['key_points']:
-                story.append(Paragraph(f"• {point}", styles['Normal']))
+            key_points_text = "\n".join([f"• {point}" for point in article['key_points']])
 
-        story.append(Paragraph(f"Published: {article.get('date', 'Date not available')}", styles['Normal']))
-        story.append(Spacer(1, 20))
+        # Add article data to table
+        table_data.append([
+            Paragraph(f"<link href='{article['url']}'>{article['title']}</link>", 
+                     ParagraphStyle('Link', parent=styles['Normal'], textColor=colors.blue)),
+            Paragraph(article.get('summary', 'No summary available'), styles['Normal']),
+            Paragraph(key_points_text, styles['Normal']),
+            Paragraph(article.get('date', 'Date not available'), styles['Normal'])
+        ])
 
+    # Create table with column widths optimized for landscape
+    col_widths = [3*inch, 4*inch, 4*inch, 1.5*inch]
+    table = Table(table_data, colWidths=col_widths, repeatRows=1)
+
+    # Add table style
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 12),
+        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('GRID', (0, 0), (-1, -1), 1, colors.grey),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.lightgrey]),
+        ('PADDING', (0, 0), (-1, -1), 6),
+    ]))
+
+    story.append(table)
     doc.build(story)
     pdf_data = buffer.getvalue()
     buffer.close()
     return pdf_data
+
+def validate_ai_relevance(article):
+    """Validate if an article is truly AI-related."""
+    client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+    prompt = f"""
+    Please analyze if this article is genuinely about AI technology, development, or applications.
+    Consider these aspects:
+    1. Does it discuss actual AI technology or just mention AI in passing?
+    2. Is it focused on current or future AI developments?
+    3. Does it provide substantive information about AI?
+
+    Article Title: {article['title']}
+    Summary: {article.get('summary', '')}
+    Key Points: {', '.join(article.get('key_points', []))}
+
+    Return a JSON response with:
+    {{
+        "is_relevant": true/false,
+        "confidence": 0-100,
+        "reason": "brief explanation"
+    }}
+    """
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"}
+        )
+        result = json.loads(response.choices[0].message.content)
+        return result
+    except Exception as e:
+        print(f"Error in AI validation: {str(e)}")
+        return {"is_relevant": True, "confidence": 100, "reason": "Validation failed, accepting by default"}
 
 def main():
     st.set_page_config(
@@ -150,18 +198,39 @@ def main():
             if st.button("Export All" if not st.session_state.selected_articles else "Export Selected"):
                 try:
                     articles_to_export = st.session_state.selected_articles if st.session_state.selected_articles else st.session_state.articles
-                    pdf_data = generate_pdf(articles_to_export)
 
-                    # Create a download button for the PDF
-                    st.download_button(
-                        "Download PDF",
-                        pdf_data,
-                        "ai_news_report.pdf",
-                        "application/pdf"
-                    )
+                    # Add validation status display
+                    validation_status = st.empty()
+                    validation_progress = st.progress(0)
+
+                    # Validate AI relevance
+                    validated_articles = []
+                    for idx, article in enumerate(articles_to_export):
+                        validation_status.text(f"Validating article {idx + 1}/{len(articles_to_export)}")
+                        validation = validate_ai_relevance(article)
+                        if validation['is_relevant']:
+                            article['ai_confidence'] = validation['confidence']
+                            article['ai_validation'] = validation['reason']
+                            validated_articles.append(article)
+                        validation_progress.progress((idx + 1) / len(articles_to_export))
+
+                    if validated_articles:
+                        pdf_data = generate_pdf(validated_articles)
+                        validation_status.success(f"Validation complete! {len(validated_articles)} articles confirmed as AI-relevant.")
+
+                        # Create a download button for the PDF
+                        st.download_button(
+                            "Download PDF",
+                            pdf_data,
+                            "ai_news_report.pdf",
+                            "application/pdf"
+                        )
+                    else:
+                        st.error("No articles passed the AI relevance validation.")
                 except Exception as e:
                     st.error(f"Error generating PDF: {str(e)}")
                     print(f"Error details: {traceback.format_exc()}")
+
 
         # Display articles with selection checkboxes
         st.write(f"Research Results")
