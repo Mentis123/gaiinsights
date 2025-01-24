@@ -13,7 +13,7 @@ from reportlab.lib.units import inch
 from io import BytesIO
 import traceback
 from openai import OpenAI # Import OpenAI library
-
+from reportlab.lib.utils import quote
 
 # Initialize session state
 if 'articles' not in st.session_state:
@@ -28,70 +28,68 @@ if 'test_mode' not in st.session_state:
 def generate_pdf(articles):
     """Generate a PDF report from the articles in landscape orientation."""
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=landscape(letter))  # Changed to landscape
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=landscape(letter),
+        topMargin=0.5*inch,
+        bottomMargin=0.5*inch,
+        leftMargin=0.5*inch,
+        rightMargin=0.5*inch
+    )
+
+    # Create custom styles
     styles = getSampleStyleSheet()
-    story = []
-
-    # Title
-    title_style = ParagraphStyle(
-        'CustomTitle',
-        parent=styles['Heading1'],
-        fontSize=24,
-        spaceAfter=30,
-        alignment=1  # Center alignment
-    )
-    story.append(Paragraph("AI News Report", title_style))
-    story.append(Spacer(1, 20))
-
-    # Date
-    date_style = ParagraphStyle(
-        'DateStyle',
+    link_style = ParagraphStyle(
+        'LinkStyle',
         parent=styles['Normal'],
-        fontSize=12,
-        spaceAfter=30,
-        alignment=1  # Center alignment
+        textColor=colors.blue,
+        underline=True
     )
-    story.append(Paragraph(f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M')}", date_style))
-    story.append(Spacer(1, 20))
 
-    # Create table data
-    table_data = [['Title', 'Summary', 'Key Points', 'Published Date']]
+    elements = []
 
-    # Articles
+    # Create table data with clickable URLs
+    table_data = [['Article Title', 'Date', 'Score', 'Rationale']]
     for article in articles:
-        # Prepare key points as bullet points
-        key_points_text = ""
-        if article.get('key_points'):
-            key_points_text = "\n".join([f"• {point}" for point in article['key_points']])
+        # Create a clickable link using ReportLab's paragraph with link
+        title_with_link = Paragraph(
+            f'<para><a href="{quote(article["url"])}">{article["title"]}</a></para>',
+            link_style
+        )
 
-        # Add article data to table
         table_data.append([
-            Paragraph(f"<link href='{article['url']}'>{article['title']}</link>", 
-                     ParagraphStyle('Link', parent=styles['Normal'], textColor=colors.blue)),
-            Paragraph(article.get('summary', 'No summary available'), styles['Normal']),
-            Paragraph(key_points_text, styles['Normal']),
-            Paragraph(article.get('date', 'Date not available'), styles['Normal'])
+            title_with_link,
+            article['date'].strftime('%Y-%m-%d'),
+            f"{article['ai_confidence']:.1f}/100",
+            Paragraph(article['ai_validation'], styles['Normal'])
         ])
 
-    # Create table with column widths optimized for landscape
-    col_widths = [3*inch, 4*inch, 4*inch, 1.5*inch]
+    # Create table with improved formatting
+    col_widths = [4*inch, 1*inch, 0.8*inch, 4*inch]
     table = Table(table_data, colWidths=col_widths, repeatRows=1)
-
-    # Add table style
     table.setStyle(TableStyle([
+        # Header formatting
         ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
         ('FONTSIZE', (0, 0), (-1, 0), 12),
-        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('GRID', (0, 0), (-1, -1), 1, colors.grey),
-        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.lightgrey]),
-        ('PADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, 0), 12),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+
+        # Content formatting
+        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 1), (-1, -1), 10),
+        ('TOPPADDING', (0, 1), (-1, -1), 8),
+        ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
+
+        # Borders and alignment
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('ALIGN', (1, 1), (2, -1), 'CENTER'),  # Center date and score columns
     ]))
 
-    story.append(table)
-    doc.build(story)
+    elements.append(table)
+    doc.build(elements)
     pdf_data = buffer.getvalue()
     buffer.close()
     return pdf_data
@@ -217,41 +215,15 @@ def main():
             if st.button("Export All" if not st.session_state.selected_articles else "Export Selected"):
                 try:
                     articles_to_export = st.session_state.selected_articles if st.session_state.selected_articles else st.session_state.articles
+                    pdf_data = generate_pdf(articles_to_export)
 
-                    # Add validation status display
-                    validation_status = st.empty()
-                    validation_progress = st.progress(0)
-
-                    # Validate AI relevance and deduplicate
-                    validated_articles = []
-                    seen_urls = set()
-                    for idx, article in enumerate(articles_to_export):
-                        # Skip if we've already included this URL
-                        if article['url'] in seen_urls:
-                            continue
-
-                        validation_status.text(f"Validating article {idx + 1}/{len(articles_to_export)}")
-                        validation = validate_ai_relevance(article)
-                        if validation['is_relevant']:
-                            seen_urls.add(article['url'])  # Mark URL as seen
-                            article['ai_confidence'] = validation['confidence']
-                            article['ai_validation'] = validation['reason']
-                            validated_articles.append(article)
-                        validation_progress.progress((idx + 1) / len(articles_to_export))
-
-                    if validated_articles:
-                        pdf_data = generate_pdf(validated_articles)
-                        validation_status.success(f"Validation complete! {len(validated_articles)} unique articles confirmed as AI-relevant.")
-
-                        # Create a download button for the PDF
-                        st.download_button(
-                            "Download PDF",
-                            pdf_data,
-                            "ai_news_report.pdf",
-                            "application/pdf"
-                        )
-                    else:
-                        st.error("No articles passed the AI relevance validation.")
+                    # Create a download button for the PDF
+                    st.download_button(
+                        "Download PDF",
+                        pdf_data,
+                        "ai_news_report.pdf",
+                        "application/pdf"
+                    )
                 except Exception as e:
                     st.error(f"Error generating PDF: {str(e)}")
                     print(f"Error details: {traceback.format_exc()}")
