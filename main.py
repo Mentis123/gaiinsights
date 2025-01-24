@@ -20,12 +20,7 @@ def main():
     st.set_page_config(
         page_title="AI News Aggregator",
         layout="wide",
-        initial_sidebar_state="expanded",
-        menu_items={
-            'Get help': 'https://www.extremelycoolapp.com/help',
-            'Report a bug': "https://www.extremelycoolapp.com/bug",
-            'About': "# AI News Aggregation System"
-        }
+        initial_sidebar_state="expanded"
     )
 
     st.title("AI News Aggregation System")
@@ -85,8 +80,7 @@ def main():
                         'URL': article['url'],
                         'Date': article.get('date', ''),
                         'Summary': article.get('summary', ''),
-                        'Key Points': ', '.join(article.get('key_points', [])),
-                        'AI Relevance': article.get('ai_relevance', '')
+                        'Key Points': ', '.join(article.get('key_points', []))
                     })
 
                 if export_data:
@@ -117,7 +111,6 @@ def main():
                     elif article in st.session_state.selected_articles:
                         st.session_state.selected_articles.remove(article)
 
-                st.markdown(f"**Industry relevance score:** {article.get('relevance_score', '0.0')}/10, {article.get('citations', '0')} citations, Relevance to retail/e-commerce: {article.get('retail_relevance', '0.0')}/10. This research could impact Crocs' business through technological innovation and competitive advantage.")
                 st.markdown("**Summary:**")
                 st.write(article.get('summary', 'No summary available'))
                 st.markdown("**Key Points:**")

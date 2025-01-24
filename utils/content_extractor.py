@@ -5,6 +5,7 @@ import requests
 from bs4 import BeautifulSoup
 import logging
 import time
+from datetime import datetime, timedelta
 
 def load_source_sites(test_mode: bool = True) -> List[str]:
     """Load the source sites from the CSV file."""
@@ -39,10 +40,23 @@ def extract_content(url: str) -> Dict[str, str]:
                         import json
                         content = json.loads(content)
 
+                    # Parse and validate the date
+                    article_date = content.get('date', '')
+                    if article_date:
+                        try:
+                            date_obj = datetime.strptime(article_date[:10], '%Y-%m-%d')
+                            week_ago = datetime.now() - timedelta(days=7)
+                            if date_obj < week_ago:
+                                print(f"Article too old: {article_date}")
+                                return None
+                        except ValueError:
+                            print(f"Invalid date format: {article_date}")
+                            return None
+
                     return {
                         'title': content.get('title', ''),
                         'text': content.get('text', ''),
-                        'date': content.get('date', ''),
+                        'date': article_date,
                         'url': url
                     }
             except Exception as e:
@@ -52,6 +66,19 @@ def extract_content(url: str) -> Dict[str, str]:
         print(f"Error downloading content from {url}: {e}")
         return None
     return None
+
+def is_consent_or_main_page(text: str) -> bool:
+    """Check if the page is a consent form or main landing page."""
+    consent_indicators = [
+        'cookie policy',
+        'privacy notice',
+        'consent form',
+        'accept cookies',
+        'terms of use',
+        'privacy policy'
+    ]
+    text_lower = text.lower()
+    return any(indicator in text_lower for indicator in consent_indicators)
 
 def find_ai_articles(url: str) -> List[Dict[str, str]]:
     """Find AI-related articles from a given source URL."""
@@ -68,13 +95,14 @@ def find_ai_articles(url: str) -> List[Dict[str, str]]:
         soup = BeautifulSoup(response.text, 'html.parser')
         articles = []
 
-        # AI-related keywords - more inclusive but still focused
+        # AI-related keywords focusing on actual news and implementations
         ai_keywords = [
-            'ai', 'artificial intelligence', 'machine learning', 
-            'chatgpt', 'llm', 'large language model',
-            'deep learning', 'neural network', 'generative ai',
-            'openai', 'ml', 'gpt', 'automation',
-            'ai solution', 'ai technology', 'ai application'
+            'launches ai', 'implements ai', 'deploys ai',
+            'ai technology', 'ai solution', 'ai platform',
+            'artificial intelligence system', 'ai tool',
+            'machine learning implementation',
+            'chatgpt integration', 'llm deployment',
+            'ai-powered', 'ai startup'
         ]
 
         for link in soup.find_all('a', href=True):
@@ -89,7 +117,11 @@ def find_ai_articles(url: str) -> List[Dict[str, str]]:
             title = link.get('title', '').lower()
             combined_text = f"{link_text} {title}"
 
-            # Include if it contains any AI-related keyword
+            # Skip if it looks like a consent form or main page
+            if is_consent_or_main_page(combined_text):
+                continue
+
+            # Include if it contains actual AI implementation/news keywords
             if any(keyword in combined_text for keyword in ai_keywords):
                 articles.append({
                     'url': href,
