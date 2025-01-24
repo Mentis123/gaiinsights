@@ -24,8 +24,7 @@ def main():
         menu_items={
             'Get help': 'https://www.extremelycoolapp.com/help',
             'Report a bug': "https://www.extremelycoolapp.com/bug",
-            'About': "# AI News Aggregation System",
-            'settings': "settings"
+            'About': "# AI News Aggregation System"
         }
     )
 
@@ -118,15 +117,21 @@ def main():
                     elif article in st.session_state.selected_articles:
                         st.session_state.selected_articles.remove(article)
 
-                st.markdown(f"**Industry relevance score:** {article.get('relevance_score', '0.0')}/10, {article.get('citations', '0')} citations, Relevance to retail/e-commerce: {article.get('retail_relevance', '0.0')}/10")
+                st.markdown(f"**Industry relevance score:** {article.get('relevance_score', '0.0')}/10, {article.get('citations', '0')} citations, Relevance to retail/e-commerce: {article.get('retail_relevance', '0.0')}/10. This research could impact Crocs' business through technological innovation and competitive advantage.")
                 st.markdown("**Summary:**")
                 st.write(article.get('summary', 'No summary available'))
                 st.markdown("**Key Points:**")
                 for point in article.get('key_points', []):
                     st.markdown(f"- {point}")
+                st.markdown(f"Published: {article.get('date', 'Date not available')}")
 
     else:
         st.info("Click 'Fetch New Articles' to start gathering AI news.")
+
+    # Settings in sidebar - after the main content to ensure it's always accessible
+    with st.sidebar:
+        with st.expander("Settings"):
+            st.session_state.test_mode = st.toggle("Test Mode", value=st.session_state.test_mode)
 
 if __name__ == "__main__":
     main()
