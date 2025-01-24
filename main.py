@@ -15,6 +15,9 @@ def init_session_state():
         st.session_state.test_mode = True
 
 def main():
+    # Initialize session state first
+    init_session_state()
+
     st.set_page_config(
         page_title="AI News Aggregator",
         layout="wide",
@@ -28,8 +31,6 @@ def main():
             }
         }
     )
-
-    init_session_state()
 
     st.title("AI News Aggregation System")
 
