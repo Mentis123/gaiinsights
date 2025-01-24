@@ -54,7 +54,7 @@ def extract_content(url: str) -> Dict[str, str]:
     return None
 
 def find_ai_articles(url: str) -> List[Dict[str, str]]:
-    """Find AI-related articles from a given source URL with balanced filtering."""
+    """Find AI-related articles from a given source URL."""
     try:
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
@@ -68,21 +68,13 @@ def find_ai_articles(url: str) -> List[Dict[str, str]]:
         soup = BeautifulSoup(response.text, 'html.parser')
         articles = []
 
-        # Core AI application keywords
-        ai_application_keywords = [
-            'ai implementation', 'ai application', 'ai solution',
-            'machine learning deployment', 'ai use case',
-            'ai automation', 'ai integration',
-            'ai technology', 'practical ai'
-        ]
-
-        # Technical AI keywords
-        technical_keywords = [
+        # AI-related keywords - more inclusive but still focused
+        ai_keywords = [
+            'ai', 'artificial intelligence', 'machine learning', 
             'chatgpt', 'llm', 'large language model',
-            'gpt-4', 'gpt4', 'openai',
-            'machine learning', 'deep learning',
-            'neural network', 'generative ai',
-            'artificial intelligence'
+            'deep learning', 'neural network', 'generative ai',
+            'openai', 'ml', 'gpt', 'automation',
+            'ai solution', 'ai technology', 'ai application'
         ]
 
         for link in soup.find_all('a', href=True):
@@ -97,14 +89,8 @@ def find_ai_articles(url: str) -> List[Dict[str, str]]:
             title = link.get('title', '').lower()
             combined_text = f"{link_text} {title}"
 
-            # Check for AI application focus
-            is_application_focused = any(keyword in combined_text for keyword in ai_application_keywords)
-
-            # Check for technical relevance
-            has_technical_terms = any(keyword in combined_text for keyword in technical_keywords)
-
-            # Include if it's application-focused OR has specific technical terms
-            if is_application_focused or has_technical_terms:
+            # Include if it contains any AI-related keyword
+            if any(keyword in combined_text for keyword in ai_keywords):
                 articles.append({
                     'url': href,
                     'title': link.text.strip() or link.get('title', '').strip()
