@@ -156,6 +156,7 @@ def main():
             with st.spinner("Fetching AI news from sources..."):
                 sources = load_source_sites(test_mode=st.session_state.test_mode)
                 all_articles = []
+                seen_urls = set()  # Track unique URLs
                 progress_bar = st.progress(0)
 
                 status_container = st.empty()
@@ -174,6 +175,10 @@ def main():
                         status_container.markdown(status_text)
 
                         for article in ai_articles:
+                            # Skip if we've already processed this URL
+                            if article['url'] in seen_urls:
+                                continue
+
                             content = extract_content(article['url'])
                             if content:
                                 analysis = summarize_article(content)
@@ -181,6 +186,7 @@ def main():
                                     # Validate AI relevance immediately
                                     validation = validate_ai_relevance({**article, **analysis})
                                     if validation['is_relevant']:
+                                        seen_urls.add(article['url'])  # Mark URL as seen
                                         all_articles.append({
                                             **article,
                                             **content,
@@ -198,7 +204,7 @@ def main():
                 st.session_state.articles = all_articles
                 st.session_state.scan_status = []
                 status_container.empty()
-                st.success(f"Found {len(all_articles)} validated AI-related articles!")
+                st.success(f"Found {len(all_articles)} unique, validated AI-related articles!")
         except Exception as e:
             st.error(f"An error occurred while fetching articles: {str(e)}")
             print(f"Error details: {traceback.format_exc()}")
@@ -216,12 +222,18 @@ def main():
                     validation_status = st.empty()
                     validation_progress = st.progress(0)
 
-                    # Validate AI relevance
+                    # Validate AI relevance and deduplicate
                     validated_articles = []
+                    seen_urls = set()
                     for idx, article in enumerate(articles_to_export):
+                        # Skip if we've already included this URL
+                        if article['url'] in seen_urls:
+                            continue
+
                         validation_status.text(f"Validating article {idx + 1}/{len(articles_to_export)}")
                         validation = validate_ai_relevance(article)
                         if validation['is_relevant']:
+                            seen_urls.add(article['url'])  # Mark URL as seen
                             article['ai_confidence'] = validation['confidence']
                             article['ai_validation'] = validation['reason']
                             validated_articles.append(article)
@@ -229,7 +241,7 @@ def main():
 
                     if validated_articles:
                         pdf_data = generate_pdf(validated_articles)
-                        validation_status.success(f"Validation complete! {len(validated_articles)} articles confirmed as AI-relevant.")
+                        validation_status.success(f"Validation complete! {len(validated_articles)} unique articles confirmed as AI-relevant.")
 
                         # Create a download button for the PDF
                         st.download_button(
