@@ -12,8 +12,8 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from io import BytesIO
 import traceback
-from openai import OpenAI # Import OpenAI library
-from reportlab.lib.utils import quote
+from openai import OpenAI
+from urllib.parse import quote
 
 # Initialize session state
 if 'articles' not in st.session_state:
@@ -43,7 +43,8 @@ def generate_pdf(articles):
         'LinkStyle',
         parent=styles['Normal'],
         textColor=colors.blue,
-        underline=True
+        underline=True,
+        fontSize=8  # Reduced font size
     )
 
     elements = []
@@ -59,31 +60,31 @@ def generate_pdf(articles):
 
         table_data.append([
             title_with_link,
-            article['date'].strftime('%Y-%m-%d'),
-            f"{article['ai_confidence']:.1f}/100",
-            Paragraph(article['ai_validation'], styles['Normal'])
+            Paragraph(article['date'].strftime('%Y-%m-%d'), ParagraphStyle('Date', parent=styles['Normal'], fontSize=8)),
+            Paragraph(f"{article['ai_confidence']:.1f}/100", ParagraphStyle('Score', parent=styles['Normal'], fontSize=8)),
+            Paragraph(article['ai_validation'], ParagraphStyle('Rationale', parent=styles['Normal'], fontSize=8))
         ])
 
     # Create table with improved formatting
-    col_widths = [4*inch, 1*inch, 0.8*inch, 4*inch]
+    col_widths = [4*inch, 0.8*inch, 0.7*inch, 4*inch]  # Adjusted column widths
     table = Table(table_data, colWidths=col_widths, repeatRows=1)
     table.setStyle(TableStyle([
         # Header formatting
         ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 12),
-        ('TOPPADDING', (0, 0), (-1, 0), 12),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('FONTSIZE', (0, 0), (-1, 0), 10),  # Reduced header font size
+        ('TOPPADDING', (0, 0), (-1, 0), 6),  # Reduced padding
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
 
         # Content formatting
         ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 1), (-1, -1), 10),
-        ('TOPPADDING', (0, 1), (-1, -1), 8),
-        ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
+        ('FONTSIZE', (0, 1), (-1, -1), 8),  # Reduced content font size
+        ('TOPPADDING', (0, 1), (-1, -1), 4),  # Reduced padding
+        ('BOTTOMPADDING', (0, 1), (-1, -1), 4),
 
         # Borders and alignment
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('GRID', (0, 0), (-1, -1), 0.25, colors.grey),  # Thinner grid lines
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('ALIGN', (1, 1), (2, -1), 'CENTER'),  # Center date and score columns
     ]))
