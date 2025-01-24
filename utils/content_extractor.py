@@ -46,12 +46,13 @@ def extract_content(url: str) -> Dict[str, str]:
                     }
             except Exception as e:
                 print(f"Error parsing content from {url}: {e}")
+                return None
     except Exception as e:
         print(f"Error downloading content from {url}: {e}")
-    return None
+        return None
 
 def find_ai_articles(url: str) -> List[Dict[str, str]]:
-    """Find AI-related articles from a given source URL."""
+    """Find AI-related articles from a given source URL with stricter filtering."""
     try:
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
@@ -60,28 +61,47 @@ def find_ai_articles(url: str) -> List[Dict[str, str]]:
         response.raise_for_status()
 
         soup = BeautifulSoup(response.text, 'html.parser')
-
-        # Find all links
         articles = []
+
+        # More specific AI-related keywords focusing on direct applications and use cases
+        primary_keywords = [
+            'artificial intelligence implementation',
+            'ai application',
+            'machine learning deployment',
+            'ai use case',
+            'ai solution',
+            'ai technology implementation',
+            'ai integration',
+            'machine learning solution',
+            'ai automation',
+            'practical ai'
+        ]
+
+        secondary_keywords = [
+            'chatgpt', 'llm', 'gpt-4', 'openai',
+            'deep learning', 'neural network',
+            'generative ai', 'mlops'
+        ]
+
         for link in soup.find_all('a', href=True):
             href = link['href']
-            # Make sure the URL is absolute
             if not href.startswith('http'):
                 if href.startswith('/'):
                     href = url.rstrip('/') + href
                 else:
                     continue
 
-            # Check if the link contains AI-related keywords
             link_text = (link.text or '').lower()
             title = link.get('title', '').lower()
             combined_text = f"{link_text} {title}"
 
-            if any(keyword in combined_text for keyword in [
-                'ai', 'artificial intelligence', 'machine learning', 'ml', 
-                'chatgpt', 'llm', 'gpt', 'openai', 'deep learning', 
-                'neural network', 'generative ai'
-            ]):
+            # Check for primary keywords (requires at least one)
+            has_primary = any(keyword in combined_text for keyword in primary_keywords)
+            # Check for secondary keywords
+            has_secondary = any(keyword in combined_text for keyword in secondary_keywords)
+
+            # Only include if it has a primary keyword or at least two secondary keywords
+            if has_primary or (has_secondary and len([k for k in secondary_keywords if k in combined_text]) >= 2):
                 articles.append({
                     'url': href,
                     'title': link.text.strip() or link.get('title', '').strip()

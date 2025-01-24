@@ -22,20 +22,14 @@ def main():
         layout="wide",
         initial_sidebar_state="expanded",
         menu_items={
-            'Get Help': 'https://www.extremelycoolapp.com/help',
+            'Get help': 'https://www.extremelycoolapp.com/help',
             'Report a bug': "https://www.extremelycoolapp.com/bug",
-            'About': "# AI News Aggregation System"
+            'About': "# AI News Aggregation System",
+            'settings': "settings"
         }
     )
 
     st.title("AI News Aggregation System")
-
-    # Add Settings in the sidebar
-    if st.sidebar.button("⚙️ Settings"):
-        st.sidebar.markdown("### Settings")
-        test_mode = st.sidebar.toggle("Test Mode", value=st.session_state.test_mode)
-        if test_mode != st.session_state.test_mode:
-            st.session_state.test_mode = test_mode
 
     # Fetch button in the sidebar
     if st.sidebar.button("Fetch New Articles"):
@@ -56,6 +50,7 @@ def main():
                 ai_articles = find_ai_articles(source)
                 if ai_articles:
                     st.session_state.scan_status.insert(0, f"Found {len(ai_articles)} AI articles from current source\n")
+                    st.session_state.scan_status.insert(0, f"Analyzing and summarizing articles...\n")
 
                 # Show last 5 status messages with proper line breaks
                 status_text = "\n".join(st.session_state.scan_status[:5])
@@ -80,96 +75,55 @@ def main():
 
     # Main content area
     if st.session_state.articles:
-        st.write(f"Showing {len(st.session_state.articles)} articles")
+        # Export options at the top
+        col1, col2 = st.columns([1, 8])
+        with col1:
+            if st.button("Export"):
+                export_data = []
+                for article in st.session_state.selected_articles:
+                    export_data.append({
+                        'Title': article['title'],
+                        'URL': article['url'],
+                        'Date': article.get('date', ''),
+                        'Summary': article.get('summary', ''),
+                        'Key Points': ', '.join(article.get('key_points', [])),
+                        'AI Relevance': article.get('ai_relevance', '')
+                    })
 
-        # Display articles
+                if export_data:
+                    df = pd.DataFrame(export_data)
+                    csv = df.to_csv(index=False)
+                    st.download_button(
+                        "Download CSV",
+                        csv,
+                        "ai_news_report.csv",
+                        "text/csv",
+                        key='download-csv'
+                    )
+
+        # Display articles with selection checkboxes
+        st.write(f"Research Results")
+        st.caption(f"Found {len(st.session_state.articles)} relevant articles from the past week")
+
         for idx, article in enumerate(st.session_state.articles):
-            with st.expander(f"{article['title']}"):
-                cols = st.columns([3, 1])
-                with cols[0]:
-                    st.markdown(f"**Source:** [{article['url']}]({article['url']})")
-                    st.markdown("**Summary:**")
-                    st.write(article.get('summary', 'No summary available'))
-                    st.markdown("**Key Points:**")
-                    for point in article.get('key_points', []):
-                        st.markdown(f"- {point}")
-                with cols[1]:
-                    st.markdown("**AI Relevance:**")
-                    st.write(article.get('ai_relevance', 'Not analyzed'))
-                    if st.checkbox("Select for Report", key=f"select_{idx}"):
+            with st.container():
+                st.write("---")
+                col1, col2 = st.columns([8, 1])
+                with col1:
+                    st.markdown(f"### [{article['title']}]({article['url']})")
+                with col2:
+                    if st.checkbox("Select", key=f"select_{idx}"):
                         if article not in st.session_state.selected_articles:
                             st.session_state.selected_articles.append(article)
                     elif article in st.session_state.selected_articles:
                         st.session_state.selected_articles.remove(article)
 
-        # Export options
-        if st.session_state.selected_articles:
-            st.header("Export Options")
-            cols = st.columns(2)
-
-            # Prepare export data
-            export_data = []
-            for article in st.session_state.selected_articles:
-                export_data.append({
-                    'Title': article['title'],
-                    'URL': article['url'],
-                    'Date': article.get('date', ''),
-                    'Summary': article.get('summary', ''),
-                    'Key Points': ', '.join(article.get('key_points', [])),
-                    'AI Relevance': article.get('ai_relevance', '')
-                })
-
-            # CSV Export
-            with cols[0]:
-                df = pd.DataFrame(export_data)
-                csv = df.to_csv(index=False)
-                st.download_button(
-                    "Download CSV",
-                    csv,
-                    "ai_news_report.csv",
-                    "text/csv",
-                    key='download-csv'
-                )
-
-            # PDF Export
-            with cols[1]:
-                from reportlab.lib import colors
-                from reportlab.lib.pagesizes import letter
-                from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-                from reportlab.lib.styles import getSampleStyleSheet
-
-                pdf_path = "reports/ai_news_report.pdf"
-                os.makedirs("reports", exist_ok=True)
-
-                doc = SimpleDocTemplate(pdf_path, pagesize=letter)
-                styles = getSampleStyleSheet()
-                story = []
-
-                # Title
-                story.append(Paragraph(f"AI News Report - {datetime.now().strftime('%Y-%m-%d')}", styles['Heading1']))
-                story.append(Spacer(1, 12))
-
-                # Articles
-                for article in st.session_state.selected_articles:
-                    story.append(Paragraph(article['title'], styles['Heading2']))
-                    story.append(Paragraph(f"Source: {article['url']}", styles['BodyText']))
-                    story.append(Paragraph("Summary:", styles['Heading3']))
-                    story.append(Paragraph(article.get('summary', 'No summary available'), styles['BodyText']))
-                    story.append(Paragraph("Key Points:", styles['Heading3']))
-                    for point in article.get('key_points', []):
-                        story.append(Paragraph(f"• {point}", styles['BodyText']))
-                    story.append(Spacer(1, 12))
-
-                doc.build(story)
-
-                with open(pdf_path, "rb") as pdf_file:
-                    st.download_button(
-                        "Download PDF",
-                        pdf_file,
-                        "ai_news_report.pdf",
-                        "application/pdf",
-                        key='download-pdf'
-                    )
+                st.markdown(f"**Industry relevance score:** {article.get('relevance_score', '0.0')}/10, {article.get('citations', '0')} citations, Relevance to retail/e-commerce: {article.get('retail_relevance', '0.0')}/10")
+                st.markdown("**Summary:**")
+                st.write(article.get('summary', 'No summary available'))
+                st.markdown("**Key Points:**")
+                for point in article.get('key_points', []):
+                    st.markdown(f"- {point}")
 
     else:
         st.info("Click 'Fetch New Articles' to start gathering AI news.")
