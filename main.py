@@ -25,6 +25,12 @@ if 'scan_status' not in st.session_state:
 if 'test_mode' not in st.session_state:
     st.session_state.test_mode = True
 
+st.set_page_config(
+    page_title="AI News Aggregator",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
 def generate_pdf(articles):
     """Generate a PDF report from the articles in landscape orientation."""
     buffer = BytesIO()
@@ -133,7 +139,7 @@ def validate_ai_relevance(article):
         result = json.loads(response.choices[0].message.content)
 
         # Consider articles with moderate to high confidence
-        if result.get('is_relevant', False) and result.get('confidence', 0) > 30:
+        if result.get('is_relevant', False) and result.get('confidence', 0) >= 30: # Changed threshold to 30
             return result
         return {"is_relevant": False, "confidence": 0, "reason": result.get('reason', 'Did not meet AI relevance criteria')}
     except Exception as e:
@@ -141,12 +147,6 @@ def validate_ai_relevance(article):
         return {"is_relevant": False, "confidence": 0, "reason": "Validation failed"}
 
 def main():
-    st.set_page_config(
-        page_title="AI News Aggregator",
-        layout="wide",
-        initial_sidebar_state="expanded"
-    )
-
     st.title("AI News Aggregation System")
 
     # Fetch button in the sidebar
