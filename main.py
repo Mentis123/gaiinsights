@@ -133,7 +133,7 @@ def validate_ai_relevance(article):
         result = json.loads(response.choices[0].message.content)
 
         # Consider articles with moderate to high confidence
-        if result.get('is_relevant', False) and result.get('confidence', 0) > 70:
+        if result.get('is_relevant', False) and result.get('confidence', 0) > 30:
             return result
         return {"is_relevant": False, "confidence": 0, "reason": result.get('reason', 'Did not meet AI relevance criteria')}
     except Exception as e:
