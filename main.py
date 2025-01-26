@@ -225,6 +225,9 @@ def main():
                 progress_bar.empty()
                 status_placeholder.empty()
 
+                # Update session state with found articles
+                st.session_state.articles = all_articles
+
                 if len(all_articles) > 0:
                     st.success(f"Found {len(all_articles)} unique, validated AI-related articles!")
                 else:
