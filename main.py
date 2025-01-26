@@ -164,20 +164,24 @@ def main():
                 seen_urls = set()  # Track unique URLs
                 progress_bar = st.progress(0)
 
-                status_container = st.empty()
+                # Create a container for status messages with custom styling
+                status_placeholder = st.empty()
                 st.session_state.scan_status = []
 
                 for idx, source in enumerate(reversed(sources)):
                     try:
-                        st.session_state.scan_status.insert(0, f"Currently Scanning: {source}")
+                        # Add status message with timestamp
+                        current_time = datetime.now().strftime("%H:%M:%S")
+                        st.session_state.scan_status.insert(0, f"[{current_time}] Scanning: {source}")
 
                         ai_articles = find_ai_articles(source)
                         if ai_articles:
-                            st.session_state.scan_status.insert(0, f"Found {len(ai_articles)} potential AI articles from current source")
-                            st.session_state.scan_status.insert(0, "Analyzing and validating articles...")
+                            st.session_state.scan_status.insert(0, f"[{current_time}] Found {len(ai_articles)} potential AI articles")
+                            st.session_state.scan_status.insert(0, f"[{current_time}] Analyzing and validating articles...")
 
-                        status_text = "\n".join(st.session_state.scan_status[:5])
-                        status_container.markdown(status_text)
+                        # Display status messages with line breaks
+                        status_text = "\n".join(st.session_state.scan_status[:10])  # Show last 10 messages
+                        status_placeholder.markdown(f"```\n{status_text}\n```")
 
                         for article in ai_articles:
                             # Skip if we've already processed this URL
@@ -189,7 +193,6 @@ def main():
                                 if content:
                                     analysis = summarize_article(content)
                                     if analysis:
-                                        # Validate AI relevance
                                         validation = validate_ai_relevance({**article, **analysis})
                                         seen_urls.add(article['url'])
                                         all_articles.append({
@@ -204,21 +207,23 @@ def main():
                                     st.error("⚠️ OpenAI API quota exceeded. Please check your API key balance.")
                                     return  # Stop processing more articles
                                 else:
-                                    print(f"Error processing article {article['url']}: {str(article_error)}")
+                                    current_time = datetime.now().strftime("%H:%M:%S")
+                                    st.session_state.scan_status.insert(0, f"[{current_time}] Error processing article: {article['url']}")
                                 continue
 
                         progress_bar.progress((idx + 1) / len(sources))
+
                     except Exception as source_error:
                         if "OpenAI API quota exceeded" in str(source_error):
                             st.error("⚠️ OpenAI API quota exceeded. Please check your API key balance.")
                             return  # Stop processing more sources
-                        st.error(f"Error processing source {source}: {str(source_error)}")
-                        print(f"Error details: {traceback.format_exc()}")
+                        current_time = datetime.now().strftime("%H:%M:%S")
+                        st.session_state.scan_status.insert(0, f"[{current_time}] Error processing source: {source}")
                         continue
 
-                st.session_state.articles = all_articles
-                st.session_state.scan_status = []
-                status_container.empty()
+                # Clear progress indicators
+                progress_bar.empty()
+                status_placeholder.empty()
 
                 if len(all_articles) > 0:
                     st.success(f"Found {len(all_articles)} unique, validated AI-related articles!")
