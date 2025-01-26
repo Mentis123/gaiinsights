@@ -102,33 +102,47 @@ def generate_pdf(articles):
     return pdf_data
 
 def validate_ai_relevance(article):
-    """Validate if an article is truly AI-related with stricter criteria."""
+    """Validate if an article is truly AI-related with extremely strict criteria."""
     try:
         client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
         prompt = f"""
-        Strictly evaluate if this article is genuinely about artificial intelligence technology, development, or applications.
+        You are a strict AI technology validator. Evaluate if this article is EXCLUSIVELY about artificial intelligence technology, development, research, or direct technical applications.
 
-        Required Criteria - ALL must be met:
-        1. The article MUST be primarily focused on AI technology, development, or direct applications
-        2. It MUST contain specific technical details or concrete information about AI
-        3. It MUST discuss actual AI systems, models, or implementations
+        MANDATORY Technical Requirements (ALL must be present):
+        1. Contains specific mentions of AI technologies (e.g. machine learning models, neural networks, etc.)
+        2. Discusses technical implementation details, research findings, or concrete AI developments
+        3. Focuses on AI/ML architecture, algorithms, or frameworks
+        4. Provides quantifiable metrics, technical specifications, or research results
 
-        Automatic Rejection Criteria - ANY of these disqualify the article:
-        1. Only mentions AI in passing or as a buzzword
-        2. Primarily about business/stock news with minimal AI content
-        3. Generic tech news that barely touches on AI
-        4. Celebrity/entertainment news that happens to mention AI
-        5. Articles that just speculate about AI without technical substance
+        AUTOMATIC REJECTION (ANY of these results in rejection):
+        1. Celebrity news, entertainment, or fashion that mentions AI
+        2. General business news with AI only mentioned in passing
+        3. Articles about companies that use AI without technical details
+        4. Speculative or opinion pieces without technical substance
+        5. Articles where AI is not the primary focus
+        6. No specific AI technology or implementation details mentioned
+
+        Technical Keywords Required (must have at least 3):
+        - Machine Learning
+        - Neural Networks
+        - Deep Learning
+        - Training Data
+        - Model Architecture
+        - AI Research
+        - Algorithm
+        - Technical Implementation
 
         Article Title: {article['title']}
+        Content: {article.get('content', '')}
         Summary: {article.get('summary', '')}
         Key Points: {', '.join(article.get('key_points', []))}
 
-        Return a JSON response with:
+        Return a JSON response:
         {{
-            "is_relevant": true/false,
-            "confidence": 0-100,
-            "reason": "Detailed explanation of why this is or isn't a genuine AI article"
+            "is_relevant": true/false (must be true ONLY if ALL mandatory requirements are met),
+            "confidence": 0-100 (must be >=90 for true AI technical content),
+            "technical_terms_found": ["list", "of", "technical", "terms", "found"],
+            "reason": "Detailed technical explanation of decision"
         }}
         """
 
@@ -140,21 +154,34 @@ def validate_ai_relevance(article):
             )
             result = json.loads(response.choices[0].message.content)
 
-            if result.get('is_relevant', False) and result.get('confidence', 0) >= 75:  # Increased threshold
-                return result
+            # Require 90%+ confidence and at least 3 technical terms
+            is_valid = (
+                result.get('is_relevant', False) and 
+                result.get('confidence', 0) >= 90 and
+                len(result.get('technical_terms_found', [])) >= 3
+            )
+
+            if is_valid:
+                return {
+                    "is_relevant": True,
+                    "confidence": result.get('confidence', 0),
+                    "reason": result.get('reason', 'Meets strict AI technical criteria')
+                }
+
             return {
-                "is_relevant": False, 
-                "confidence": 0, 
-                "reason": result.get('reason', 'Did not meet strict AI relevance criteria')
+                "is_relevant": False,
+                "confidence": 0,
+                "reason": result.get('reason', 'Failed to meet strict AI technical criteria')
             }
+
         except Exception as api_error:
             if "quota" in str(api_error).lower() or "rate limit" in str(api_error).lower():
                 raise Exception("OpenAI API quota exceeded. Please check your API key balance.")
-            raise  # Re-raise other API errors
+            raise
 
     except Exception as e:
         print(f"Error in AI validation: {str(e)}")
-        raise  # Re-raise the error to be handled by the calling function
+        raise
 
 def main():
     st.title("AI News Aggregation System")
