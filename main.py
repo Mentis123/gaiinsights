@@ -202,7 +202,8 @@ def main():
                                                 **article,
                                                 **content,
                                                 **analysis,
-                                                'rationale': validation['reason']
+                                                'ai_confidence': 100,  # Set a default confidence score
+                                                'ai_validation': validation['reason']
                                             })
 
                                             # Add status message for validated article
