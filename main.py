@@ -102,19 +102,23 @@ def generate_pdf(articles):
     return pdf_data
 
 def validate_ai_relevance(article):
-    """Validate if an article is truly AI-related."""
+    """Validate if an article is truly AI-related with stricter criteria."""
     try:
         client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
         prompt = f"""
-        Evaluate if this article is genuinely about artificial intelligence technology, development, or applications.
+        Strictly evaluate if this article is genuinely about artificial intelligence technology, development, or applications.
 
-        Consider these criteria:
-        1. The article should primarily discuss AI technology or its applications
-        2. It should contain meaningful information about AI developments or impacts
-        3. Filter out articles that:
-           - Are primarily about celebrities or entertainment with only passing AI mentions
-           - Only use "AI" as a buzzword without substantial AI content
-           - Have no real connection to artificial intelligence technology
+        Required Criteria - ALL must be met:
+        1. The article MUST be primarily focused on AI technology, development, or direct applications
+        2. It MUST contain specific technical details or concrete information about AI
+        3. It MUST discuss actual AI systems, models, or implementations
+
+        Automatic Rejection Criteria - ANY of these disqualify the article:
+        1. Only mentions AI in passing or as a buzzword
+        2. Primarily about business/stock news with minimal AI content
+        3. Generic tech news that barely touches on AI
+        4. Celebrity/entertainment news that happens to mention AI
+        5. Articles that just speculate about AI without technical substance
 
         Article Title: {article['title']}
         Summary: {article.get('summary', '')}
@@ -124,7 +128,7 @@ def validate_ai_relevance(article):
         {{
             "is_relevant": true/false,
             "confidence": 0-100,
-            "reason": "explanation of why this is or isn't an AI-related article"
+            "reason": "Detailed explanation of why this is or isn't a genuine AI article"
         }}
         """
 
@@ -136,12 +140,12 @@ def validate_ai_relevance(article):
             )
             result = json.loads(response.choices[0].message.content)
 
-            if result.get('is_relevant', False) and result.get('confidence', 0) >= 30:
+            if result.get('is_relevant', False) and result.get('confidence', 0) >= 75:  # Increased threshold
                 return result
             return {
                 "is_relevant": False, 
                 "confidence": 0, 
-                "reason": result.get('reason', 'Did not meet AI relevance criteria')
+                "reason": result.get('reason', 'Did not meet strict AI relevance criteria')
             }
         except Exception as api_error:
             if "quota" in str(api_error).lower() or "rate limit" in str(api_error).lower():
