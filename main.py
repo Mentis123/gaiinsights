@@ -102,86 +102,60 @@ def generate_pdf(articles):
     return pdf_data
 
 def validate_ai_relevance(article):
-    """Validate if an article is truly AI-related with extremely strict criteria."""
+    """Validate if an article is truly AI-related."""
     try:
         client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
         prompt = f"""
-        You are a strict AI technology validator. Evaluate if this article is EXCLUSIVELY about artificial intelligence technology, development, research, or direct technical applications.
+        You are a strict AI technology validator. Evaluate if this article is EXCLUSIVELY about artificial intelligence technology, development, or research.
 
-        MANDATORY Technical Requirements (ALL must be present):
-        1. Contains specific mentions of AI technologies (e.g. machine learning models, neural networks, etc.)
-        2. Discusses technical implementation details, research findings, or concrete AI developments
-        3. Focuses on AI/ML architecture, algorithms, or frameworks
-        4. Provides quantifiable metrics, technical specifications, or research results
+        ONLY return true if the article:
+        1. Is primarily about AI technology development, research, or technical applications
+        2. Contains specific technical details about AI models, architectures, or algorithms
+        3. Discusses concrete AI implementations or research findings
 
-        AUTOMATIC REJECTION (ANY of these results in rejection):
-        1. Celebrity news, entertainment, or fashion that mentions AI
-        2. General business news with AI only mentioned in passing
-        3. Articles about companies that use AI without technical details
-        4. Speculative or opinion pieces without technical substance
-        5. Articles where AI is not the primary focus
-        6. No specific AI technology or implementation details mentioned
-
-        Technical Keywords Required (must have at least 3):
-        - Machine Learning
-        - Neural Networks
-        - Deep Learning
-        - Training Data
-        - Model Architecture
-        - AI Research
-        - Algorithm
-        - Technical Implementation
+        Do NOT allow articles that:
+        1. Only mention AI as a buzzword
+        2. Are about fashion, celebrities, or entertainment
+        3. Focus on business news with minimal AI content
+        4. Lack technical substance about AI
 
         Article Title: {article['title']}
         Content: {article.get('content', '')}
         Summary: {article.get('summary', '')}
-        Key Points: {', '.join(article.get('key_points', []))}
 
         Return a JSON response:
         {{
-            "is_relevant": true/false (must be true ONLY if ALL mandatory requirements are met),
-            "confidence": 0-100 (must be >=90 for true AI technical content),
-            "technical_terms_found": ["list", "of", "technical", "terms", "found"],
-            "reason": "Detailed technical explanation of decision"
+            "is_relevant": true/false,
+            "reason": "Clear explanation of why this is or isn't about AI technology"
         }}
         """
 
-        try:
-            response = client.chat.completions.create(
-                model="gpt-4o",
-                messages=[{"role": "user", "content": prompt}],
-                response_format={"type": "json_object"}
-            )
-            result = json.loads(response.choices[0].message.content)
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"}
+        )
+        result = json.loads(response.choices[0].message.content)
 
-            # Require 90%+ confidence and at least 3 technical terms
-            is_valid = (
-                result.get('is_relevant', False) and 
-                result.get('confidence', 0) >= 90 and
-                len(result.get('technical_terms_found', [])) >= 3
-            )
-
-            if is_valid:
-                return {
-                    "is_relevant": True,
-                    "confidence": result.get('confidence', 0),
-                    "reason": result.get('reason', 'Meets strict AI technical criteria')
-                }
-
-            return {
-                "is_relevant": False,
-                "confidence": 0,
-                "reason": result.get('reason', 'Failed to meet strict AI technical criteria')
-            }
-
-        except Exception as api_error:
-            if "quota" in str(api_error).lower() or "rate limit" in str(api_error).lower():
-                raise Exception("OpenAI API quota exceeded. Please check your API key balance.")
-            raise
+        return {
+            "is_relevant": result.get('is_relevant', False),
+            "reason": result.get('reason', 'Not a technical AI article')
+        }
 
     except Exception as e:
         print(f"Error in AI validation: {str(e)}")
         raise
+
+def generate_csv(articles):
+    """Generate CSV data from articles."""
+    output = BytesIO()
+    writer = pd.DataFrame([{
+        'Title': article['title'],
+        'URL': article['url'],
+        'Date': article['date'],
+        'Summary': article.get('summary', 'No summary available')
+    } for article in articles]).to_csv(output, index=False)
+    return output.getvalue()
 
 def main():
     st.title("AI News Aggregation System")
@@ -192,30 +166,21 @@ def main():
             with st.spinner("Fetching AI news from sources..."):
                 sources = load_source_sites(test_mode=st.session_state.test_mode)
                 all_articles = []
-                seen_urls = set()  # Track unique URLs
+                seen_urls = set()
                 progress_bar = st.progress(0)
 
-                # Create a container for status messages with custom styling
                 status_placeholder = st.empty()
                 st.session_state.scan_status = []
 
-                for idx, source in enumerate(reversed(sources)):
+                for idx, source in enumerate(sources):
                     try:
-                        # Add status message with timestamp
                         current_time = datetime.now().strftime("%H:%M:%S")
-                        st.session_state.scan_status.insert(0, f"[{current_time}] Scanning: {source}")
+                        status_msg = f"[{current_time}] Scanning: {source}"
+                        st.session_state.scan_status.insert(0, status_msg)
+                        status_placeholder.code("\n".join(st.session_state.scan_status))
 
                         ai_articles = find_ai_articles(source)
-                        if ai_articles:
-                            st.session_state.scan_status.insert(0, f"[{current_time}] Found {len(ai_articles)} potential AI articles")
-                            st.session_state.scan_status.insert(0, f"[{current_time}] Analyzing and validating articles...")
-
-                        # Display status messages with line breaks
-                        status_text = "\n".join(st.session_state.scan_status[:10])  # Show last 10 messages
-                        status_placeholder.markdown(f"```\n{status_text}\n```")
-
                         for article in ai_articles:
-                            # Skip if we've already processed this URL
                             if article['url'] in seen_urls:
                                 continue
 
@@ -225,63 +190,48 @@ def main():
                                     analysis = summarize_article(content)
                                     if analysis:
                                         validation = validate_ai_relevance({**article, **analysis})
-                                        seen_urls.add(article['url'])
-                                        all_articles.append({
-                                            **article,
-                                            **content,
-                                            **analysis,
-                                            'ai_confidence': validation['confidence'],
-                                            'ai_validation': validation['reason']
-                                        })
-                            except Exception as article_error:
-                                if "OpenAI API quota exceeded" in str(article_error):
-                                    st.error("⚠️ OpenAI API quota exceeded. Please check your API key balance.")
-                                    return  # Stop processing more articles
-                                else:
-                                    current_time = datetime.now().strftime("%H:%M:%S")
-                                    st.session_state.scan_status.insert(0, f"[{current_time}] Error processing article: {article['url']}")
+                                        if validation['is_relevant']:
+                                            seen_urls.add(article['url'])
+                                            all_articles.append({
+                                                **article,
+                                                **content,
+                                                **analysis,
+                                                'rationale': validation['reason']
+                                            })
+                            except Exception as e:
+                                if "OpenAI API quota exceeded" in str(e):
+                                    st.error("⚠️ OpenAI API quota exceeded")
+                                    return
                                 continue
 
                         progress_bar.progress((idx + 1) / len(sources))
 
-                    except Exception as source_error:
-                        if "OpenAI API quota exceeded" in str(source_error):
-                            st.error("⚠️ OpenAI API quota exceeded. Please check your API key balance.")
-                            return  # Stop processing more sources
-                        current_time = datetime.now().strftime("%H:%M:%S")
-                        st.session_state.scan_status.insert(0, f"[{current_time}] Error processing source: {source}")
+                    except Exception as e:
+                        if "OpenAI API quota exceeded" in str(e):
+                            st.error("⚠️ OpenAI API quota exceeded")
+                            return
                         continue
 
-                # Clear progress indicators
                 progress_bar.empty()
                 status_placeholder.empty()
 
-                # Update session state with found articles
                 st.session_state.articles = all_articles
 
                 if len(all_articles) > 0:
-                    st.success(f"Found {len(all_articles)} unique, validated AI-related articles!")
+                    st.success(f"Found {len(all_articles)} relevant AI articles!")
                 else:
                     st.warning("No articles found. Please try again.")
 
         except Exception as e:
-            if "OpenAI API quota exceeded" in str(e):
-                st.error("⚠️ OpenAI API quota exceeded. Please check your API key balance.")
-            else:
-                st.error(f"An error occurred while fetching articles: {str(e)}")
-            print(f"Error details: {traceback.format_exc()}")
+            st.error(f"An error occurred: {str(e)}")
 
-    # Main content area
+    # Display articles and export options
     if st.session_state.articles:
-        # Export options at the top
-        col1, col2 = st.columns([1, 8])
+        col1, col2 = st.columns([1, 1])
         with col1:
-            if st.button("Export All" if not st.session_state.selected_articles else "Export Selected"):
+            if st.button("Export PDF"):
                 try:
-                    articles_to_export = st.session_state.selected_articles if st.session_state.selected_articles else st.session_state.articles
-                    pdf_data = generate_pdf(articles_to_export)
-
-                    # Create a download button for the PDF
+                    pdf_data = generate_pdf(st.session_state.articles)
                     st.download_button(
                         "Download PDF",
                         pdf_data,
@@ -290,37 +240,33 @@ def main():
                     )
                 except Exception as e:
                     st.error(f"Error generating PDF: {str(e)}")
-                    print(f"Error details: {traceback.format_exc()}")
 
+        with col2:
+            if st.button("Export CSV"):
+                try:
+                    csv_data = generate_csv(st.session_state.articles)
+                    st.download_button(
+                        "Download CSV",
+                        csv_data,
+                        "ai_news_report.csv",
+                        "text/csv"
+                    )
+                except Exception as e:
+                    st.error(f"Error generating CSV: {str(e)}")
 
-        # Display articles with selection checkboxes
-        st.write(f"Research Results")
-        st.caption(f"Found {len(st.session_state.articles)} relevant articles from the past week")
+        # Display articles in a simpler format
+        st.write(f"### AI Research Results ({len(st.session_state.articles)} articles)")
 
-        for idx, article in enumerate(st.session_state.articles):
-            with st.container():
-                st.write("---")
-                col1, col2 = st.columns([8, 1])
-                with col1:
-                    st.markdown(f"### [{article['title']}]({article['url']})")
-                with col2:
-                    if st.checkbox("Select", key=f"select_{idx}"):
-                        if article not in st.session_state.selected_articles:
-                            st.session_state.selected_articles.append(article)
-                    elif article in st.session_state.selected_articles:
-                        st.session_state.selected_articles.remove(article)
-
-                st.markdown("**Summary:**")
-                st.write(article.get('summary', 'No summary available'))
-                st.markdown("**Key Points:**")
-                for point in article.get('key_points', []):
-                    st.markdown(f"- {point}")
-                st.markdown(f"Published: {article.get('date', 'Date not available')}")
+        for article in st.session_state.articles:
+            st.write("---")
+            st.markdown(f"### [{article['title']}]({article['url']})")
+            st.write(f"Published: {article.get('date', 'Date not available')}")
+            st.write(article.get('summary', 'No summary available'))
 
     else:
         st.info("Click 'Fetch New Articles' to start gathering AI news.")
 
-    # Settings in sidebar - at the bottom
+    # Settings in sidebar
     with st.sidebar:
         with st.expander("Settings", expanded=False):
             st.session_state.test_mode = st.toggle("Test Mode", value=st.session_state.test_mode)
