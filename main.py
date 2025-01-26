@@ -136,8 +136,7 @@ def validate_ai_relevance(article):
             )
             result = json.loads(response.choices[0].message.content)
 
-            # Lower threshold and handle API quota issues
-            if result.get('is_relevant', False) and result.get('confidence', 0) >= 20:  # Lowered threshold
+            if result.get('is_relevant', False) and result.get('confidence', 0) >= 30:
                 return result
             return {
                 "is_relevant": False, 
@@ -145,29 +144,13 @@ def validate_ai_relevance(article):
                 "reason": result.get('reason', 'Did not meet AI relevance criteria')
             }
         except Exception as api_error:
-            if "quota" in str(api_error).lower():
-                # Fallback: Use simple keyword-based validation if API quota exceeded
-                ai_keywords = ['artificial intelligence', 'machine learning', 'deep learning', 
-                             'neural network', 'ai model', 'language model', 'gpt']
-                content = f"{article['title']} {article.get('summary', '')}"
-                matches = sum(1 for keyword in ai_keywords if keyword.lower() in content.lower())
-
-                if matches >= 1:  # If at least one AI-related keyword is found
-                    return {
-                        "is_relevant": True,
-                        "confidence": 50,  # Medium confidence for keyword-based validation
-                        "reason": "Article contains AI-related keywords (fallback validation)"
-                    }
+            if "quota" in str(api_error).lower() or "rate limit" in str(api_error).lower():
+                raise Exception("OpenAI API quota exceeded. Please check your API key balance.")
             raise  # Re-raise other API errors
 
     except Exception as e:
         print(f"Error in AI validation: {str(e)}")
-        # Default to accepting the article if validation fails
-        return {
-            "is_relevant": True,
-            "confidence": 30,
-            "reason": "Validation system encountered an error, included based on keywords"
-        }
+        raise  # Re-raise the error to be handled by the calling function
 
 def main():
     st.title("AI News Aggregation System")
@@ -201,14 +184,14 @@ def main():
                             if article['url'] in seen_urls:
                                 continue
 
-                            content = extract_content(article['url'])
-                            if content:
-                                analysis = summarize_article(content)
-                                if analysis:
-                                    # Validate AI relevance immediately
-                                    validation = validate_ai_relevance({**article, **analysis})
-                                    if validation['is_relevant']:
-                                        seen_urls.add(article['url'])  # Mark URL as seen
+                            try:
+                                content = extract_content(article['url'])
+                                if content:
+                                    analysis = summarize_article(content)
+                                    if analysis:
+                                        # Validate AI relevance
+                                        validation = validate_ai_relevance({**article, **analysis})
+                                        seen_urls.add(article['url'])
                                         all_articles.append({
                                             **article,
                                             **content,
@@ -216,10 +199,20 @@ def main():
                                             'ai_confidence': validation['confidence'],
                                             'ai_validation': validation['reason']
                                         })
+                            except Exception as article_error:
+                                if "OpenAI API quota exceeded" in str(article_error):
+                                    st.error("⚠️ OpenAI API quota exceeded. Please check your API key balance.")
+                                    return  # Stop processing more articles
+                                else:
+                                    print(f"Error processing article {article['url']}: {str(article_error)}")
+                                continue
 
                         progress_bar.progress((idx + 1) / len(sources))
-                    except Exception as e:
-                        st.error(f"Error processing source {source}: {str(e)}")
+                    except Exception as source_error:
+                        if "OpenAI API quota exceeded" in str(source_error):
+                            st.error("⚠️ OpenAI API quota exceeded. Please check your API key balance.")
+                            return  # Stop processing more sources
+                        st.error(f"Error processing source {source}: {str(source_error)}")
                         print(f"Error details: {traceback.format_exc()}")
                         continue
 
@@ -230,9 +223,13 @@ def main():
                 if len(all_articles) > 0:
                     st.success(f"Found {len(all_articles)} unique, validated AI-related articles!")
                 else:
-                    st.warning("No articles found. This could be due to API rate limits - please try again in a few minutes.")
+                    st.warning("No articles found. Please try again.")
+
         except Exception as e:
-            st.error(f"An error occurred while fetching articles: {str(e)}")
+            if "OpenAI API quota exceeded" in str(e):
+                st.error("⚠️ OpenAI API quota exceeded. Please check your API key balance.")
+            else:
+                st.error(f"An error occurred while fetching articles: {str(e)}")
             print(f"Error details: {traceback.format_exc()}")
 
     # Main content area
