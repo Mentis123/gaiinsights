@@ -102,22 +102,22 @@ def generate_pdf(articles):
     return pdf_data
 
 def validate_ai_relevance(article):
-    """Validate if an article is truly AI-related."""
+    """Validate if an article is meaningfully about AI technology or applications."""
     try:
         client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
         prompt = f"""
-        You are a strict AI technology validator. Evaluate if this article is EXCLUSIVELY about artificial intelligence technology, development, or research.
+        Evaluate if this article contains meaningful AI-related content.
 
-        ONLY return true if the article:
-        1. Is primarily about AI technology development, research, or technical applications
-        2. Contains specific technical details about AI models, architectures, or algorithms
-        3. Discusses concrete AI implementations or research findings
+        Accept articles that:
+        1. Discuss AI technology, development, or applications
+        2. Provide insights about AI implementations or impact
+        3. Cover AI research or industry developments
+        4. Discuss practical applications of AI in various fields
 
-        Do NOT allow articles that:
-        1. Only mention AI as a buzzword
-        2. Are about fashion, celebrities, or entertainment
-        3. Focus on business news with minimal AI content
-        4. Lack technical substance about AI
+        Reject only if:
+        1. AI is mentioned purely as a buzzword without substance
+        2. The article has no real connection to AI technology
+        3. AI is only mentioned in passing without any meaningful context
 
         Article Title: {article['title']}
         Content: {article.get('content', '')}
@@ -126,7 +126,7 @@ def validate_ai_relevance(article):
         Return a JSON response:
         {{
             "is_relevant": true/false,
-            "reason": "Clear explanation of why this is or isn't about AI technology"
+            "reason": "Explanation of AI relevance or lack thereof"
         }}
         """
 
@@ -139,7 +139,7 @@ def validate_ai_relevance(article):
 
         return {
             "is_relevant": result.get('is_relevant', False),
-            "reason": result.get('reason', 'Not a technical AI article')
+            "reason": result.get('reason', 'Not sufficiently AI-related')
         }
 
     except Exception as e:
@@ -177,9 +177,15 @@ def main():
                         current_time = datetime.now().strftime("%H:%M:%S")
                         status_msg = f"[{current_time}] Scanning: {source}"
                         st.session_state.scan_status.insert(0, status_msg)
-                        status_placeholder.code("\n".join(st.session_state.scan_status))
 
                         ai_articles = find_ai_articles(source)
+                        if ai_articles:
+                            status_msg = f"[{current_time}] Found {len(ai_articles)} potential AI articles from current source"
+                            st.session_state.scan_status.insert(0, status_msg)
+
+                        # Display all status messages
+                        status_placeholder.code("\n".join(st.session_state.scan_status))
+
                         for article in ai_articles:
                             if article['url'] in seen_urls:
                                 continue
@@ -198,6 +204,12 @@ def main():
                                                 **analysis,
                                                 'rationale': validation['reason']
                                             })
+
+                                            # Add status message for validated article
+                                            status_msg = f"[{current_time}] Validated AI article: {article['title']}"
+                                            st.session_state.scan_status.insert(0, status_msg)
+                                            status_placeholder.code("\n".join(st.session_state.scan_status))
+
                             except Exception as e:
                                 if "OpenAI API quota exceeded" in str(e):
                                     st.error("⚠️ OpenAI API quota exceeded")
