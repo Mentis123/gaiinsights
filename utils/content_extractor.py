@@ -48,10 +48,11 @@ def extract_content(url: str) -> Dict[str, str]:
                         if article_date:
                             try:
                                 date_obj = datetime.strptime(article_date[:10], '%Y-%m-%d')
-                                day_ago = datetime.now() - timedelta(days=1)
-                                # Include articles from today and yesterday
-                                if date_obj.date() < day_ago.date():
-                                    print(f"Article too old: {article_date}")
+                                now = datetime.now()
+                                # Include articles from today and yesterday (last 24 hours)
+                                cutoff_time = now - timedelta(days=1)
+                                if date_obj < cutoff_time:
+                                    print(f"Article too old (cutoff {cutoff_time.date()}): {article_date}")
                                     return None
                             except ValueError:
                                 print(f"Invalid date format: {article_date}")

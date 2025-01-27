@@ -80,21 +80,27 @@ class SearchAgent:
         try:
             return datetime.strptime(date_str, '%Y-%m-%d')
         except ValueError:
-            return datetime.now()
+            try:
+                # Try parsing with different format
+                return datetime.strptime(date_str, '%Y-%m-%d %H:%M:%S')
+            except ValueError:
+                print(f"Could not parse date: {date_str}, using current time")
+                return datetime.now()
 
     def search(self, criteria_text=None):
         """
         Aggregates articles from all configured sources with retry logic
         """
         articles = []
-        cutoff_date = datetime.now() - timedelta(days=self.timeframe_days)  # Now using 1 day from config
+        cutoff_time = datetime.now() - timedelta(days=self.timeframe_days)
 
         try:
             # Start with focused search using limited keywords
             keywords = self.extract_keywords_from_criteria(criteria_text)[:self.max_keywords]
-            articles = self._search_with_keywords(keywords, cutoff_date)
+            articles = self._search_with_keywords(keywords, cutoff_time)
 
             print(f"Initial search found {len(articles)} articles")
+            print(f"Using cutoff time: {cutoff_time}")
 
             # If we don't have enough articles, expand search scope but maintain date restriction
             retries = 0
@@ -110,29 +116,32 @@ class SearchAgent:
                 ]
 
                 print(f"Searching with broader keywords: {broader_keywords}")
-                new_articles = self._search_with_keywords(broader_keywords, cutoff_date)
+                new_articles = self._search_with_keywords(broader_keywords, cutoff_time)
 
-                # Add only unique articles
+                # Add only unique articles that are within timeframe
                 for article in new_articles:
-                    if article['url'] not in [a['url'] for a in articles]:
+                    pub_date = self.parse_date(article['published_date'])
+                    if pub_date >= cutoff_time and article['url'] not in [a['url'] for a in articles]:
                         articles.append(article)
 
-        # Final processing
-        processed_articles = []
-        for article in articles:
-            try:
-                if isinstance(article['published_date'], str):
-                    article['published_date'] = self.parse_date(article['published_date'])
-                processed_articles.append(article)
-            except Exception as e:
-                print(f"Error processing article: {str(e)}")
-                continue
+            # Final processing
+            processed_articles = []
+            for article in articles:
+                try:
+                    if isinstance(article['published_date'], str):
+                        pub_date = self.parse_date(article['published_date'])
+                        if pub_date >= cutoff_time:
+                            article['published_date'] = pub_date
+                            processed_articles.append(article)
+                except Exception as e:
+                    print(f"Error processing article: {str(e)}")
+                    continue
 
-        # Sort by date
-        processed_articles.sort(key=lambda x: x['published_date'], reverse=True)
+            # Sort by date
+            processed_articles.sort(key=lambda x: x['published_date'], reverse=True)
 
-        print(f"Final article count: {len(processed_articles)}")
-        return processed_articles
+            print(f"Final article count: {len(processed_articles)}")
+            return processed_articles
 
         except Exception as e:
             print(f"Error in search process: {str(e)}")
