@@ -7,6 +7,7 @@ from llama_index.readers.web import BeautifulSoupWebReader
 from bs4 import BeautifulSoup
 import requests
 from serpapi import Client as SerpAPIClient
+import json
 
 class SearchAgent:
     def __init__(self, config):
@@ -28,7 +29,7 @@ class SearchAgent:
             prompt = f"""
             Extract 5 specific and focused search keywords from the criteria below.
             Focus on technical terms that would yield relevant AI news articles.
-            Format as JSON array of strings.
+            Return the keywords in this format: {{"keywords": ["keyword1", "keyword2", ...]}}
 
             Criteria:
             {criteria_text}
@@ -36,12 +37,12 @@ class SearchAgent:
 
             response = self.client.chat.completions.create(
                 model=self.model,
-                messages=[{"role": "user", "content": prompt}],
-                response_format={"type": "json_object"},
-                max_tokens=200,
+                messages=[{"role": "user", "content": prompt}]
             )
 
-            keywords = eval(response.choices[0].message.content)['keywords']
+            # Parse the response text as JSON
+            result = json.loads(response.choices[0].message.content)
+            keywords = result.get('keywords', [])
             return keywords[:self.max_keywords]
 
         except Exception as e:

@@ -34,7 +34,6 @@ def extract_content(url: str) -> Dict[str, str]:
                         include_links=True,
                         include_images=True,
                         include_tables=True,
-                        output_format='json',
                         with_metadata=True
                     )
 
@@ -44,13 +43,14 @@ def extract_content(url: str) -> Dict[str, str]:
                             import json
                             content = json.loads(content)
 
-                        # Parse and validate the date - changed to 1 day instead of 7
+                        # Parse and validate the date
                         article_date = content.get('date', '')
                         if article_date:
                             try:
                                 date_obj = datetime.strptime(article_date[:10], '%Y-%m-%d')
-                                day_ago = datetime.now() - timedelta(days=1)  # Changed from 7 to 1
-                                if date_obj < day_ago:
+                                day_ago = datetime.now() - timedelta(days=1)
+                                # Include articles from today and yesterday
+                                if date_obj.date() < day_ago.date():
                                     print(f"Article too old: {article_date}")
                                     return None
                             except ValueError:
