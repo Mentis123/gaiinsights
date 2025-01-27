@@ -86,7 +86,7 @@ class SearchAgent:
         Aggregates articles from all configured sources with retry logic
         """
         articles = []
-        cutoff_date = datetime.now() - timedelta(days=self.timeframe_days)
+        cutoff_date = datetime.now() - timedelta(days=self.timeframe_days)  # Now using 1 day from config
 
         try:
             # Start with focused search using limited keywords
@@ -95,16 +95,13 @@ class SearchAgent:
 
             print(f"Initial search found {len(articles)} articles")
 
-            # If we don't have enough articles, gradually expand search
+            # If we don't have enough articles, expand search scope but maintain date restriction
             retries = 0
             while len(articles) < self.min_articles and retries < self.max_retries:
                 retries += 1
                 print(f"Retry {retries}: Not enough articles ({len(articles)})")
 
-                # Expand timeframe
-                expanded_cutoff = datetime.now() - timedelta(days=self.timeframe_days * (retries + 1))
-
-                # Use more general keywords
+                # Use more general keywords but keep the same timeframe
                 broader_keywords = [
                     "artificial intelligence news",
                     "AI developments",
@@ -112,33 +109,33 @@ class SearchAgent:
                 ]
 
                 print(f"Searching with broader keywords: {broader_keywords}")
-                new_articles = self._search_with_keywords(broader_keywords, expanded_cutoff)
+                new_articles = self._search_with_keywords(broader_keywords, cutoff_date)
 
                 # Add only unique articles
                 for article in new_articles:
                     if article['url'] not in [a['url'] for a in articles]:
                         articles.append(article)
 
-            # Final processing
-            processed_articles = []
-            for article in articles:
-                try:
-                    if isinstance(article['published_date'], str):
-                        article['published_date'] = self.parse_date(article['published_date'])
-                    processed_articles.append(article)
-                except Exception as e:
-                    print(f"Error processing article: {str(e)}")
-                    continue
+        # Final processing
+        processed_articles = []
+        for article in articles:
+            try:
+                if isinstance(article['published_date'], str):
+                    article['published_date'] = self.parse_date(article['published_date'])
+                processed_articles.append(article)
+            except Exception as e:
+                print(f"Error processing article: {str(e)}")
+                continue
 
-            # Sort by date
-            processed_articles.sort(key=lambda x: x['published_date'], reverse=True)
+        # Sort by date
+        processed_articles.sort(key=lambda x: x['published_date'], reverse=True)
 
-            print(f"Final article count: {len(processed_articles)}")
-            return processed_articles
+        print(f"Final article count: {len(processed_articles)}")
+        return processed_articles
 
-        except Exception as e:
-            print(f"Error in search process: {str(e)}")
-            raise Exception(f"Search failed: {str(e)}")
+    except Exception as e:
+        print(f"Error in search process: {str(e)}")
+        raise Exception(f"Search failed: {str(e)}")
 
     def _search_with_keywords(self, keywords, cutoff_date):
         """

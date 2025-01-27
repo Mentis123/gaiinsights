@@ -44,13 +44,13 @@ def extract_content(url: str) -> Dict[str, str]:
                             import json
                             content = json.loads(content)
 
-                        # Parse and validate the date
+                        # Parse and validate the date - changed to 1 day instead of 7
                         article_date = content.get('date', '')
                         if article_date:
                             try:
                                 date_obj = datetime.strptime(article_date[:10], '%Y-%m-%d')
-                                week_ago = datetime.now() - timedelta(days=7)
-                                if date_obj < week_ago:
+                                day_ago = datetime.now() - timedelta(days=1)  # Changed from 7 to 1
+                                if date_obj < day_ago:
                                     print(f"Article too old: {article_date}")
                                     return None
                             except ValueError:

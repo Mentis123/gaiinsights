@@ -15,7 +15,7 @@ news_sources:
       - "machine learning developments"
       - "AI industry updates"
 
-search_timeframe_days: 7
+search_timeframe_days: 1
 
 evaluation_criteria:
   min_content_length: 200
