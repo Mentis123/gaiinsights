@@ -131,7 +131,7 @@ def validate_ai_relevance(article):
         """
 
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-4",  # Fixed model name from "gpt-4o" to "gpt-4"
             messages=[{"role": "user", "content": prompt}],
             response_format={"type": "json_object"}
         )

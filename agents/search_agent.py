@@ -13,8 +13,8 @@ class SearchAgent:
         self.config = config
         self.timeframe_days = config['search_timeframe_days']
         self.client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
-        # the newest OpenAI model is "gpt-4o" which was released May 13, 2024
-        self.model = "gpt-4o"
+        # Fixed incorrect model name
+        self.model = "gpt-4"
         self.min_articles = 6
         self.max_retries = 3
         self.request_timeout = 10  # seconds
@@ -133,9 +133,9 @@ class SearchAgent:
         print(f"Final article count: {len(processed_articles)}")
         return processed_articles
 
-    except Exception as e:
-        print(f"Error in search process: {str(e)}")
-        raise Exception(f"Search failed: {str(e)}")
+        except Exception as e:
+            print(f"Error in search process: {str(e)}")
+            raise Exception(f"Search failed: {str(e)}")
 
     def _search_with_keywords(self, keywords, cutoff_date):
         """
