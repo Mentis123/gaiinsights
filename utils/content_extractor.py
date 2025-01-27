@@ -29,7 +29,7 @@ def extract_content(url: str) -> Dict[str, str]:
             downloaded = trafilatura.fetch_url(url)
             if downloaded:
                 try:
-                    content = trafilatura.extract(
+                    extracted = trafilatura.extract(
                         downloaded,
                         include_links=True,
                         include_images=True,
@@ -37,45 +37,55 @@ def extract_content(url: str) -> Dict[str, str]:
                         with_metadata=True
                     )
 
-                    if content:
-                        # Parse the JSON string into a dictionary
-                        if isinstance(content, str):
-                            import json
-                            content = json.loads(content)
+                    if extracted:
+                        # Handle metadata extraction
+                        metadata = {}
+                        if isinstance(extracted, dict):
+                            metadata = extracted
+                            content = metadata.get('text', '')
+                            title = metadata.get('title', '')
+                            date = metadata.get('date', '')
+                        else:
+                            # If not a dict, treat as plain text content
+                            content = extracted
+                            title = ''
+                            date = datetime.now().strftime('%Y-%m-%d')
 
-                        # Parse and validate the date
-                        article_date = content.get('date', '')
-                        if article_date:
+                        # Validate the date
+                        if date:
                             try:
-                                date_obj = datetime.strptime(article_date[:10], '%Y-%m-%d')
+                                date_obj = datetime.strptime(str(date)[:10], '%Y-%m-%d')
                                 now = datetime.now()
                                 # Include articles from today and yesterday (last 24 hours)
                                 cutoff_time = now - timedelta(days=1)
                                 if date_obj < cutoff_time:
-                                    print(f"Article too old (cutoff {cutoff_time.date()}): {article_date}")
+                                    print(f"Article too old (cutoff {cutoff_time.date()}): {date}")
                                     return None
                             except ValueError:
-                                print(f"Invalid date format: {article_date}")
-                                return None
+                                print(f"Invalid date format: {date}")
+                                date = datetime.now().strftime('%Y-%m-%d')
 
                         return {
-                            'title': content.get('title', ''),
-                            'text': content.get('text', ''),
-                            'date': article_date,
+                            'title': title,
+                            'text': content,
+                            'date': date,
                             'url': url
                         }
+
                 except Exception as e:
-                    print(f"Error parsing content from {url}: {e}")
+                    print(f"Error parsing content from {url}: {str(e)}")
                     if attempt < max_retries - 1:
                         time.sleep(retry_delay)
                         continue
                     return None
+
         except Exception as e:
-            print(f"Error downloading content from {url}: {e}")
+            print(f"Error downloading content from {url}: {str(e)}")
             if attempt < max_retries - 1:
                 time.sleep(retry_delay)
                 continue
             return None
+
     return None
 
 def is_consent_or_main_page(text: str) -> bool:
