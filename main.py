@@ -175,10 +175,12 @@ def main():
                         status_msg = f"[{current_time}] Scanning: {source}"
                         st.session_state.scan_status.insert(0, status_msg)
 
+                        print(f"Processing source {idx + 1}/{len(sources)}: {source}")  # Added logging
                         ai_articles = find_ai_articles(source)
                         if ai_articles:
-                            status_msg = f"[{current_time}] Found {len(ai_articles)} potential AI articles from current source"
+                            status_msg = f"[{current_time}] Found {len(ai_articles)} potential AI articles from {source}"
                             st.session_state.scan_status.insert(0, status_msg)
+                            print(f"Found {len(ai_articles)} potential AI articles")  # Added logging
 
                         # Display all status messages
                         status_placeholder.code("\n".join(st.session_state.scan_status))
@@ -188,6 +190,7 @@ def main():
                                 continue
 
                             try:
+                                print(f"Processing article: {article['title']}")  # Added logging
                                 content = extract_content(article['url'])
                                 if content:
                                     analysis = summarize_article(content)
@@ -199,7 +202,7 @@ def main():
                                                 **article,
                                                 **content,
                                                 **analysis,
-                                                'ai_confidence': 100,  # Set a default confidence score
+                                                'ai_confidence': 100,
                                                 'ai_validation': validation['reason']
                                             })
 
@@ -207,8 +210,10 @@ def main():
                                             status_msg = f"[{current_time}] Validated AI article: {article['title']}"
                                             st.session_state.scan_status.insert(0, status_msg)
                                             status_placeholder.code("\n".join(st.session_state.scan_status))
+                                            print(f"Successfully validated article: {article['title']}")  # Added logging
 
                             except Exception as e:
+                                print(f"Error processing article {article['url']}: {str(e)}")  # Enhanced error logging
                                 if "OpenAI API quota exceeded" in str(e):
                                     st.error("⚠️ OpenAI API quota exceeded")
                                     return
@@ -217,6 +222,7 @@ def main():
                         progress_bar.progress((idx + 1) / len(sources))
 
                     except Exception as e:
+                        print(f"Error processing source {source}: {str(e)}")  # Enhanced error logging
                         if "OpenAI API quota exceeded" in str(e):
                             st.error("⚠️ OpenAI API quota exceeded")
                             return
@@ -229,10 +235,13 @@ def main():
 
                 if len(all_articles) > 0:
                     st.success(f"Found {len(all_articles)} relevant AI articles!")
+                    print(f"Successfully completed with {len(all_articles)} articles")  # Added logging
                 else:
                     st.warning("No articles found. Please try again.")
+                    print("Completed with no articles found")  # Added logging
 
         except Exception as e:
+            print(f"Critical error in main process: {str(e)}")  # Enhanced error logging
             st.error(f"An error occurred: {str(e)}")
 
     # Display articles and export options

@@ -2,6 +2,8 @@
 headless = true
 address = "0.0.0.0"
 port = 5000
+enableCORS = false
+enableXsrfProtection = false
 
 [theme]
 base = "dark"
@@ -17,3 +19,7 @@ showSidebarNavigation = true
 
 [browser]
 gatherUsageStats = false
+serverAddress = "0.0.0.0"
+
+[logger]
+level = "info"
