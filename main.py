@@ -107,25 +107,15 @@ def validate_ai_relevance(article):
     """Validate if an article is meaningfully about AI technology or applications."""
     try:
         client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
-        prompt = f"""
-        Evaluate if this article contains meaningful AI-related content and return a JSON response in this format:
-        {{"is_relevant": true/false, "reason": "explanation"}}
-
-        Accept articles that:
-        1. Discuss AI technology, development, or applications
-        2. Provide insights about AI implementations or impact
-        3. Cover AI research or industry developments
-        4. Discuss practical applications of AI in various fields
-
-        Reject only if:
-        1. AI is mentioned purely as a buzzword without substance
-        2. The article has no real connection to AI technology
-        3. AI is only mentioned in passing without any meaningful context
-
-        Article Title: {article['title']}
-        Content: {article.get('content', '')}
-        Summary: {article.get('summary', '')}
-        """
+        
+        # Truncate content and summary to manage token count
+        content = article.get('content', '')[:2000]  # Limit content to first 2000 chars
+        summary = article.get('summary', '')[:500]   # Limit summary to first 500 chars
+        
+        prompt = f"""Evaluate article AI relevance. Return JSON: {{"is_relevant": true/false, "reason": "brief reason"}}
+        Title: {article['title']}
+        Content excerpt: {content}
+        Summary excerpt: {summary}"""
 
         response = client.chat.completions.create(
             model="gpt-4",
