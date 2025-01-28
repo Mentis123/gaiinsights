@@ -14,18 +14,31 @@ from io import BytesIO
 import traceback
 from openai import OpenAI
 from urllib.parse import quote
+import logging
 
-# Initialize session state
-if 'articles' not in st.session_state:
-    st.session_state.articles = []
-if 'selected_articles' not in st.session_state:
-    st.session_state.selected_articles = []
-if 'scan_status' not in st.session_state:
-    st.session_state.scan_status = []
-if 'test_mode' not in st.session_state:
-    st.session_state.test_mode = True
-if 'processing_time' not in st.session_state:
-    st.session_state.processing_time = None
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Initialize session state with error handling
+def init_session_state():
+    try:
+        if 'initialized' not in st.session_state:
+            logger.info("Initializing session state")
+            st.session_state.articles = []
+            st.session_state.selected_articles = []
+            st.session_state.scan_status = []
+            st.session_state.test_mode = True
+            st.session_state.processing_time = None
+            st.session_state.initialized = True
+            st.session_state.last_update = datetime.now()
+            logger.info("Session state initialized successfully")
+    except Exception as e:
+        logger.error(f"Error initializing session state: {str(e)}")
+        st.error("Error initializing application. Please refresh the page.")
+
+# Call initialization
+init_session_state()
 
 st.set_page_config(
     page_title="AI News Aggregator",
@@ -132,7 +145,7 @@ def validate_ai_relevance(article):
         }
 
     except Exception as e:
-        print(f"Error in AI validation: {str(e)}")
+        logger.error(f"Error in AI validation: {str(e)}")
         raise
 
 def generate_csv(articles):
@@ -148,151 +161,163 @@ def generate_csv(articles):
     return output.getvalue()
 
 def main():
-    st.title("AI News Aggregation System")
+    try:
+        st.title("AI News Aggregation System")
 
-    if st.sidebar.button("Fetch New Articles"):
-        try:
-            start_time = datetime.now()  # Start timing
-            with st.spinner("Fetching AI news from sources..."):
-                sources = load_source_sites(test_mode=st.session_state.test_mode)
-                all_articles = []
-                seen_urls = set()
-                progress_bar = st.progress(0)
+        # Periodically check connection and update timestamp
+        current_time = datetime.now()
+        if 'last_update' in st.session_state:
+            time_diff = (current_time - st.session_state.last_update).total_seconds()
+            if time_diff > 300:  # 5 minutes
+                logger.warning("Session may have been disconnected - reinitializing")
+                init_session_state()
+        st.session_state.last_update = current_time
 
-                status_placeholder = st.empty()
-                st.session_state.scan_status = []
+        if st.sidebar.button("Fetch New Articles"):
+            try:
+                start_time = datetime.now()
+                with st.spinner("Fetching AI news from sources..."):
+                    sources = load_source_sites(test_mode=st.session_state.test_mode)
+                    all_articles = []
+                    seen_urls = set()
+                    progress_bar = st.progress(0)
 
-                for idx, source in enumerate(sources):
-                    try:
-                        current_time = datetime.now().strftime("%H:%M:%S")
-                        status_msg = f"[{current_time}] Scanning: {source}"
-                        st.session_state.scan_status.insert(0, status_msg)
+                    status_placeholder = st.empty()
+                    st.session_state.scan_status = []
 
-                        print(f"Processing source {idx + 1}/{len(sources)}: {source}")
-                        cutoff_time = datetime.now() - timedelta(days=1)
-                        ai_articles = find_ai_articles(source, cutoff_time)
-                        if ai_articles:
-                            status_msg = f"[{current_time}] Found {len(ai_articles)} potential AI articles from {source}"
+                    for idx, source in enumerate(sources):
+                        try:
+                            current_time = datetime.now().strftime("%H:%M:%S")
+                            status_msg = f"[{current_time}] Scanning: {source}"
                             st.session_state.scan_status.insert(0, status_msg)
-                            print(f"Found {len(ai_articles)} potential AI articles")
+                            logger.info(f"Processing source {source}")
 
-                        status_placeholder.code("\n".join(st.session_state.scan_status))
+                            cutoff_time = datetime.now() - timedelta(days=1)
+                            ai_articles = find_ai_articles(source, cutoff_time)
 
-                        for article in ai_articles:
-                            if article['url'] in seen_urls:
-                                continue
+                            if ai_articles:
+                                status_msg = f"[{current_time}] Found {len(ai_articles)} potential AI articles from {source}"
+                                st.session_state.scan_status.insert(0, status_msg)
+                                logger.info(f"Found {len(ai_articles)} articles from {source}")
 
-                            try:
-                                print(f"Processing article: {article['title']}")
-                                content = extract_full_content(article['url'])
-                                if content:
-                                    # Pass the raw content string to summarize_article
-                                    analysis = summarize_article(content)
-                                    if analysis:
-                                        article_data = {
-                                            **article,
-                                            'content': content,
-                                            'summary': analysis.get('summary', ''),
-                                            'key_points': analysis.get('key_points', []),
-                                            'ai_relevance': analysis.get('ai_relevance', '')
-                                        }
+                            status_placeholder.code("\n".join(st.session_state.scan_status))
 
-                                        validation = validate_ai_relevance(article_data)
+                            for article in ai_articles:
+                                try:
+                                    if article['url'] in seen_urls:
+                                        continue
 
-                                        if validation['is_relevant']:
-                                            seen_urls.add(article['url'])
-                                            all_articles.append({
-                                                **article_data,
-                                                'ai_confidence': 100,
-                                                'ai_validation': validation['reason']
-                                            })
+                                    logger.info(f"Processing article: {article['title']}")
+                                    content = extract_full_content(article['url'])
 
-                                            status_msg = f"[{current_time}] Validated AI article: {article['title']}"
-                                            st.session_state.scan_status.insert(0, status_msg)
-                                            status_placeholder.code("\n".join(st.session_state.scan_status))
-                                            print(f"Successfully validated article: {article['title']}")
+                                    if content:
+                                        analysis = summarize_article(content)
+                                        if analysis:
+                                            article_data = {
+                                                **article,
+                                                'content': content,
+                                                'summary': analysis.get('summary', ''),
+                                                'key_points': analysis.get('key_points', []),
+                                                'ai_relevance': analysis.get('ai_relevance', '')
+                                            }
 
-                            except Exception as e:
-                                print(f"Error processing article {article['url']}: {str(e)}")
-                                if "OpenAI API quota exceeded" in str(e):
-                                    st.error("⚠️ OpenAI API quota exceeded")
-                                    return
-                                continue
+                                            validation = validate_ai_relevance(article_data)
 
-                        progress_bar.progress((idx + 1) / len(sources))
+                                            if validation['is_relevant']:
+                                                seen_urls.add(article['url'])
+                                                all_articles.append({
+                                                    **article_data,
+                                                    'ai_confidence': 100,
+                                                    'ai_validation': validation['reason']
+                                                })
 
+                                                status_msg = f"[{current_time}] Validated AI article: {article['title']}"
+                                                st.session_state.scan_status.insert(0, status_msg)
+                                                status_placeholder.code("\n".join(st.session_state.scan_status))
+                                                logger.info(f"Validated article: {article['title']}")
+
+                                except Exception as e:
+                                    logger.error(f"Error processing article {article['url']}: {str(e)}")
+                                    if "OpenAI API quota exceeded" in str(e):
+                                        st.error("⚠️ OpenAI API quota exceeded")
+                                        return
+                                    continue
+
+                            progress_bar.progress((idx + 1) / len(sources))
+
+                        except Exception as e:
+                            logger.error(f"Error processing source {source}: {str(e)}")
+                            if "OpenAI API quota exceeded" in str(e):
+                                st.error("⚠️ OpenAI API quota exceeded")
+                                return
+                            continue
+
+                    progress_bar.empty()
+                    status_placeholder.empty()
+
+                    end_time = datetime.now()
+                    elapsed_time = end_time - start_time
+                    minutes = int(elapsed_time.total_seconds() // 60)
+                    seconds = int(elapsed_time.total_seconds() % 60)
+                    st.session_state.processing_time = f"{minutes} minutes and {seconds} seconds"
+
+                    st.session_state.articles = all_articles
+
+                    if len(all_articles) > 0:
+                        st.success(f"Found {len(all_articles)} relevant AI articles!")
+                        logger.info(f"Successfully completed with {len(all_articles)} articles")
+                    else:
+                        st.warning("No articles found. Please try again.")
+                        logger.warning("Completed with no articles found")
+
+            except Exception as e:
+                logger.error(f"Critical error in main process: {str(e)}")
+                st.error(f"An error occurred: {str(e)}")
+
+        # Display articles and export options
+        if st.session_state.articles:
+            if st.session_state.processing_time:
+                st.write(f"**Total processing time:** {st.session_state.processing_time}")
+
+            col1, col2 = st.columns([1, 1])
+            with col1:
+                if st.button("Export PDF"):
+                    try:
+                        pdf_data = generate_pdf(st.session_state.articles)
+                        st.download_button(
+                            "Download PDF",
+                            pdf_data,
+                            "ai_news_report.pdf",
+                            "application/pdf"
+                        )
                     except Exception as e:
-                        print(f"Error processing source {source}: {str(e)}")
-                        if "OpenAI API quota exceeded" in str(e):
-                            st.error("⚠️ OpenAI API quota exceeded")
-                            return
-                        continue
+                        st.error(f"Error generating PDF: {str(e)}")
 
-                progress_bar.empty()
-                status_placeholder.empty()
+            with col2:
+                if st.button("Export CSV"):
+                    try:
+                        csv_data = generate_csv(st.session_state.articles)
+                        st.download_button(
+                            "Download CSV",
+                            csv_data,
+                            "ai_news_report.csv",
+                            "text/csv"
+                        )
+                    except Exception as e:
+                        st.error(f"Error generating CSV: {str(e)}")
 
-                end_time = datetime.now()  # End timing
-                elapsed_time = end_time - start_time
-                minutes = int(elapsed_time.total_seconds() // 60)
-                seconds = int(elapsed_time.total_seconds() % 60)
-                st.session_state.processing_time = f"{minutes} minutes and {seconds} seconds"
+            # Display articles in a simpler format
+            st.write(f"### AI Research Results ({len(st.session_state.articles)} articles)")
 
-                st.session_state.articles = all_articles
+            for article in st.session_state.articles:
+                st.write("---")
+                st.markdown(f"### [{article['title']}]({article['url']})")
+                st.write(f"Published: {article.get('date', 'Date not available')}")
+                st.write(article.get('summary', 'No summary available'))
 
-                if len(all_articles) > 0:
-                    st.success(f"Found {len(all_articles)} relevant AI articles!")
-                    print(f"Successfully completed with {len(all_articles)} articles")
-                else:
-                    st.warning("No articles found. Please try again.")
-                    print("Completed with no articles found")
-
-        except Exception as e:
-            print(f"Critical error in main process: {str(e)}")
-            st.error(f"An error occurred: {str(e)}")
-
-    # Display articles and export options
-    if st.session_state.articles:
-        if st.session_state.processing_time:
-            st.write(f"**Total processing time:** {st.session_state.processing_time}")
-
-        col1, col2 = st.columns([1, 1])
-        with col1:
-            if st.button("Export PDF"):
-                try:
-                    pdf_data = generate_pdf(st.session_state.articles)
-                    st.download_button(
-                        "Download PDF",
-                        pdf_data,
-                        "ai_news_report.pdf",
-                        "application/pdf"
-                    )
-                except Exception as e:
-                    st.error(f"Error generating PDF: {str(e)}")
-
-        with col2:
-            if st.button("Export CSV"):
-                try:
-                    csv_data = generate_csv(st.session_state.articles)
-                    st.download_button(
-                        "Download CSV",
-                        csv_data,
-                        "ai_news_report.csv",
-                        "text/csv"
-                    )
-                except Exception as e:
-                    st.error(f"Error generating CSV: {str(e)}")
-
-        # Display articles in a simpler format
-        st.write(f"### AI Research Results ({len(st.session_state.articles)} articles)")
-
-        for article in st.session_state.articles:
-            st.write("---")
-            st.markdown(f"### [{article['title']}]({article['url']})")
-            st.write(f"Published: {article.get('date', 'Date not available')}")
-            st.write(article.get('summary', 'No summary available'))
-
-    else:
-        st.info("Click 'Fetch New Articles' to start gathering AI news.")
+    except Exception as e:
+        logger.error(f"Critical error in main function: {str(e)}\n{traceback.format_exc()}")
+        st.error("An unexpected error occurred. Please refresh the page and try again.")
 
     # Settings in sidebar
     with st.sidebar:
