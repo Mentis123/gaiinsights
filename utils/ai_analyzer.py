@@ -9,20 +9,24 @@ def summarize_article(content: str) -> Optional[Dict[str, Any]]:
     """Summarize an article using OpenAI's GPT-4."""
     try:
         prompt = f"""
-        Content: {content}
+        Analyze the following article content and provide a comprehensive analysis using this exact format:
 
-        Please provide a comprehensive analysis in JSON format with the following structure:
         {{
             "summary": "A concise summary of the article",
             "key_points": ["List of main points"],
             "ai_relevance": "Description of how this relates to AI"
         }}
+
+        Article Content: {content}
         """
 
         response = client.chat.completions.create(
             model="gpt-4",
-            messages=[{"role": "user", "content": prompt}],
-            response_format={"type": "json_object"}
+            messages=[
+                {"role": "system", "content": "You are a helpful AI that provides analysis in valid JSON format."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7
         )
 
         # Ensure we have a valid JSON response
