@@ -56,20 +56,24 @@ def split_into_chunks(content: str, max_chunk_size: int = 1000) -> List[str]:
 def _process_chunk(chunk: str) -> Optional[Dict[str, Any]]:
     """Process a single chunk of content."""
     try:
-        # Keep prompt minimal and avoid f-string with JSON
         prompt = (
-            "Analyze this text section: " + chunk + "\n\n"
-            'Output JSON format only: {"summary": "Brief summary", "key_points": ["Main points"], "ai_relevance": "AI relevance"}'
+            "Analyze this text section and respond with ONLY valid JSON. No other text:\n\n" + 
+            chunk + "\n\n" +
+            "Required format: {\"summary\": \"Brief summary\", \"key_points\": [\"Main points\"], \"ai_relevance\": \"AI relevance\"}"
         )
 
         response = client.chat.completions.create(
             model="gpt-4",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.7,
-            max_tokens=500  # Further reduced for safety
+            messages=[
+                {"role": "system", "content": "You must respond with valid JSON only. No other text."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.5,
+            max_tokens=500
         )
 
-        return json.loads(response.choices[0].message.content)
+        content = response.choices[0].message.content.strip()
+        return json.loads(content)
 
     except Exception as e:
         print(f"Error processing chunk: {str(e)}")
