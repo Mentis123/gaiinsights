@@ -1,6 +1,6 @@
 import trafilatura
 import pandas as pd
-from typing import List, Dict
+from typing import List, Dict, Optional, Tuple
 import requests
 from bs4 import BeautifulSoup
 import logging
@@ -19,8 +19,58 @@ def load_source_sites(test_mode: bool = True) -> List[str]:
         print(f"Error loading source sites: {e}")
         return []
 
-def extract_content(url: str) -> Dict[str, str]:
-    """Extract content from a given URL using trafilatura."""
+def extract_metadata(url: str, cutoff_time: datetime) -> Optional[Dict[str, str]]:
+    """Extract and validate metadata first before getting full content."""
+    try:
+        downloaded = trafilatura.fetch_url(url)
+        if downloaded:
+            metadata = trafilatura.extract(
+                downloaded,
+                include_links=False,
+                include_images=False,
+                include_tables=False,
+                with_metadata=True,
+                output_format='json',
+                favor_recall=True
+            )
+
+            if metadata:
+                # Parse metadata
+                try:
+                    import json
+                    meta_dict = json.loads(metadata)
+                    date_str = meta_dict.get('date', '')
+
+                    # Validate date immediately
+                    if date_str:
+                        try:
+                            date_obj = datetime.strptime(str(date_str)[:10], '%Y-%m-%d')
+                            if date_obj < cutoff_time:
+                                print(f"Article too old (cutoff {cutoff_time.date()}): {date_str}")
+                                return None
+                        except ValueError:
+                            # If can't parse date, assume it's recent
+                            date_str = datetime.now().strftime('%Y-%m-%d')
+
+                    return {
+                        'title': meta_dict.get('title', ''),
+                        'date': date_str,
+                        'url': url
+                    }
+                except json.JSONDecodeError:
+                    # If JSON parsing fails, try to extract basic metadata
+                    return {
+                        'title': '',
+                        'date': datetime.now().strftime('%Y-%m-%d'),
+                        'url': url
+                    }
+
+    except Exception as e:
+        print(f"Error extracting metadata from {url}: {str(e)}")
+        return None
+
+def extract_full_content(url: str) -> Optional[str]:
+    """Extract full content after metadata validation."""
     max_retries = 3
     retry_delay = 1
 
@@ -28,63 +78,23 @@ def extract_content(url: str) -> Dict[str, str]:
         try:
             downloaded = trafilatura.fetch_url(url)
             if downloaded:
-                try:
-                    extracted = trafilatura.extract(
-                        downloaded,
-                        include_links=True,
-                        include_images=True,
-                        include_tables=True,
-                        with_metadata=True
-                    )
-
-                    if extracted:
-                        # Handle metadata extraction
-                        metadata = {}
-                        if isinstance(extracted, dict):
-                            metadata = extracted
-                            content = metadata.get('text', '')
-                            title = metadata.get('title', '')
-                            date = metadata.get('date', '')
-                        else:
-                            # If not a dict, treat as plain text content
-                            content = extracted
-                            title = ''
-                            date = datetime.now().strftime('%Y-%m-%d')
-
-                        # Validate the date
-                        if date:
-                            try:
-                                date_obj = datetime.strptime(str(date)[:10], '%Y-%m-%d')
-                                now = datetime.now()
-                                # Include articles from today and yesterday (last 24 hours)
-                                cutoff_time = now - timedelta(days=1)
-                                if date_obj < cutoff_time:
-                                    print(f"Article too old (cutoff {cutoff_time.date()}): {date}")
-                                    return None
-                            except ValueError:
-                                print(f"Invalid date format: {date}")
-                                date = datetime.now().strftime('%Y-%m-%d')
-
-                        return {
-                            'title': title,
-                            'text': content,
-                            'date': date,
-                            'url': url
-                        }
-
-                except Exception as e:
-                    print(f"Error parsing content from {url}: {str(e)}")
-                    if attempt < max_retries - 1:
-                        time.sleep(retry_delay)
-                        continue
-                    return None
+                content = trafilatura.extract(
+                    downloaded,
+                    include_links=True,
+                    include_images=True,
+                    include_tables=True,
+                    with_metadata=False
+                )
+                if content:
+                    return content
 
         except Exception as e:
-            print(f"Error downloading content from {url}: {str(e)}")
+            print(f"Error extracting content from {url}: {str(e)}")
             if attempt < max_retries - 1:
                 time.sleep(retry_delay)
                 continue
-            return None
+
+        time.sleep(retry_delay)
 
     return None
 
@@ -101,8 +111,8 @@ def is_consent_or_main_page(text: str) -> bool:
     text_lower = text.lower()
     return any(indicator in text_lower for indicator in consent_indicators)
 
-def find_ai_articles(url: str) -> List[Dict[str, str]]:
-    """Find AI-related articles from a given source URL with enhanced filtering."""
+def find_ai_articles(url: str, cutoff_time: datetime) -> List[Dict[str, str]]:
+    """Find AI-related articles from a given source URL with date validation."""
     try:
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
@@ -116,22 +126,12 @@ def find_ai_articles(url: str) -> List[Dict[str, str]]:
         soup = BeautifulSoup(response.text, 'html.parser')
         articles = []
 
-        # AI implementation and news keywords (strict matching)
+        # AI keywords (strict matching)
         ai_keywords = [
             'ai', 'artificial intelligence', 'machine learning',
             'deep learning', 'neural network', 'generative ai',
             'chatgpt', 'large language model', 'llm',
-            'ai development', 'ai technology', 'ai solution',
-            'ai platform', 'ai integration', 'ai implementation'
-        ]
-
-        # AI applications and use cases (less strict matching)
-        ai_applications = [
-            'automation', 'robotics', 'computer vision',
-            'nlp', 'natural language', 'predictive',
-            'algorithm', 'data science', 'analytics',
-            'intelligent', 'smart', 'autonomous',
-            'cognitive', 'digital assistant', 'virtual assistant'
+            'ai development', 'ai technology', 'ai solution'
         ]
 
         for link in soup.find_all('a', href=True):
@@ -146,26 +146,15 @@ def find_ai_articles(url: str) -> List[Dict[str, str]]:
             title = link.get('title', '').lower()
             combined_text = f"{link_text} {title}"
 
-            # Skip if it looks like a consent form or main page
-            if is_consent_or_main_page(combined_text):
-                continue
-
             # Check for AI keywords (strict matching)
-            ai_keyword_matches = sum(1 for keyword in ai_keywords if keyword.lower() in combined_text)
-
-            # Check for AI applications (less strict matching)
-            ai_application_matches = sum(1 for app in ai_applications if app.lower() in combined_text)
-
-            # Include article if:
-            # 1. Contains at least one AI keyword, or
-            # 2. Contains multiple AI application terms
-            if ai_keyword_matches > 0 or ai_application_matches >= 2:
-                articles.append({
-                    'url': href,
-                    'title': link.text.strip() or link.get('title', '').strip()
-                })
+            if any(keyword in combined_text for keyword in ai_keywords):
+                # Extract and validate metadata first
+                metadata = extract_metadata(href, cutoff_time)
+                if metadata:  # Only include if metadata with valid date was found
+                    articles.append(metadata)
 
         return articles
+
     except Exception as e:
-        print(f"Error finding AI articles from {url}: {e}")
+        print(f"Error finding AI articles from {url}: {str(e)}")
         return []

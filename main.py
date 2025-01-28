@@ -1,6 +1,6 @@
 import streamlit as st
-from datetime import datetime
-from utils.content_extractor import load_source_sites, find_ai_articles, extract_content
+from datetime import datetime, timedelta
+from utils.content_extractor import load_source_sites, find_ai_articles, extract_full_content
 from utils.ai_analyzer import summarize_article
 import pandas as pd
 import json
@@ -150,7 +150,9 @@ def generate_csv(articles):
         'Title': article['title'],
         'URL': article['url'],
         'Date': article['date'],
-        'Summary': article.get('summary', 'No summary available')
+        'Summary': article.get('summary', 'No summary available'),
+        'AI Relevance': article.get('ai_validation', 'Not validated'),
+        'Source': article.get('source', 'Unknown source')
     } for article in articles]).to_csv(output, index=False)
     return output.getvalue()
 
@@ -175,12 +177,13 @@ def main():
                         status_msg = f"[{current_time}] Scanning: {source}"
                         st.session_state.scan_status.insert(0, status_msg)
 
-                        print(f"Processing source {idx + 1}/{len(sources)}: {source}")  # Added logging
-                        ai_articles = find_ai_articles(source)
+                        print(f"Processing source {idx + 1}/{len(sources)}: {source}")
+                        cutoff_time = datetime.now() - timedelta(days=1)
+                        ai_articles = find_ai_articles(source, cutoff_time)
                         if ai_articles:
                             status_msg = f"[{current_time}] Found {len(ai_articles)} potential AI articles from {source}"
                             st.session_state.scan_status.insert(0, status_msg)
-                            print(f"Found {len(ai_articles)} potential AI articles")  # Added logging
+                            print(f"Found {len(ai_articles)} potential AI articles")
 
                         # Display all status messages
                         status_placeholder.code("\n".join(st.session_state.scan_status))
@@ -190,17 +193,22 @@ def main():
                                 continue
 
                             try:
-                                print(f"Processing article: {article['title']}")  # Added logging
-                                content = extract_content(article['url'])
+                                print(f"Processing article: {article['title']}")
+                                content = extract_full_content(article['url'])
                                 if content:
                                     analysis = summarize_article(content)
                                     if analysis:
-                                        validation = validate_ai_relevance({**article, **analysis})
+                                        validation = validate_ai_relevance({
+                                            **article,
+                                            'content': content,
+                                            **analysis
+                                        })
+
                                         if validation['is_relevant']:
                                             seen_urls.add(article['url'])
                                             all_articles.append({
                                                 **article,
-                                                **content,
+                                                'content': content,
                                                 **analysis,
                                                 'ai_confidence': 100,
                                                 'ai_validation': validation['reason']
@@ -210,7 +218,7 @@ def main():
                                             status_msg = f"[{current_time}] Validated AI article: {article['title']}"
                                             st.session_state.scan_status.insert(0, status_msg)
                                             status_placeholder.code("\n".join(st.session_state.scan_status))
-                                            print(f"Successfully validated article: {article['title']}")  # Added logging
+                                            print(f"Successfully validated article: {article['title']}")
 
                             except Exception as e:
                                 print(f"Error processing article {article['url']}: {str(e)}")  # Enhanced error logging
