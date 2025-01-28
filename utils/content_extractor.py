@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup
 import logging
 import time
 from datetime import datetime, timedelta
+import pytz
 
 def load_source_sites(test_mode: bool = True) -> List[str]:
     """Load the source sites from the CSV file."""
@@ -35,39 +36,65 @@ def extract_metadata(url: str, cutoff_time: datetime) -> Optional[Dict[str, str]
             )
 
             if metadata:
-                # Parse metadata
                 try:
                     import json
                     meta_dict = json.loads(metadata)
                     date_str = meta_dict.get('date', '')
+                    title = meta_dict.get('title', '')
 
-                    # Validate date immediately
+                    # More flexible date parsing
                     if date_str:
                         try:
-                            date_obj = datetime.strptime(str(date_str)[:10], '%Y-%m-%d')
-                            if date_obj < cutoff_time:
-                                print(f"Article too old (cutoff {cutoff_time.date()}): {date_str}")
-                                return None
-                        except ValueError:
-                            # If can't parse date, assume it's recent
-                            date_str = datetime.now().strftime('%Y-%m-%d')
+                            # Try parsing with multiple formats
+                            for date_format in ['%Y-%m-%d', '%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M:%S', '%Y-%m-%dT%H:%M:%SZ']:
+                                try:
+                                    date_obj = datetime.strptime(str(date_str)[:19], date_format)
+                                    # Convert to UTC for consistent comparison
+                                    if date_obj.tzinfo is None:
+                                        date_obj = pytz.UTC.localize(date_obj)
+
+                                    # Compare with cutoff time (also in UTC)
+                                    cutoff_utc = pytz.UTC.localize(cutoff_time)
+
+                                    if date_obj < cutoff_utc:
+                                        print(f"Article too old (cutoff {cutoff_time.date()}): {date_str}")
+                                        return None
+                                    break
+                                except ValueError:
+                                    continue
+                        except Exception as e:
+                            print(f"Date parsing error for {date_str}: {e}")
+                            # If we can't parse the date, assume it's recent
+                            date_str = datetime.now(pytz.UTC).strftime('%Y-%m-%d')
+
+                    else:
+                        # If no date is provided, assume it's recent
+                        date_str = datetime.now(pytz.UTC).strftime('%Y-%m-%d')
+
+                    # Always include the URL even if we couldn't get a title
+                    if not title:
+                        title = "Article from " + url.split('/')[2]  # Use domain as fallback title
 
                     return {
-                        'title': meta_dict.get('title', ''),
+                        'title': title,
                         'date': date_str,
                         'url': url
                     }
-                except json.JSONDecodeError:
-                    # If JSON parsing fails, try to extract basic metadata
+
+                except json.JSONDecodeError as e:
+                    print(f"JSON parsing error for {url}: {e}")
+                    # Even if metadata parsing fails, try to return basic info
                     return {
-                        'title': '',
-                        'date': datetime.now().strftime('%Y-%m-%d'),
+                        'title': "Article from " + url.split('/')[2],
+                        'date': datetime.now(pytz.UTC).strftime('%Y-%m-%d'),
                         'url': url
                     }
 
     except Exception as e:
         print(f"Error extracting metadata from {url}: {str(e)}")
         return None
+
+    return None
 
 def extract_full_content(url: str) -> Optional[str]:
     """Extract full content after metadata validation."""
@@ -83,7 +110,8 @@ def extract_full_content(url: str) -> Optional[str]:
                     include_links=True,
                     include_images=True,
                     include_tables=True,
-                    with_metadata=False
+                    with_metadata=False,
+                    favor_recall=True  # Added to improve content extraction
                 )
                 if content:
                     return content
@@ -126,12 +154,13 @@ def find_ai_articles(url: str, cutoff_time: datetime) -> List[Dict[str, str]]:
         soup = BeautifulSoup(response.text, 'html.parser')
         articles = []
 
-        # AI keywords (strict matching)
+        # AI keywords (expanded but still focused)
         ai_keywords = [
             'ai', 'artificial intelligence', 'machine learning',
             'deep learning', 'neural network', 'generative ai',
             'chatgpt', 'large language model', 'llm',
-            'ai development', 'ai technology', 'ai solution'
+            'ai development', 'ai technology', 'ai solution',
+            'ai research', 'ai breakthrough', 'ai innovation'
         ]
 
         for link in soup.find_all('a', href=True):
@@ -146,11 +175,12 @@ def find_ai_articles(url: str, cutoff_time: datetime) -> List[Dict[str, str]]:
             title = link.get('title', '').lower()
             combined_text = f"{link_text} {title}"
 
-            # Check for AI keywords (strict matching)
+            # Check for AI keywords
             if any(keyword in combined_text for keyword in ai_keywords):
                 # Extract and validate metadata first
                 metadata = extract_metadata(href, cutoff_time)
                 if metadata:  # Only include if metadata with valid date was found
+                    print(f"Found potential article: {metadata['title']}")
                     articles.append(metadata)
 
         return articles
