@@ -6,30 +6,32 @@ import re
 
 client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
-def split_into_chunks(content: str, max_chunk_size: int = 1000) -> List[str]:
-    """Split content into smaller chunks based on paragraphs and sentences."""
+def split_into_chunks(content: str, max_chunk_size: int = 100000) -> List[str]:
+    """Split content into larger chunks based on paragraphs and sentences."""
     # Clean and normalize content
     content = re.sub(r'\s+', ' ', content.strip())
-    
+
     # Split into sentences
     sentences = re.split(r'(?<=[.!?])\s+', content)
-    
+
     chunks = []
     current_chunk = []
     current_size = 0
-    
+
+    # Using a more accurate token estimation: 1 token ≈ 3 characters
+    char_per_token = 3
+
     for sentence in sentences:
-        # Rough estimate: 1 token ≈ 4 characters
-        sentence_size = len(sentence) // 4
-        
+        sentence_size = len(sentence) // char_per_token
+
         if sentence_size > max_chunk_size:
             # Split very long sentences
             words = sentence.split()
             temp_chunk = []
             temp_size = 0
-            
+
             for word in words:
-                word_size = len(word) // 4
+                word_size = len(word) // char_per_token
                 if temp_size + word_size > max_chunk_size:
                     chunks.append(' '.join(temp_chunk))
                     temp_chunk = [word]
@@ -37,7 +39,7 @@ def split_into_chunks(content: str, max_chunk_size: int = 1000) -> List[str]:
                 else:
                     temp_chunk.append(word)
                     temp_size += word_size
-                    
+
             if temp_chunk:
                 chunks.append(' '.join(temp_chunk))
         elif current_size + sentence_size > max_chunk_size:
@@ -47,14 +49,14 @@ def split_into_chunks(content: str, max_chunk_size: int = 1000) -> List[str]:
         else:
             current_chunk.append(sentence)
             current_size += sentence_size
-    
+
     if current_chunk:
         chunks.append(' '.join(current_chunk))
-    
+
     return chunks
 
 def _process_chunk(chunk: str) -> Optional[Dict[str, Any]]:
-    """Process a single chunk of content."""
+    """Process a single chunk of content with increased token limit."""
     try:
         prompt = (
             "Analyze this text section and respond with ONLY valid JSON. No other text:\n\n" + 
@@ -69,7 +71,7 @@ def _process_chunk(chunk: str) -> Optional[Dict[str, Any]]:
                 {"role": "user", "content": prompt}
             ],
             temperature=0.5,
-            max_tokens=500,
+            max_tokens=2000,  # Increased for larger summaries
             response_format={"type": "json_object"}
         )
 
@@ -81,7 +83,7 @@ def _process_chunk(chunk: str) -> Optional[Dict[str, Any]]:
         return None
 
 def _combine_summaries(summaries: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """Combine chunk summaries with a more efficient prompt."""
+    """Combine chunk summaries with increased token limits."""
     if not summaries:
         return None
 
@@ -89,15 +91,15 @@ def _combine_summaries(summaries: List[Dict[str, Any]]) -> Dict[str, Any]:
         return summaries[0]
 
     try:
-        # Create a more compact combined text
+        # Create a more comprehensive combined text
         combined_text = " ".join(s["summary"] for s in summaries if s and "summary" in s)
-        key_points = list({point for s in summaries if s and "key_points" in s for point in s["key_points"]})[:5]
-        relevance = "; ".join(set(s.get("ai_relevance", "") for s in summaries if s))[:500]
+        key_points = list({point for s in summaries if s and "key_points" in s for point in s["key_points"]})[:10]  # Increased from 5
+        relevance = "; ".join(set(s.get("ai_relevance", "") for s in summaries if s))[:2000]  # Increased from 500
 
         prompt = (
             "Combine these summaries into a single JSON with this exact format:\n"
-            '{"summary": "brief combined summary", "key_points": ["point1", "point2"], "ai_relevance": "relevance"}\n\n'
-            f"Text: {combined_text[:1500]}\nPoints: {', '.join(key_points)}\nAI Relevance: {relevance}"
+            '{"summary": "comprehensive combined summary", "key_points": ["point1", "point2"], "ai_relevance": "relevance"}\n\n'
+            f"Text: {combined_text[:50000]}\nPoints: {', '.join(key_points)}\nAI Relevance: {relevance}"  # Increased text limit
         )
 
         response = client.chat.completions.create(
@@ -107,25 +109,24 @@ def _combine_summaries(summaries: List[Dict[str, Any]]) -> Dict[str, Any]:
                 {"role": "user", "content": prompt}
             ],
             temperature=0.5,
-            max_tokens=500,
+            max_tokens=2000,  # Increased for larger summaries
             response_format={"type": "json_object"}
         )
 
-        # Clean the response before parsing
         content = response.choices[0].message.content.strip()
         return json.loads(content)
 
     except Exception as e:
         print(f"Error combining summaries: {str(e)}")
-        # Fallback to simple combination
+        # Fallback to simple combination with increased limits
         return {
-            "summary": combined_text[:1000] if 'combined_text' in locals() else "Error processing content",
-            "key_points": key_points[:5] if 'key_points' in locals() else ["Error processing points"],
-            "ai_relevance": relevance[:300] if 'relevance' in locals() else "Unknown AI relevance"
+            "summary": combined_text[:5000] if 'combined_text' in locals() else "Error processing content",  # Increased from 1000
+            "key_points": key_points[:10] if 'key_points' in locals() else ["Error processing points"],  # Increased from 5
+            "ai_relevance": relevance[:1000] if 'relevance' in locals() else "Unknown AI relevance"  # Increased from 300
         }
 
 def summarize_article(content: str) -> Optional[Dict[str, Any]]:
-    """Summarize an article using OpenAI's GPT-4 with improved chunking."""
+    """Summarize an article using GPT-4O-mini with larger chunks."""
     try:
         # Clean content before chunking
         content = re.sub(r'\s+', ' ', content.strip())
@@ -137,10 +138,10 @@ def summarize_article(content: str) -> Optional[Dict[str, Any]]:
         # Process chunks with improved logging
         chunk_summaries = []
         for i, chunk in enumerate(chunks):
-            chunk_tokens = len(chunk) // 4
+            chunk_tokens = len(chunk) // 3  # Updated token estimation ratio
             print(f"Processing chunk {i+1}/{len(chunks)} (~{chunk_tokens} tokens)")
 
-            if chunk_tokens > 2500:  # Skip chunks that are still too large
+            if chunk_tokens > 120000:  # Safety margin below 128k limit
                 print(f"Chunk {i+1} too large ({chunk_tokens} tokens), skipping")
                 continue
 
