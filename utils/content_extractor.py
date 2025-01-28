@@ -59,11 +59,11 @@ def extract_metadata(url: str, cutoff_time: datetime) -> Optional[Dict[str, str]
                                     print(f"Article date {date_obj.date()} with cutoff {cutoff_utc.date()}")
 
                                     # Fixed: Keep articles that are newer than or equal to the cutoff date
-                                    if date_obj.date() >= cutoff_utc.date():
-                                        print(f"Article from {date_obj.date()} is within timeframe")
-                                        break
-                                    print(f"Article from {date_obj.date()} is before cutoff {cutoff_utc.date()}")
-                                    return None
+                                    if date_obj.date() < cutoff_utc.date():
+                                        print(f"Article from {date_obj.date()} is before cutoff {cutoff_utc.date()}")
+                                        return None
+                                    print(f"Article from {date_obj.date()} is within timeframe")
+                                    break
                                 except ValueError:
                                     continue
                         except Exception as e:

@@ -24,6 +24,8 @@ if 'scan_status' not in st.session_state:
     st.session_state.scan_status = []
 if 'test_mode' not in st.session_state:
     st.session_state.test_mode = True
+if 'processing_time' not in st.session_state:
+    st.session_state.processing_time = None
 
 st.set_page_config(
     page_title="AI News Aggregator",
@@ -160,6 +162,7 @@ def main():
 
     if st.sidebar.button("Fetch New Articles"):
         try:
+            start_time = datetime.now()  # Start timing
             with st.spinner("Fetching AI news from sources..."):
                 sources = load_source_sites(test_mode=st.session_state.test_mode)
                 all_articles = []
@@ -238,6 +241,12 @@ def main():
                 progress_bar.empty()
                 status_placeholder.empty()
 
+                end_time = datetime.now()  # End timing
+                elapsed_time = end_time - start_time
+                minutes = int(elapsed_time.total_seconds() // 60)
+                seconds = int(elapsed_time.total_seconds() % 60)
+                st.session_state.processing_time = f"{minutes} minutes and {seconds} seconds"
+
                 st.session_state.articles = all_articles
 
                 if len(all_articles) > 0:
@@ -253,6 +262,9 @@ def main():
 
     # Display articles and export options
     if st.session_state.articles:
+        if st.session_state.processing_time:
+            st.write(f"**Total processing time:** {st.session_state.processing_time}")
+
         col1, col2 = st.columns([1, 1])
         with col1:
             if st.button("Export PDF"):
