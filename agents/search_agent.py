@@ -14,7 +14,7 @@ class SearchAgent:
         self.config = config
         self.timeframe_days = config['search_timeframe_days']
         self.client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
-        self.model = "gpt-4"
+        self.model = "gpt-4o-mini"
         self.min_articles = 6
         self.max_retries = 3
         self.request_timeout = 10  # seconds
@@ -35,8 +35,9 @@ class SearchAgent:
             """
 
             response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[{"role": "user", "content": prompt}]
+                model="gpt-4o-mini",
+                messages=[{"role": "user", "content": prompt}],
+                response_format={"type": "json_object"}
             )
 
             result = json.loads(response.choices[0].message.content)

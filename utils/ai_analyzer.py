@@ -63,13 +63,14 @@ def _process_chunk(chunk: str) -> Optional[Dict[str, Any]]:
         )
 
         response = client.chat.completions.create(
-            model="gpt-4",
+            model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "You must respond with valid JSON only. No other text."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.5,
-            max_tokens=500
+            max_tokens=500,
+            response_format={"type": "json_object"}
         )
 
         content = response.choices[0].message.content.strip()
@@ -100,13 +101,14 @@ def _combine_summaries(summaries: List[Dict[str, Any]]) -> Dict[str, Any]:
         )
 
         response = client.chat.completions.create(
-            model="gpt-4",
+            model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "You must respond with valid JSON only. No other text."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.5,
-            max_tokens=500
+            max_tokens=500,
+            response_format={"type": "json_object"}
         )
 
         # Clean the response before parsing
