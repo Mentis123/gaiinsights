@@ -8,6 +8,7 @@ import time
 from datetime import datetime, timedelta
 import pytz
 from urllib.parse import urljoin
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -177,8 +178,58 @@ def make_request_with_backoff(url: str, max_retries: int = 3, initial_delay: int
 
     raise TooManyRequestsError(f"Max retries exceeded for {url}")
 
+def is_specific_article(metadata: Dict[str, str]) -> bool:
+    """
+    Validate if the content represents a specific article rather than a category/section page.
+
+    Returns:
+        bool: True if content appears to be a specific article, False otherwise
+    """
+    if not metadata:
+        return False
+
+    title = metadata.get('title', '').lower()
+    url = metadata.get('url', '')
+
+    # Generic title patterns to exclude
+    generic_titles = {
+        'technology', 'sustainability', 'retail', 'business', 'news',
+        'home', 'index', 'main', 'category', 'section', 'topics'
+    }
+
+    # Check for generic single-word titles
+    if title.strip() in generic_titles:
+        logger.info(f"Excluding generic title: {title}")
+        return False
+
+    # Check for overly short titles (likely section headers)
+    if len(title.split()) < 2:
+        logger.info(f"Excluding short title: {title}")
+        return False
+
+    # URL pattern checks
+    url_patterns_to_exclude = [
+        r'/category/',
+        r'/section/',
+        r'/topics?/',
+        r'/tag/',
+        r'/index',
+        r'/$'  # URLs ending in slash with no specific article path
+    ]
+
+    if any(re.search(pattern, url) for pattern in url_patterns_to_exclude):
+        logger.info(f"Excluding category/section URL: {url}")
+        return False
+
+    # Minimum title length requirement (excluding very short titles)
+    if len(title) < 20:  # Arbitrary minimum length for a reasonable article title
+        logger.info(f"Excluding too short title: {title}")
+        return False
+
+    return True
+
 def find_ai_articles(url: str, cutoff_time: datetime) -> List[Dict[str, str]]:
-    """Find AI-related articles with improved error handling."""
+    """Find AI-related articles with improved filtering."""
     articles = []
     try:
         response = make_request_with_backoff(url)
@@ -210,8 +261,8 @@ def find_ai_articles(url: str, cutoff_time: datetime) -> List[Dict[str, str]]:
 
                 if any(keyword in combined_text for keyword in ai_keywords):
                     metadata = extract_metadata(href, cutoff_time)
-                    if metadata:
-                        logger.info(f"Found potential article: {metadata['title']}")
+                    if metadata and is_specific_article(metadata):  # Added specificity check
+                        logger.info(f"Found specific article: {metadata['title']}")
                         articles.append(metadata)
 
             except Exception as e:
