@@ -149,11 +149,23 @@ def find_ai_articles(url: str, cutoff_time: datetime) -> List[Dict[str, str]]:
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         }
-        response = requests.get(url, headers=headers, timeout=10)
-        response.raise_for_status()
-
-        # Add a small delay to prevent too rapid scanning
-        time.sleep(1)
+        
+        max_retries = 3
+        retry_delay = 5  # Increased delay between retries
+        
+        for attempt in range(max_retries):
+            try:
+                response = requests.get(url, headers=headers, timeout=10)
+                response.raise_for_status()
+                break
+            except requests.exceptions.RequestException as e:
+                if attempt == max_retries - 1:
+                    raise
+                print(f"Retry {attempt + 1}/{max_retries} for {url} after error: {str(e)}")
+                time.sleep(retry_delay * (attempt + 1))  # Exponential backoff
+        
+        # Increased delay between successful requests
+        time.sleep(3)
 
         soup = BeautifulSoup(response.text, 'html.parser')
         articles = []
