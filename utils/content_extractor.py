@@ -7,17 +7,22 @@ import logging
 import time
 from datetime import datetime, timedelta
 import pytz
+from urllib.parse import urljoin
+
+logger = logging.getLogger(__name__)
+
+class TooManyRequestsError(Exception):
+    pass
 
 def load_source_sites(test_mode: bool = True) -> List[str]:
     """Load the source sites from the CSV file."""
     try:
         df = pd.read_csv('attached_assets/search_sites.csv', header=None)
         if test_mode:
-            # Return only the first six sources in test mode
             return df[0].head(6).tolist()
         return df[0].tolist()
     except Exception as e:
-        print(f"Error loading source sites: {e}")
+        logger.error(f"Error loading source sites: {e}")
         return []
 
 def extract_metadata(url: str, cutoff_time: datetime) -> Optional[Dict[str, str]]:
@@ -56,18 +61,14 @@ def extract_metadata(url: str, cutoff_time: datetime) -> Optional[Dict[str, str]
                                     # Compare with cutoff time (also in UTC)
                                     cutoff_utc = pytz.UTC.localize(cutoff_time)
 
-                                    print(f"Article date {date_obj.date()} with cutoff {cutoff_utc.date()}")
-
                                     # Fixed: Keep articles that are newer than or equal to the cutoff date
                                     if date_obj.date() < cutoff_utc.date():
-                                        print(f"Article from {date_obj.date()} is before cutoff {cutoff_utc.date()}")
                                         return None
-                                    print(f"Article from {date_obj.date()} is within timeframe")
                                     break
                                 except ValueError:
                                     continue
                         except Exception as e:
-                            print(f"Date parsing error for {date_str}: {e}")
+                            logger.error(f"Date parsing error for {date_str}: {e}")
                             # If we can't parse the date, assume it's recent
                             date_str = datetime.now(pytz.UTC).strftime('%Y-%m-%d')
 
@@ -86,7 +87,7 @@ def extract_metadata(url: str, cutoff_time: datetime) -> Optional[Dict[str, str]
                     }
 
                 except json.JSONDecodeError as e:
-                    print(f"JSON parsing error for {url}: {e}")
+                    logger.error(f"JSON parsing error for {url}: {e}")
                     # Even if metadata parsing fails, try to return basic info
                     return {
                         'title': "Article from " + url.split('/')[2],
@@ -95,7 +96,7 @@ def extract_metadata(url: str, cutoff_time: datetime) -> Optional[Dict[str, str]
                     }
 
     except Exception as e:
-        print(f"Error extracting metadata from {url}: {str(e)}")
+        logger.error(f"Error extracting metadata from {url}: {str(e)}")
         return None
 
     return None
@@ -121,7 +122,7 @@ def extract_full_content(url: str) -> Optional[str]:
                     return content
 
         except Exception as e:
-            print(f"Error extracting content from {url}: {str(e)}")
+            logger.error(f"Error extracting content from {url}: {str(e)}")
             if attempt < max_retries - 1:
                 time.sleep(retry_delay)
                 continue
@@ -143,34 +144,52 @@ def is_consent_or_main_page(text: str) -> bool:
     text_lower = text.lower()
     return any(indicator in text_lower for indicator in consent_indicators)
 
+def make_request_with_backoff(url: str, max_retries: int = 3, initial_delay: int = 5) -> Optional[requests.Response]:
+    """Make HTTP request with exponential backoff."""
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    }
+
+    for attempt in range(max_retries):
+        try:
+            delay = initial_delay * (2 ** attempt)  # Exponential backoff
+            if attempt > 0:
+                logger.info(f"Retry attempt {attempt + 1}/{max_retries} for {url}, waiting {delay} seconds")
+                time.sleep(delay)
+
+            response = requests.get(url, headers=headers, timeout=10)
+
+            if response.status_code == 429:
+                logger.warning(f"Rate limit hit for {url}, backing off...")
+                continue
+
+            if response.status_code == 404:
+                logger.warning(f"URL not found: {url}")
+                return None
+
+            response.raise_for_status()
+            return response
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Request error for {url}: {str(e)}")
+            if attempt == max_retries - 1:
+                raise
+
+    raise TooManyRequestsError(f"Max retries exceeded for {url}")
+
 def find_ai_articles(url: str, cutoff_time: datetime) -> List[Dict[str, str]]:
-    """Find AI-related articles from a given source URL with date validation."""
+    """Find AI-related articles with improved error handling."""
+    articles = []
     try:
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
-        
-        max_retries = 3
-        retry_delay = 5  # Increased delay between retries
-        
-        for attempt in range(max_retries):
-            try:
-                response = requests.get(url, headers=headers, timeout=10)
-                response.raise_for_status()
-                break
-            except requests.exceptions.RequestException as e:
-                if attempt == max_retries - 1:
-                    raise
-                print(f"Retry {attempt + 1}/{max_retries} for {url} after error: {str(e)}")
-                time.sleep(retry_delay * (attempt + 1))  # Exponential backoff
-        
-        # Increased delay between successful requests
-        time.sleep(3)
+        response = make_request_with_backoff(url)
+        if not response:
+            logger.error(f"Could not fetch content from {url}")
+            return []
+
+        # Additional delay between source processing
+        time.sleep(2)
 
         soup = BeautifulSoup(response.text, 'html.parser')
-        articles = []
-
-        # AI keywords (expanded but still focused)
         ai_keywords = [
             'ai', 'artificial intelligence', 'machine learning',
             'deep learning', 'neural network', 'generative ai',
@@ -180,27 +199,30 @@ def find_ai_articles(url: str, cutoff_time: datetime) -> List[Dict[str, str]]:
         ]
 
         for link in soup.find_all('a', href=True):
-            href = link['href']
-            if not href.startswith('http'):
-                if href.startswith('/'):
-                    href = url.rstrip('/') + href
-                else:
-                    continue
+            try:
+                href = link['href']
+                if not href.startswith(('http://', 'https://')):
+                    href = urljoin(url, href)
 
-            link_text = (link.text or '').lower()
-            title = link.get('title', '').lower()
-            combined_text = f"{link_text} {title}"
+                link_text = (link.text or '').lower()
+                title = link.get('title', '').lower()
+                combined_text = f"{link_text} {title}"
 
-            # Check for AI keywords
-            if any(keyword in combined_text for keyword in ai_keywords):
-                # Extract and validate metadata first
-                metadata = extract_metadata(href, cutoff_time)
-                if metadata:  # Only include if metadata with valid date was found
-                    print(f"Found potential article: {metadata['title']}")
-                    articles.append(metadata)
+                if any(keyword in combined_text for keyword in ai_keywords):
+                    metadata = extract_metadata(href, cutoff_time)
+                    if metadata:
+                        logger.info(f"Found potential article: {metadata['title']}")
+                        articles.append(metadata)
+
+            except Exception as e:
+                logger.error(f"Error processing link {href}: {str(e)}")
+                continue
 
         return articles
 
+    except TooManyRequestsError as e:
+        logger.error(f"Rate limit exceeded for {url}: {str(e)}")
+        return []
     except Exception as e:
-        print(f"Error finding AI articles from {url}: {str(e)}")
+        logger.error(f"Error finding AI articles from {url}: {str(e)}")
         return []
