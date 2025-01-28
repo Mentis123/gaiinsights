@@ -181,6 +181,7 @@ def make_request_with_backoff(url: str, max_retries: int = 3, initial_delay: int
 def is_specific_article(metadata: Dict[str, str]) -> bool:
     """
     Validate if the content represents a specific article rather than a category/section page.
+    Applied after finding AI articles, before presenting to user.
 
     Returns:
         bool: True if content appears to be a specific article, False otherwise
@@ -189,12 +190,13 @@ def is_specific_article(metadata: Dict[str, str]) -> bool:
         return False
 
     title = metadata.get('title', '').lower()
-    url = metadata.get('url', '')
+    url = metadata.get('url', '').lower()
 
     # Generic title patterns to exclude
     generic_titles = {
         'technology', 'sustainability', 'retail', 'business', 'news',
-        'home', 'index', 'main', 'category', 'section', 'topics'
+        'home', 'index', 'main', 'category', 'section', 'topics',
+        'about', 'contact', 'privacy policy', 'terms'
     }
 
     # Check for generic single-word titles
@@ -204,7 +206,7 @@ def is_specific_article(metadata: Dict[str, str]) -> bool:
 
     # Check for overly short titles (likely section headers)
     if len(title.split()) < 2:
-        logger.info(f"Excluding short title: {title}")
+        logger.info(f"Excluding too short title: {title}")
         return False
 
     # URL pattern checks
@@ -214,7 +216,11 @@ def is_specific_article(metadata: Dict[str, str]) -> bool:
         r'/topics?/',
         r'/tag/',
         r'/index',
-        r'/$'  # URLs ending in slash with no specific article path
+        r'/about\b',
+        r'/contact\b',
+        r'/privacy\b',
+        r'/terms\b',
+        r'\?utm_'  # Exclude marketing UTM parameter URLs
     ]
 
     if any(re.search(pattern, url) for pattern in url_patterns_to_exclude):
@@ -261,15 +267,23 @@ def find_ai_articles(url: str, cutoff_time: datetime) -> List[Dict[str, str]]:
 
                 if any(keyword in combined_text for keyword in ai_keywords):
                     metadata = extract_metadata(href, cutoff_time)
-                    if metadata and is_specific_article(metadata):  # Added specificity check
-                        logger.info(f"Found specific article: {metadata['title']}")
+                    if metadata:  # Removed early filtering here
                         articles.append(metadata)
 
             except Exception as e:
                 logger.error(f"Error processing link {href}: {str(e)}")
                 continue
 
-        return articles
+        # Apply filtering only after gathering all articles
+        filtered_articles = [
+            article for article in articles 
+            if is_specific_article(article)
+        ]
+
+        if filtered_articles:
+            logger.info(f"Found {len(filtered_articles)} specific articles from {url}")
+
+        return filtered_articles
 
     except TooManyRequestsError as e:
         logger.error(f"Rate limit exceeded for {url}: {str(e)}")
