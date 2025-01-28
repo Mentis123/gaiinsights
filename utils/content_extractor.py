@@ -56,9 +56,13 @@ def extract_metadata(url: str, cutoff_time: datetime) -> Optional[Dict[str, str]
                                     # Compare with cutoff time (also in UTC)
                                     cutoff_utc = pytz.UTC.localize(cutoff_time)
 
-                                    if date_obj < cutoff_utc:
-                                        print(f"Article too old (cutoff {cutoff_time.date()}): {date_str}")
+                                    print(f"Comparing article date {date_obj.date()} with cutoff {cutoff_utc.date()}")
+
+                                    # Changed to filter out articles strictly before cutoff time
+                                    if date_obj.date() < cutoff_utc.date():
+                                        print(f"Article from {date_obj.date()} is before cutoff {cutoff_utc.date()}")
                                         return None
+                                    print(f"Article from {date_obj.date()} is within timeframe")
                                     break
                                 except ValueError:
                                     continue
