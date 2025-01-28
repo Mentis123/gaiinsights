@@ -6,34 +6,51 @@ import re
 
 client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
-def split_into_chunks(content: str, max_chunk_size: int = 2000) -> List[str]:
-    """Split content into smaller chunks based on paragraphs."""
-    # Split by double newlines to preserve paragraph structure
-    paragraphs = re.split(r'\n\s*\n', content)
-
-    # Pre-process paragraphs to remove extra whitespace and long strings
-    paragraphs = [re.sub(r'\s+', ' ', p.strip()) for p in paragraphs if p.strip()]
-
+def split_into_chunks(content: str, max_chunk_size: int = 1000) -> List[str]:
+    """Split content into smaller chunks based on paragraphs and sentences."""
+    # Clean and normalize content
+    content = re.sub(r'\s+', ' ', content.strip())
+    
+    # Split into sentences
+    sentences = re.split(r'(?<=[.!?])\s+', content)
+    
     chunks = []
     current_chunk = []
     current_size = 0
-
-    for paragraph in paragraphs:
+    
+    for sentence in sentences:
         # Rough estimate: 1 token ≈ 4 characters
-        paragraph_size = len(paragraph) // 4
-
-        if current_size + paragraph_size > max_chunk_size:
-            if current_chunk:
-                chunks.append('\n\n'.join(current_chunk))
-            current_chunk = [paragraph]
-            current_size = paragraph_size
+        sentence_size = len(sentence) // 4
+        
+        if sentence_size > max_chunk_size:
+            # Split very long sentences
+            words = sentence.split()
+            temp_chunk = []
+            temp_size = 0
+            
+            for word in words:
+                word_size = len(word) // 4
+                if temp_size + word_size > max_chunk_size:
+                    chunks.append(' '.join(temp_chunk))
+                    temp_chunk = [word]
+                    temp_size = word_size
+                else:
+                    temp_chunk.append(word)
+                    temp_size += word_size
+                    
+            if temp_chunk:
+                chunks.append(' '.join(temp_chunk))
+        elif current_size + sentence_size > max_chunk_size:
+            chunks.append(' '.join(current_chunk))
+            current_chunk = [sentence]
+            current_size = sentence_size
         else:
-            current_chunk.append(paragraph)
-            current_size += paragraph_size
-
-    if current_chunk:  # Add the last chunk
-        chunks.append('\n\n'.join(current_chunk))
-
+            current_chunk.append(sentence)
+            current_size += sentence_size
+    
+    if current_chunk:
+        chunks.append(' '.join(current_chunk))
+    
     return chunks
 
 def _process_chunk(chunk: str) -> Optional[Dict[str, Any]]:
