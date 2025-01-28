@@ -159,7 +159,6 @@ def generate_csv(articles):
 def main():
     st.title("AI News Aggregation System")
 
-    # Fetch button in the sidebar
     if st.sidebar.button("Fetch New Articles"):
         try:
             with st.spinner("Fetching AI news from sources..."):
@@ -185,7 +184,6 @@ def main():
                             st.session_state.scan_status.insert(0, status_msg)
                             print(f"Found {len(ai_articles)} potential AI articles")
 
-                        # Display all status messages
                         status_placeholder.code("\n".join(st.session_state.scan_status))
 
                         for article in ai_articles:
@@ -196,32 +194,34 @@ def main():
                                 print(f"Processing article: {article['title']}")
                                 content = extract_full_content(article['url'])
                                 if content:
+                                    # Pass the raw content string to summarize_article
                                     analysis = summarize_article(content)
                                     if analysis:
-                                        validation = validate_ai_relevance({
+                                        article_data = {
                                             **article,
                                             'content': content,
-                                            **analysis
-                                        })
+                                            'summary': analysis.get('summary', ''),
+                                            'key_points': analysis.get('key_points', []),
+                                            'ai_relevance': analysis.get('ai_relevance', '')
+                                        }
+
+                                        validation = validate_ai_relevance(article_data)
 
                                         if validation['is_relevant']:
                                             seen_urls.add(article['url'])
                                             all_articles.append({
-                                                **article,
-                                                'content': content,
-                                                **analysis,
+                                                **article_data,
                                                 'ai_confidence': 100,
                                                 'ai_validation': validation['reason']
                                             })
 
-                                            # Add status message for validated article
                                             status_msg = f"[{current_time}] Validated AI article: {article['title']}"
                                             st.session_state.scan_status.insert(0, status_msg)
                                             status_placeholder.code("\n".join(st.session_state.scan_status))
                                             print(f"Successfully validated article: {article['title']}")
 
                             except Exception as e:
-                                print(f"Error processing article {article['url']}: {str(e)}")  # Enhanced error logging
+                                print(f"Error processing article {article['url']}: {str(e)}")
                                 if "OpenAI API quota exceeded" in str(e):
                                     st.error("⚠️ OpenAI API quota exceeded")
                                     return
@@ -230,7 +230,7 @@ def main():
                         progress_bar.progress((idx + 1) / len(sources))
 
                     except Exception as e:
-                        print(f"Error processing source {source}: {str(e)}")  # Enhanced error logging
+                        print(f"Error processing source {source}: {str(e)}")
                         if "OpenAI API quota exceeded" in str(e):
                             st.error("⚠️ OpenAI API quota exceeded")
                             return
@@ -243,13 +243,13 @@ def main():
 
                 if len(all_articles) > 0:
                     st.success(f"Found {len(all_articles)} relevant AI articles!")
-                    print(f"Successfully completed with {len(all_articles)} articles")  # Added logging
+                    print(f"Successfully completed with {len(all_articles)} articles")
                 else:
                     st.warning("No articles found. Please try again.")
-                    print("Completed with no articles found")  # Added logging
+                    print("Completed with no articles found")
 
         except Exception as e:
-            print(f"Critical error in main process: {str(e)}")  # Enhanced error logging
+            print(f"Critical error in main process: {str(e)}")
             st.error(f"An error occurred: {str(e)}")
 
     # Display articles and export options

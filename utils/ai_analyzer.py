@@ -1,18 +1,15 @@
 import os
 from openai import OpenAI
 import json
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
-# the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
-# do not change this unless explicitly requested by the user
 client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
-def summarize_article(content: Dict[str, str]) -> Dict[str, Any]:
+def summarize_article(content: str) -> Optional[Dict[str, Any]]:
     """Summarize an article using OpenAI's GPT-4."""
     try:
         prompt = f"""
-        Title: {content['title']}
-        Content: {content['text']}
+        Content: {content}
 
         Please provide a comprehensive analysis in JSON format with the following structure:
         {{
@@ -23,7 +20,7 @@ def summarize_article(content: Dict[str, str]) -> Dict[str, Any]:
         """
 
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-4",
             messages=[{"role": "user", "content": prompt}],
             response_format={"type": "json_object"}
         )
@@ -34,12 +31,7 @@ def summarize_article(content: Dict[str, str]) -> Dict[str, Any]:
             # Validate the required fields
             required_fields = ["summary", "key_points", "ai_relevance"]
             if all(field in analysis for field in required_fields):
-                return {
-                    **analysis,
-                    "original_title": content['title'],
-                    "original_url": content['url'],
-                    "date": content['date']
-                }
+                return analysis
             else:
                 print("Missing required fields in OpenAI response")
                 return None
