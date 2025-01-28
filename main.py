@@ -151,8 +151,7 @@ def generate_csv(articles):
         'URL': article['url'],
         'Date': article['date'],
         'Summary': article.get('summary', 'No summary available'),
-        'AI Relevance': article.get('ai_validation', 'Not validated'),
-        'Source': article.get('source', 'Unknown source')
+        'AI Relevance': article.get('ai_validation', 'Not validated')
     } for article in articles]).to_csv(output, index=False)
     return output.getvalue()
 
