@@ -13,8 +13,8 @@ def load_source_sites(test_mode: bool = True) -> List[str]:
     try:
         df = pd.read_csv('attached_assets/search_sites.csv', header=None)
         if test_mode:
-            # Return only the first three sources in test mode
-            return df[0].head(3).tolist()
+            # Return only the first six sources in test mode
+            return df[0].head(6).tolist()
         return df[0].tolist()
     except Exception as e:
         print(f"Error loading source sites: {e}")
