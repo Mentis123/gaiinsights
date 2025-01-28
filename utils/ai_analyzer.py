@@ -6,10 +6,13 @@ import re
 
 client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
-def split_into_chunks(content: str, max_chunk_size: int = 6000) -> List[str]:
-    """Split content into chunks based on paragraphs while respecting token limits."""
+def split_into_chunks(content: str, max_chunk_size: int = 2000) -> List[str]:
+    """Split content into smaller chunks based on paragraphs."""
     # Split by double newlines to preserve paragraph structure
     paragraphs = re.split(r'\n\s*\n', content)
+
+    # Pre-process paragraphs to remove extra whitespace and long strings
+    paragraphs = [re.sub(r'\s+', ' ', p.strip()) for p in paragraphs if p.strip()]
 
     chunks = []
     current_chunk = []
@@ -20,7 +23,7 @@ def split_into_chunks(content: str, max_chunk_size: int = 6000) -> List[str]:
         paragraph_size = len(paragraph) // 4
 
         if current_size + paragraph_size > max_chunk_size:
-            if current_chunk:  # Save current chunk if it exists
+            if current_chunk:
                 chunks.append('\n\n'.join(current_chunk))
             current_chunk = [paragraph]
             current_size = paragraph_size
@@ -36,26 +39,17 @@ def split_into_chunks(content: str, max_chunk_size: int = 6000) -> List[str]:
 def _process_chunk(chunk: str) -> Optional[Dict[str, Any]]:
     """Process a single chunk of content."""
     try:
-        prompt = f"""
-        Analyze the following article content and provide a comprehensive analysis using this exact format:
-
-        {{
-            "summary": "A concise summary of the article section",
-            "key_points": ["List of main points from this section"],
-            "ai_relevance": "Description of how this relates to AI"
-        }}
-
-        Article Content:
-        {chunk}
-        """
+        # Keep prompt minimal and avoid f-string with JSON
+        prompt = (
+            "Analyze this text section: " + chunk + "\n\n"
+            'Output JSON format only: {"summary": "Brief summary", "key_points": ["Main points"], "ai_relevance": "AI relevance"}'
+        )
 
         response = client.chat.completions.create(
             model="gpt-4",
-            messages=[
-                {"role": "system", "content": "You are a helpful AI that provides analysis in valid JSON format."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.7
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=500  # Further reduced for safety
         )
 
         return json.loads(response.choices[0].message.content)
@@ -65,74 +59,66 @@ def _process_chunk(chunk: str) -> Optional[Dict[str, Any]]:
         return None
 
 def _combine_summaries(summaries: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """Combine multiple chunk summaries into a single coherent summary."""
+    """Combine chunk summaries with a more efficient prompt."""
     if not summaries:
         return None
 
     if len(summaries) == 1:
         return summaries[0]
 
-    # Combine all summaries and key points
-    combined_text = "\n\n".join(s["summary"] for s in summaries if s)
-    all_key_points = [point for s in summaries if s for point in s["key_points"]]
-    ai_relevance_points = [s["ai_relevance"] for s in summaries if s]
-
-    # Generate a final summary of the combined content
     try:
-        final_prompt = f"""
-        Combine these section summaries into a single coherent analysis in JSON format:
+        # Create a more compact combined text
+        combined_text = " ".join(s["summary"] for s in summaries if s and "summary" in s)
+        key_points = list({point for s in summaries if s and "key_points" in s for point in s["key_points"]})[:5]
+        relevance = "; ".join(set(s.get("ai_relevance", "") for s in summaries if s))[:500]
 
-        Summaries: {combined_text}
-
-        Key Points: {all_key_points}
-
-        AI Relevance: {ai_relevance_points}
-
-        Return in this format:
-        {{
-            "summary": "Single coherent summary of the entire article",
-            "key_points": ["Most important points, deduplicated and consolidated"],
-            "ai_relevance": "Overall AI relevance assessment"
-        }}
-        """
+        prompt = f"Combine these summaries into one JSON: {combined_text[:1500]}\nPoints: {', '.join(key_points)}\nAI Relevance: {relevance}"
 
         response = client.chat.completions.create(
             model="gpt-4",
-            messages=[
-                {"role": "system", "content": "You are a helpful AI that provides analysis in valid JSON format."},
-                {"role": "user", "content": final_prompt}
-            ],
-            temperature=0.7
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=500
         )
 
         return json.loads(response.choices[0].message.content)
 
     except Exception as e:
         print(f"Error combining summaries: {str(e)}")
-        # Fallback to simpler combination if GPT call fails
+        # Fallback to simple combination
         return {
-            "summary": combined_text[:1000],  # Limit length of concatenated summary
-            "key_points": list(set(all_key_points))[:5],  # Deduplicate and limit key points
-            "ai_relevance": " ".join(ai_relevance_points)
+            "summary": combined_text[:1000] if 'combined_text' in locals() else "Error processing content",
+            "key_points": key_points[:5] if 'key_points' in locals() else ["Error processing points"],
+            "ai_relevance": relevance[:300] if 'relevance' in locals() else "Unknown AI relevance"
         }
 
 def summarize_article(content: str) -> Optional[Dict[str, Any]]:
-    """Summarize an article using OpenAI's GPT-4 with chunking for long content."""
+    """Summarize an article using OpenAI's GPT-4 with improved chunking."""
     try:
-        # Split content into manageable chunks
+        # Clean content before chunking
+        content = re.sub(r'\s+', ' ', content.strip())
         chunks = split_into_chunks(content)
 
         if not chunks:
             return None
 
-        # Process each chunk
+        # Process chunks with improved logging
         chunk_summaries = []
-        for chunk in chunks:
+        for i, chunk in enumerate(chunks):
+            chunk_tokens = len(chunk) // 4
+            print(f"Processing chunk {i+1}/{len(chunks)} (~{chunk_tokens} tokens)")
+
+            if chunk_tokens > 2500:  # Skip chunks that are still too large
+                print(f"Chunk {i+1} too large ({chunk_tokens} tokens), skipping")
+                continue
+
             summary = _process_chunk(chunk)
             if summary:
                 chunk_summaries.append(summary)
 
-        # Combine results from all chunks
+        if not chunk_summaries:
+            return {"summary": "Content too large to process", "key_points": [], "ai_relevance": "Unknown"}
+
         return _combine_summaries(chunk_summaries)
 
     except Exception as e:
