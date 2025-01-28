@@ -93,16 +93,25 @@ def _combine_summaries(summaries: List[Dict[str, Any]]) -> Dict[str, Any]:
         key_points = list({point for s in summaries if s and "key_points" in s for point in s["key_points"]})[:5]
         relevance = "; ".join(set(s.get("ai_relevance", "") for s in summaries if s))[:500]
 
-        prompt = f"Combine these summaries into one JSON: {combined_text[:1500]}\nPoints: {', '.join(key_points)}\nAI Relevance: {relevance}"
+        prompt = (
+            "Combine these summaries into a single JSON with this exact format:\n"
+            '{"summary": "brief combined summary", "key_points": ["point1", "point2"], "ai_relevance": "relevance"}\n\n'
+            f"Text: {combined_text[:1500]}\nPoints: {', '.join(key_points)}\nAI Relevance: {relevance}"
+        )
 
         response = client.chat.completions.create(
             model="gpt-4",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.7,
+            messages=[
+                {"role": "system", "content": "You must respond with valid JSON only. No other text."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.5,
             max_tokens=500
         )
 
-        return json.loads(response.choices[0].message.content)
+        # Clean the response before parsing
+        content = response.choices[0].message.content.strip()
+        return json.loads(content)
 
     except Exception as e:
         print(f"Error combining summaries: {str(e)}")
