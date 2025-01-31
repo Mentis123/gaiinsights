@@ -65,7 +65,7 @@ def _process_chunk(chunk: str) -> Optional[Dict[str, Any]]:
         )
 
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="o3-mini",
             messages=[
                 {"role": "system", "content": "You must respond with valid JSON only. No other text."},
                 {"role": "user", "content": prompt}
@@ -103,7 +103,7 @@ def _combine_summaries(summaries: List[Dict[str, Any]]) -> Dict[str, Any]:
         )
 
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="o3-mini",
             messages=[
                 {"role": "system", "content": "You must respond with valid JSON only. No other text."},
                 {"role": "user", "content": prompt}

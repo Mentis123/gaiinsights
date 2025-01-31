@@ -5,7 +5,7 @@ class RationaleAgent:
     def __init__(self):
         # the newest OpenAI model is "gpt-4o" which was released May 13, 2024
         self.client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
-        self.model = "gpt-4o"
+        self.model = "o3-mini"
 
     def generate_rationales(self, articles, criteria_text):
         """

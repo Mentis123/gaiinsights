@@ -4,7 +4,7 @@ import os
 class EvaluationAgent:
     def __init__(self):
         # the newest OpenAI model is "gpt-4o" which was released May 13, 2024
-        self.model = "gpt-4o"
+        self.model = "o3-mini"
 
     def evaluate(self, articles, criteria_text):
         """
