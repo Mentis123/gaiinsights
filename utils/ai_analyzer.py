@@ -71,7 +71,7 @@ def _process_chunk(chunk: str) -> Optional[Dict[str, Any]]:
                 {"role": "user", "content": prompt}
             ],
             temperature=0.5,
-            max_tokens=2000,  # Increased for larger summaries
+            max_completion_tokens=2000,  # Increased for larger summaries
             response_format={"type": "json_object"}
         )
 
@@ -109,7 +109,7 @@ def _combine_summaries(summaries: List[Dict[str, Any]]) -> Dict[str, Any]:
                 {"role": "user", "content": prompt}
             ],
             temperature=0.5,
-            max_tokens=2000,  # Increased for larger summaries
+            max_completion_tokens=2000,  # Increased for larger summaries
             response_format={"type": "json_object"}
         )
 
