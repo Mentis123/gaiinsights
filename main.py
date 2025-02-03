@@ -46,7 +46,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-def generate_pdf(articles):
+def generate_pdf_report(articles):
     """Generate a PDF report from the articles in landscape orientation."""
     buffer = BytesIO()
     doc = SimpleDocTemplate(
@@ -81,7 +81,7 @@ def generate_pdf(articles):
 
         table_data.append([
             title_with_link,
-            Paragraph(article['published_date'] if isinstance(article['published_date'], str) else article['published_date'].strftime('%Y-%m-%d'), ParagraphStyle('Date', parent=styles['Normal'], fontSize=8)),
+            Paragraph(article['date'] if isinstance(article['date'], str) else article['date'].strftime('%Y-%m-%d'), ParagraphStyle('Date', parent=styles['Normal'], fontSize=8)),
             Paragraph(article.get('summary', 'No summary available'), ParagraphStyle('Summary', parent=styles['Normal'], fontSize=8)),
             Paragraph(article.get('ai_validation', 'Not validated'), ParagraphStyle('AI Relevance', parent=styles['Normal'], fontSize=8))
         ])
@@ -152,7 +152,7 @@ def validate_ai_relevance(article):
         logger.error(f"Error in AI validation: {str(e)}")
         raise
 
-def generate_csv(articles):
+def generate_csv_report(articles):
     """Generate CSV data from articles."""
     output = BytesIO()
     writer = pd.DataFrame([{
@@ -311,12 +311,12 @@ def main():
                         formatted_articles = [{
                             'title': article['title'],
                             'url': article['url'],
-                            'published_date': article['date'],
+                            'date': article['date'],
                             'summary': article.get('summary', 'No summary available'),
-                            'ai_relevance': article.get('ai_validation', article.get('reason', 'Not validated'))
+                            'ai_validation': article.get('ai_validation', 'Not validated')
                         } for article in st.session_state.articles]
 
-                        pdf_data = generate_pdf(formatted_articles)
+                        pdf_data = generate_pdf_report(formatted_articles)
                         st.download_button(
                             "Download PDF",
                             pdf_data,
@@ -329,7 +329,7 @@ def main():
             with col2:
                 if st.button("Export CSV"):
                     try:
-                        csv_data = generate_csv(st.session_state.articles)
+                        csv_data = generate_csv_report(st.session_state.articles)
                         st.download_button(
                             "Download CSV",
                             csv_data,

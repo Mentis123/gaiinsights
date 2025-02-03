@@ -7,9 +7,7 @@ import csv
 from urllib.parse import quote
 
 def generate_pdf_report(articles, output_path):
-    """
-    Generates PDF report in landscape format with clickable URLs
-    """
+    """Generate a PDF report matching CSV format exactly"""
     doc = SimpleDocTemplate(
         output_path,
         pagesize=landscape(letter),
@@ -19,77 +17,76 @@ def generate_pdf_report(articles, output_path):
         rightMargin=0.5*inch
     )
 
-    # Create custom styles
+    # Create styles
     styles = getSampleStyleSheet()
-    link_style = ParagraphStyle(
-        'LinkStyle',
+    title_style = ParagraphStyle(
+        'TitleStyle',
         parent=styles['Normal'],
         textColor=colors.blue,
-        underline=True
+        underline=True,
+        fontSize=8
+    )
+    normal_style = ParagraphStyle(
+        'NormalStyle',
+        parent=styles['Normal'],
+        fontSize=8,
+        leading=10
     )
 
-    elements = []
+    # Table header matches CSV exactly
+    table_data = [['Title', 'URL', 'Date', 'Summary', 'AI Relevance']]
 
-    # Create table data with clickable URLs
-    table_data = [['Article Title', 'Date', 'Summary', 'AI Relevance']]
+    # Process articles to match CSV format
     for article in articles:
-        # Create a clickable link using ReportLab's paragraph with link
-        title_with_link = Paragraph(
-            f'<para><a href="{quote(article["url"])}">{article["title"]}</a></para>',
-            link_style
-        )
+        title = Paragraph(article['title'], title_style)
+        url = Paragraph(article['url'], normal_style)
+        date = article['date']
+        summary = Paragraph(article.get('summary', 'No summary available'), normal_style)
+        ai_relevance = Paragraph(article.get('ai_validation', 'Not validated'), normal_style)
 
-        table_data.append([
-            title_with_link,
-            article['published_date'].strftime('%Y-%m-%d'),
-            Paragraph(article['summary'], styles['Normal']),
-            Paragraph(article['ai_relevance'], styles['Normal'])
-        ])
+        table_data.append([title, url, date, summary, ai_relevance])
 
-    # Create table with improved formatting
-    col_widths = [4*inch, 1*inch, 0.8*inch, 4*inch]
-    table = Table(table_data, colWidths=col_widths, repeatRows=1)
+    # Create table with proportional column widths
+    table = Table(table_data, colWidths=[2*inch, 2*inch, 1*inch, 3*inch, 2*inch])
+
+    # Style the table to match CSV presentation
     table.setStyle(TableStyle([
-        # Header formatting
+        # Header styling
         ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 12),
-        ('TOPPADDING', (0, 0), (-1, 0), 12),
+        ('FONTSIZE', (0, 0), (-1, 0), 9),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('TOPPADDING', (0, 0), (-1, 0), 12),
 
-        # Content formatting
+        # Content styling
+        ('ALIGN', (0, 1), (-1, -1), 'LEFT'),
         ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 1), (-1, -1), 10),
-        ('TOPPADDING', (0, 1), (-1, -1), 8),
-        ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
+        ('FONTSIZE', (0, 1), (-1, -1), 8),
+        ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
+        ('TOPPADDING', (0, 1), (-1, -1), 6),
 
-        # Borders and alignment
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('ALIGN', (1, 1), (2, -1), 'CENTER'),  # Center date and score columns
+        # Grid
+        ('GRID', (0, 0), (-1, -1), 0.25, colors.grey),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
     ]))
 
-    elements.append(table)
-    doc.build(elements)
+    # Build the PDF
+    doc.build([table])
 
 def generate_csv_report(articles, output_path):
-    """
-    Generates CSV report with clickable title and URL fields
-    """
+    """Generate CSV report with matching columns"""
     with open(output_path, 'w', newline='', encoding='utf-8') as csvfile:
         writer = csv.writer(csvfile)
-        writer.writerow(['Title', 'URL', 'Date', 'Score', 'Rationale'])
+        # Match exact column headers
+        writer.writerow(['Title', 'URL', 'Date', 'Summary', 'AI Relevance'])
 
         for article in articles:
-            # Create hyperlink formulas that work in Excel
-            title_formula = f'=HYPERLINK("{article["url"]}","{article["title"]}")'
-            url_formula = f'=HYPERLINK("{article["url"]}","{article["url"]}")'
-
             writer.writerow([
-                title_formula,
-                url_formula,
-                article['published_date'].strftime('%Y-%m-%d'),
-                f"{article['relevance_score']:.1f}",
-                article['rationale']
+                article['title'],
+                article['url'],
+                article['date'],
+                article.get('summary', 'No summary available'),
+                article.get('ai_validation', 'Not validated')
             ])
