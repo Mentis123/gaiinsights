@@ -71,7 +71,7 @@ def generate_pdf(articles):
     elements = []
 
     # Create table data with clickable URLs
-    table_data = [['Article Title', 'Date', 'Score', 'Rationale']]
+    table_data = [['Article Title', 'Date', 'Summary', 'AI Relevance']]
     for article in articles:
         # Create a clickable link using ReportLab's paragraph with link
         title_with_link = Paragraph(
@@ -82,12 +82,12 @@ def generate_pdf(articles):
         table_data.append([
             title_with_link,
             Paragraph(article['published_date'] if isinstance(article['published_date'], str) else article['published_date'].strftime('%Y-%m-%d'), ParagraphStyle('Date', parent=styles['Normal'], fontSize=8)),
-            Paragraph(f"{article['relevance_score']:.1f}/100", ParagraphStyle('Score', parent=styles['Normal'], fontSize=8)),
-            Paragraph(article['rationale'], ParagraphStyle('Rationale', parent=styles['Normal'], fontSize=8))
+            Paragraph(article.get('summary', 'No summary available'), ParagraphStyle('Summary', parent=styles['Normal'], fontSize=8)),
+            Paragraph(article.get('ai_validation', 'Not validated'), ParagraphStyle('AI Relevance', parent=styles['Normal'], fontSize=8))
         ])
 
     # Create table with improved formatting
-    col_widths = [4*inch, 0.8*inch, 0.7*inch, 4*inch]  # Adjusted column widths
+    col_widths = [3*inch, 0.8*inch, 3*inch, 3*inch]  # Adjusted column widths
     table = Table(table_data, colWidths=col_widths, repeatRows=1)
     table.setStyle(TableStyle([
         # Header formatting
