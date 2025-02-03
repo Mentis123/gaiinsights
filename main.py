@@ -193,8 +193,11 @@ def main():
             type="primary"
         )
 
-        if fetch_button:
+        if fetch_button and not st.session_state.is_fetching:
             st.session_state.is_fetching = True
+            st.experimental_rerun()
+            
+        if st.session_state.is_fetching:
             try:
                 start_time = datetime.now()
                 with st.spinner("Fetching AI news from sources..."):
@@ -312,8 +315,8 @@ def main():
                             'title': article['title'],
                             'url': article['url'],
                             'published_date': article['date'],
-                            'relevance_score': article.get('ai_confidence', 100),
-                            'rationale': article.get('ai_validation', '')
+                            'summary': article.get('summary', 'No summary available'),
+                            'ai_relevance': article.get('ai_validation', 'Not validated')
                         } for article in st.session_state.articles]
 
                         pdf_data = generate_pdf(formatted_articles)

@@ -31,7 +31,7 @@ def generate_pdf_report(articles, output_path):
     elements = []
 
     # Create table data with clickable URLs
-    table_data = [['Article Title', 'Date', 'Score', 'Rationale']]
+    table_data = [['Article Title', 'Date', 'Summary', 'AI Relevance']]
     for article in articles:
         # Create a clickable link using ReportLab's paragraph with link
         title_with_link = Paragraph(
@@ -42,8 +42,8 @@ def generate_pdf_report(articles, output_path):
         table_data.append([
             title_with_link,
             article['published_date'].strftime('%Y-%m-%d'),
-            f"{article['relevance_score']:.1f}/10",
-            Paragraph(article['rationale'], styles['Normal'])
+            Paragraph(article['summary'], styles['Normal']),
+            Paragraph(article['ai_relevance'], styles['Normal'])
         ])
 
     # Create table with improved formatting
