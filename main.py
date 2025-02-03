@@ -194,9 +194,13 @@ def main():
         )
 
         if fetch_button and not st.session_state.is_fetching:
-            st.session_state.is_fetching = True
-            st.experimental_rerun()
-            
+            try:
+                st.session_state.is_fetching = True
+                st.rerun()
+            except:
+                st.session_state.is_fetching = False
+                raise
+
         if st.session_state.is_fetching:
             try:
                 start_time = datetime.now()
