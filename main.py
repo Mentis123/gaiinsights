@@ -81,9 +81,9 @@ def generate_pdf(articles):
 
         table_data.append([
             title_with_link,
-            Paragraph(article['date'] if isinstance(article['date'], str) else article['date'].strftime('%Y-%m-%d'), ParagraphStyle('Date', parent=styles['Normal'], fontSize=8)),
-            Paragraph(f"{article['ai_confidence']:.1f}/100", ParagraphStyle('Score', parent=styles['Normal'], fontSize=8)),
-            Paragraph(article['ai_validation'], ParagraphStyle('Rationale', parent=styles['Normal'], fontSize=8))
+            Paragraph(article['published_date'] if isinstance(article['published_date'], str) else article['published_date'].strftime('%Y-%m-%d'), ParagraphStyle('Date', parent=styles['Normal'], fontSize=8)),
+            Paragraph(f"{article['relevance_score']:.1f}/100", ParagraphStyle('Score', parent=styles['Normal'], fontSize=8)),
+            Paragraph(article['rationale'], ParagraphStyle('Rationale', parent=styles['Normal'], fontSize=8))
         ])
 
     # Create table with improved formatting
@@ -126,9 +126,9 @@ def validate_ai_relevance(article):
         summary = article.get('summary', '')[:500]   # Limit summary to first 500 chars
 
         prompt = f"""Strictly evaluate if this article is about artificial intelligence, machine learning, or direct AI applications. Return JSON: {{"is_relevant": true/false, "reason": "brief reason"}}
-        
+
         Only mark as relevant if the article primarily focuses on AI technology, not just mentions technical terms.
-        
+
         Title: {article['title']}
         Content excerpt: {content}
         Summary excerpt: {summary}"""
@@ -182,18 +182,18 @@ def main():
             time_value = st.number_input("Time Period", min_value=1, value=1, step=1)
         with col2:
             time_unit = st.selectbox("Unit", ["Days", "Weeks"], index=0)
-        
+
         # Add loading state to session if not present
         if 'is_fetching' not in st.session_state:
             st.session_state.is_fetching = False
-            
+
         fetch_button = st.sidebar.button(
             "Fetch New Articles",
             disabled=st.session_state.is_fetching,
             type="primary"
         )
-        
-        if fetch_button or st.session_state.is_fetching:
+
+        if fetch_button:
             st.session_state.is_fetching = True
             try:
                 start_time = datetime.now()
@@ -291,7 +291,7 @@ def main():
                     else:
                         st.warning("No articles found. Please try again.")
                         logger.warning("Completed with no articles found")
-                    
+
                     st.session_state.is_fetching = False
 
             except Exception as e:
@@ -308,7 +308,15 @@ def main():
             with col1:
                 if st.button("Export PDF"):
                     try:
-                        pdf_data = generate_pdf(st.session_state.articles)
+                        formatted_articles = [{
+                            'title': article['title'],
+                            'url': article['url'],
+                            'published_date': article['date'],
+                            'relevance_score': article.get('ai_confidence', 100),
+                            'rationale': article.get('ai_validation', '')
+                        } for article in st.session_state.articles]
+
+                        pdf_data = generate_pdf(formatted_articles)
                         st.download_button(
                             "Download PDF",
                             pdf_data,
