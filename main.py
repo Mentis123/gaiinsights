@@ -334,7 +334,7 @@ def main():
     with st.sidebar:
         col1, col2 = st.columns([9, 1])
         with col1:
-            st.session_state.test_mode = st.toggle("Test Mode ❔", value=st.session_state.test_mode, help="In test mode, only 6 out of the total source URLs are used to speed up testing")
+            st.session_state.test_mode = st.toggle("Test Mode", value=st.session_state.test_mode, help="In Test Mode, only 6 of 28 URLs are scanned")
 
 if __name__ == "__main__":
     main()
