@@ -336,7 +336,7 @@ def main():
         with col1:
             st.session_state.test_mode = st.toggle("Test Mode", value=st.session_state.test_mode)
         with col2:
-            st.tooltip("In test mode, only 6 out of the total source URLs are used to speed up testing", icon="ℹ️")
+            st.help("In test mode, only 6 out of the total source URLs are used to speed up testing")
 
 if __name__ == "__main__":
     main()
