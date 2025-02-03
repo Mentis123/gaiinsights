@@ -183,7 +183,25 @@ def main():
         with col2:
             time_unit = st.selectbox("Unit", ["Days", "Weeks"], index=0)
         
-        if st.sidebar.button("Fetch New Articles"):
+        # Add loading state to session if not present
+        if 'is_fetching' not in st.session_state:
+            st.session_state.is_fetching = False
+            
+        fetch_button = st.sidebar.button(
+            "Fetch New Articles",
+            disabled=st.session_state.is_fetching,
+            type="primary"
+        )
+        
+        if fetch_button:
+            try:
+                st.session_state.is_fetching = True
+                st.rerun()
+            except:
+                st.session_state.is_fetching = False
+                raise
+                
+        if st.session_state.is_fetching:
             try:
                 start_time = datetime.now()
                 with st.spinner("Fetching AI news from sources..."):
@@ -280,8 +298,11 @@ def main():
                     else:
                         st.warning("No articles found. Please try again.")
                         logger.warning("Completed with no articles found")
+                    
+                    st.session_state.is_fetching = False
 
             except Exception as e:
+                st.session_state.is_fetching = False
                 logger.error(f"Critical error in main process: {str(e)}")
                 st.error(f"An error occurred: {str(e)}")
 
