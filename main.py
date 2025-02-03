@@ -28,7 +28,7 @@ def init_session_state():
             st.session_state.articles = []
             st.session_state.selected_articles = []
             st.session_state.scan_status = []
-            st.session_state.test_mode = True
+            st.session_state.test_mode = False
             st.session_state.processing_time = None
             st.session_state.initialized = True
             st.session_state.last_update = datetime.now()
