@@ -332,7 +332,11 @@ def main():
 
     # Test Mode toggle in sidebar
     with st.sidebar:
-        st.session_state.test_mode = st.toggle("Test Mode", value=st.session_state.test_mode)
+        col1, col2 = st.columns([10, 1])
+        with col1:
+            st.session_state.test_mode = st.toggle("Test Mode", value=st.session_state.test_mode)
+        with col2:
+            st.tooltip("In test mode, only 6 out of the total source URLs are used to speed up testing", icon="ℹ️")
 
 if __name__ == "__main__":
     main()
