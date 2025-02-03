@@ -193,7 +193,7 @@ def main():
             type="primary"
         )
 
-        if fetch_button and not st.session_state.is_fetching:
+        if fetch_button:
             try:
                 st.session_state.is_fetching = True
                 st.rerun()
