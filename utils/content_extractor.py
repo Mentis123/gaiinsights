@@ -220,7 +220,11 @@ def is_specific_article(metadata: Dict[str, str]) -> bool:
         r'/contact\b',
         r'/privacy\b',
         r'/terms\b',
-        r'\?utm_'  # Exclude marketing UTM parameter URLs
+        r'\?utm_',  # Exclude marketing UTM parameter URLs
+        r'#main-content$',  # Exclude anchor links
+        r'/artificial-intelligence/?$',  # Exclude generic AI category pages
+        r'/technology/?$',  # Exclude generic technology pages
+        r'/news/?$'  # Exclude generic news pages
     ]
 
     if any(re.search(pattern, url) for pattern in url_patterns_to_exclude):
