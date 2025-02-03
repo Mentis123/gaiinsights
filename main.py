@@ -193,15 +193,8 @@ def main():
             type="primary"
         )
 
-        if fetch_button:
-            try:
-                st.session_state.is_fetching = True
-                st.rerun()
-            except:
-                st.session_state.is_fetching = False
-                raise
-
-        if st.session_state.is_fetching:
+        if fetch_button or st.session_state.is_fetching:
+            st.session_state.is_fetching = True
             try:
                 start_time = datetime.now()
                 with st.spinner("Fetching AI news from sources..."):
