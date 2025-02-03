@@ -330,10 +330,9 @@ def main():
         logger.error(f"Critical error in main function: {str(e)}\n{traceback.format_exc()}")
         st.error("An unexpected error occurred. Please refresh the page and try again.")
 
-    # Settings in sidebar
+    # Test Mode toggle in sidebar
     with st.sidebar:
-        with st.expander("Settings", expanded=False):
-            st.session_state.test_mode = st.toggle("Test Mode", value=st.session_state.test_mode)
+        st.session_state.test_mode = st.toggle("Test Mode", value=st.session_state.test_mode)
 
 if __name__ == "__main__":
     main()
