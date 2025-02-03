@@ -88,7 +88,8 @@ class SearchAgent:
         Aggregates articles from all configured sources with optimized validation flow
         """
         articles = []
-        cutoff_time = datetime.now() - timedelta(days=self.timeframe_days)
+        days_to_subtract = self.timeframe_days * 7 if getattr(self, 'time_unit', 'Days') == "Weeks" else self.timeframe_days
+        cutoff_time = datetime.now() - timedelta(days=days_to_subtract)
 
         try:
             keywords = self.extract_keywords_from_criteria(criteria_text)[:self.max_keywords]

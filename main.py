@@ -177,6 +177,12 @@ def main():
                 init_session_state()
         st.session_state.last_update = current_time
 
+        col1, col2 = st.sidebar.columns([2, 2])
+        with col1:
+            time_value = st.number_input("Time Period", min_value=1, value=1, step=1)
+        with col2:
+            time_unit = st.selectbox("Unit", ["Days", "Weeks"], index=0)
+        
         if st.sidebar.button("Fetch New Articles"):
             try:
                 start_time = datetime.now()
@@ -196,7 +202,8 @@ def main():
                             st.session_state.scan_status.insert(0, status_msg)
                             logger.info(f"Processing source {source}")
 
-                            cutoff_time = datetime.now() - timedelta(days=1)
+                            days_to_subtract = time_value * 7 if time_unit == "Weeks" else time_value
+                            cutoff_time = datetime.now() - timedelta(days=days_to_subtract)
                             ai_articles = find_ai_articles(source, cutoff_time)
 
                             if ai_articles:
