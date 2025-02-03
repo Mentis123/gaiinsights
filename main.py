@@ -313,7 +313,7 @@ def main():
                             'url': article['url'],
                             'published_date': article['date'],
                             'summary': article.get('summary', 'No summary available'),
-                            'ai_relevance': article.get('ai_validation', 'Not validated')
+                            'ai_relevance': article.get('ai_validation', 'Not validated') if 'ai_validation' in article else article.get('ai_relevance', 'Not validated')
                         } for article in st.session_state.articles]
 
                         pdf_data = generate_pdf(formatted_articles)
