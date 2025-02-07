@@ -164,6 +164,16 @@ def generate_csv_report(articles):
     } for article in articles]).to_csv(output, index=False)
     return output.getvalue()
 
+def update_status(message):
+    """Updates the processing status in the Streamlit UI."""
+    current_time = datetime.now().strftime("%H:%M:%S")
+    status_msg = f"[{current_time}] {message}"
+    st.session_state.scan_status.insert(0, status_msg)
+    status_placeholder = st.empty()
+    status_placeholder.code("\n".join(st.session_state.scan_status))
+    status_placeholder.empty()
+
+
 def main():
     try:
         st.title("AI News Aggregation System")
@@ -230,9 +240,11 @@ def main():
                                         continue
 
                                     logger.info(f"Processing article: {article['title']}")
+                                    update_status(f"Processing article: {article['title']}")
                                     content = extract_full_content(article['url'])
 
                                     if content:
+                                        update_status(f"Analyzing content for: {article['title']}")
                                         analysis = summarize_article(content)
                                         if analysis:
                                             article_data = {
