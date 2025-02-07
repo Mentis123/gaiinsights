@@ -15,31 +15,33 @@ import traceback
 from openai import OpenAI
 from urllib.parse import quote
 import logging
+import gc
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Initialize session state with error handling
-def init_session_state():
+# Initialize session state before anything else
+if 'initialized' not in st.session_state:
     try:
-        if 'initialized' not in st.session_state:
-            logger.info("Initializing session state")
-            st.session_state.articles = []
-            st.session_state.selected_articles = []
-            st.session_state.scan_status = []
-            st.session_state.test_mode = False
-            st.session_state.processing_time = None
-            st.session_state.initialized = True
-            st.session_state.last_update = datetime.now()
-            logger.info("Session state initialized successfully")
+        logger.info("Initializing session state")
+        st.session_state.articles = []
+        st.session_state.selected_articles = []
+        st.session_state.scan_status = []
+        st.session_state.test_mode = False
+        st.session_state.processing_time = None
+        st.session_state.processed_urls = set()  # Track processed URLs
+        st.session_state.current_batch_index = 0  # Track current batch
+        st.session_state.batch_size = 5  # Configurable batch size
+        st.session_state.is_fetching = False
+        st.session_state.initialized = True
+        st.session_state.last_update = datetime.now()
+        logger.info("Session state initialized successfully")
     except Exception as e:
         logger.error(f"Error initializing session state: {str(e)}")
         st.error("Error initializing application. Please refresh the page.")
 
-# Call initialization
-init_session_state()
-
+# Set page config after initialization
 st.set_page_config(
     page_title="AI News Aggregator",
     layout="wide",
@@ -174,6 +176,91 @@ def update_status(message):
     status_placeholder.empty()
 
 
+
+def process_batch(sources, cutoff_time, db, seen_urls, status_placeholder):
+    """Process a batch of sources with improved memory management"""
+    batch_articles = []
+
+    for source in sources:
+        try:
+            if source in st.session_state.processed_urls:
+                logger.info(f"Skipping already processed source: {source}")
+                continue
+
+            current_time = datetime.now().strftime("%H:%M:%S")
+            status_msg = f"[{current_time}] Scanning: {source}"
+            st.session_state.scan_status.insert(0, status_msg)
+            logger.info(f"Processing source {source}")
+
+            ai_articles = find_ai_articles(source, cutoff_time)
+
+            if ai_articles:
+                status_msg = f"[{current_time}] Found {len(ai_articles)} potential AI articles from {source}"
+                st.session_state.scan_status.insert(0, status_msg)
+                logger.info(f"Found {len(ai_articles)} articles from {source}")
+
+            status_placeholder.code("\n".join(st.session_state.scan_status))
+
+            for article in ai_articles:
+                try:
+                    if article['url'] in seen_urls:
+                        continue
+
+                    logger.info(f"Processing article: {article['title']}")
+                    update_status(f"Processing article: {article['title']}")
+
+                    content = extract_full_content(article['url'])
+
+                    if content:
+                        update_status(f"Analyzing content for: {article['title']}")
+                        analysis = summarize_article(content)
+
+                        if analysis:
+                            article_data = {
+                                **article,
+                                'content': content,
+                                'summary': analysis.get('summary', ''),
+                                'key_points': analysis.get('key_points', []),
+                                'ai_relevance': analysis.get('ai_relevance', '')
+                            }
+
+                            validation = validate_ai_relevance(article_data)
+
+                            if validation['is_relevant']:
+                                seen_urls.add(article['url'])
+                                article_to_save = {
+                                    **article_data,
+                                    'ai_confidence': 100,
+                                    'ai_validation': validation['reason']
+                                }
+                                db.save_article(article_to_save)
+                                batch_articles.append(article_to_save)
+
+                                status_msg = f"[{current_time}] Validated AI article: {article['title']}"
+                                st.session_state.scan_status.insert(0, status_msg)
+                                status_placeholder.code("\n".join(st.session_state.scan_status))
+                                logger.info(f"Validated article: {article['title']}")
+
+                except Exception as e:
+                    logger.error(f"Error processing article {article['url']}: {str(e)}")
+                    if "OpenAI API quota exceeded" in str(e):
+                        raise
+                    continue
+
+            # Mark source as processed
+            st.session_state.processed_urls.add(source)
+
+            # Periodic memory cleanup
+            gc.collect()
+
+        except Exception as e:
+            logger.error(f"Error processing source {source}: {str(e)}")
+            if "OpenAI API quota exceeded" in str(e):
+                raise
+            continue
+
+    return batch_articles
+
 def main():
     try:
         st.title("AI News Aggregation System")
@@ -187,13 +274,13 @@ def main():
                 init_session_state()
         st.session_state.last_update = current_time
 
+        # UI controls
         col1, col2 = st.sidebar.columns([2, 2])
         with col1:
             time_value = st.number_input("Time Period", min_value=1, value=1, step=1)
         with col2:
             time_unit = st.selectbox("Unit", ["Days", "Weeks"], index=0)
 
-        # Add loading state to session if not present
         if 'is_fetching' not in st.session_state:
             st.session_state.is_fetching = False
 
@@ -207,122 +294,47 @@ def main():
             st.session_state.is_fetching = True
             try:
                 start_time = datetime.now()
+
                 with st.spinner("Fetching AI news from sources..."):
                     sources = load_source_sites(test_mode=st.session_state.test_mode)
-                    import psutil
-                    import os
                     from utils.db_manager import DBManager
-
-                    def log_memory_usage():
-                        process = psutil.Process(os.getpid())
-                        logger.info(f"Memory usage: {process.memory_info().rss / 1024 / 1024:.2f} MB")
-
                     db = DBManager()
+
                     seen_urls = set(url['url'] for url in db.get_articles())
-                    batch_size = 5
                     progress_bar = st.progress(0)
-                    log_memory_usage()
+                    status_placeholder = st.empty()
 
-                    for batch_idx in range(0, len(sources), batch_size):
-                        batch = sources[batch_idx:batch_idx + batch_size]
-                        st.write(f"Processing batch {batch_idx//batch_size + 1} of {len(sources)//batch_size + 1}")
-                        # Clear memory periodically
-                        if 'scan_status' in st.session_state:
-                            st.session_state.scan_status = st.session_state.scan_status[-50:]  # Keep only last 50 status messages
-                        else:
-                            st.session_state.scan_status = []
+                    # Calculate batch boundaries
+                    batch_size = st.session_state.batch_size
+                    total_batches = (len(sources) + batch_size - 1) // batch_size
 
-                        status_placeholder = st.empty()
+                    # Start from last unprocessed batch
+                    for batch_idx in range(st.session_state.current_batch_index, total_batches):
+                        st.write(f"Processing batch {batch_idx + 1} of {total_batches}")
 
-                        # Add periodic status updates to prevent timeout
-                        last_update = datetime.now()
+                        start_idx = batch_idx * batch_size
+                        end_idx = min(start_idx + batch_size, len(sources))
+                        current_batch = sources[start_idx:end_idx]
 
-                        for idx, source in enumerate(batch):
-                            try:
-                                current_time = datetime.now().strftime("%H:%M:%S")
-                                status_msg = f"[{current_time}] Scanning: {source}"
-                                st.session_state.scan_status.insert(0, status_msg)
-                                logger.info(f"Processing source {source}")
+                        days_to_subtract = time_value * 7 if time_unit == "Weeks" else time_value
+                        cutoff_time = datetime.now() - timedelta(days=days_to_subtract)
 
-                                days_to_subtract = time_value * 7 if time_unit == "Weeks" else time_value
-                                cutoff_time = datetime.now() - timedelta(days=days_to_subtract)
-                                ai_articles = find_ai_articles(source, cutoff_time)
+                        # Process current batch
+                        batch_articles = process_batch(current_batch, cutoff_time, db, seen_urls, status_placeholder)
 
-                                if ai_articles:
-                                    status_msg = f"[{current_time}] Found {len(ai_articles)} potential AI articles from {source}"
-                                    st.session_state.scan_status.insert(0, status_msg)
-                                    logger.info(f"Found {len(ai_articles)} articles from {source}")
+                        # Update progress
+                        progress = (batch_idx + 1) / total_batches
+                        progress_bar.progress(progress)
 
-                                status_placeholder.code("\n".join(st.session_state.scan_status))
+                        # Update session state
+                        st.session_state.current_batch_index = batch_idx + 1
+                        st.session_state.articles.extend(batch_articles)
 
-                                total_articles = len(ai_articles)
-                                for idx, article in enumerate(ai_articles, 1):
-                                    try:
-                                        if article['url'] in seen_urls:
-                                            continue
+                        # Cleanup between batches
+                        gc.collect()
 
-                                        logger.info(f"Processing article {idx}/{total_articles}: {article['title']}")
-                                        update_status(f"Processing article {idx}/{total_articles}: {article['title']}")
-
-                                        # Force garbage collection periodically
-                                        if idx % 5 == 0:
-                                            import gc
-                                            gc.collect()
-
-                                        logger.info(f"Memory before content extraction: {psutil.Process(os.getpid()).memory_info().rss / 1024 / 1024:.2f} MB")
-                                        content = extract_full_content(article['url'])
-                                        logger.info(f"Memory after content extraction: {psutil.Process(os.getpid()).memory_info().rss / 1024 / 1024:.2f} MB")
-
-                                        if content:
-                                            update_status(f"Analyzing content for: {article['title']}")
-                                            analysis = summarize_article(content)
-                                            if analysis:
-                                                article_data = {
-                                                    **article,
-                                                    'content': content,
-                                                    'summary': analysis.get('summary', ''),
-                                                    'key_points': analysis.get('key_points', []),
-                                                    'ai_relevance': analysis.get('ai_relevance', '')
-                                                }
-
-                                                validation = validate_ai_relevance(article_data)
-
-                                                if validation['is_relevant']:
-                                                    seen_urls.add(article['url'])
-                                                    article_to_save = {
-                                                        **article_data,
-                                                        'ai_confidence': 100,
-                                                        'ai_validation': validation['reason']
-                                                    }
-                                                    db.save_article(article_to_save)
-                                                    # Force cleanup of article data
-                                                    del article_data
-                                                    import gc
-                                                    gc.collect()
-
-                                                    status_msg = f"[{current_time}] Validated AI article: {article['title']}"
-                                                    st.session_state.scan_status.insert(0, status_msg)
-                                                    status_placeholder.code("\n".join(st.session_state.scan_status))
-                                                    logger.info(f"Validated article: {article['title']}")
-
-                                    except Exception as e:
-                                        logger.error(f"Error processing article {article['url']}: {str(e)}")
-                                        if "OpenAI API quota exceeded" in str(e):
-                                            st.error("⚠️ OpenAI API quota exceeded")
-                                            return
-                                        continue
-
-                                progress_bar.progress((idx + 1) / len(sources))
-
-                            except Exception as e:
-                                logger.error(f"Error processing source {source}: {str(e)}")
-                                if "OpenAI API quota exceeded" in str(e):
-                                    st.error("⚠️ OpenAI API quota exceeded")
-                                    return
-                                continue
-
-                        progress_bar.empty()
-                        status_placeholder.empty()
+                    # Reset batch index after completion
+                    st.session_state.current_batch_index = 0
 
                     end_time = datetime.now()
                     elapsed_time = end_time - start_time
@@ -330,7 +342,8 @@ def main():
                     seconds = int(elapsed_time.total_seconds() % 60)
                     st.session_state.processing_time = f"{minutes} minutes and {seconds} seconds"
 
-                    st.session_state.articles = db.get_articles()
+                    progress_bar.empty()
+                    status_placeholder.empty()
 
                     if len(st.session_state.articles) > 0:
                         st.success(f"Found {len(st.session_state.articles)} relevant AI articles!")
