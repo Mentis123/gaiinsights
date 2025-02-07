@@ -88,7 +88,7 @@ class SearchAgent:
         Aggregates articles from all configured sources with optimized validation flow
         """
         articles = []
-        days_to_subtract = self.timeframe_days * 7 if getattr(self, 'time_unit', 'Days') == "Weeks" else self.timeframe_days
+        days_to_subtract = self.timeframe_days * 7 if self.config.get('time_unit') == "Weeks" else self.timeframe_days
         cutoff_time = datetime.now() - timedelta(days=days_to_subtract)
 
         try:
