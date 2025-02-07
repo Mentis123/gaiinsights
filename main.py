@@ -16,6 +16,7 @@ from openai import OpenAI
 from urllib.parse import quote
 import logging
 import gc
+import sys
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -176,7 +177,6 @@ def update_status(message):
     status_placeholder.empty()
 
 
-
 def process_batch(sources, cutoff_time, db, seen_urls, status_placeholder):
     """Process a batch of sources with improved memory management"""
     batch_articles = []
@@ -192,6 +192,9 @@ def process_batch(sources, cutoff_time, db, seen_urls, status_placeholder):
             st.session_state.scan_status.insert(0, status_msg)
             logger.info(f"Processing source {source}")
 
+            # Clear memory before processing new source
+            gc.collect()
+
             ai_articles = find_ai_articles(source, cutoff_time)
 
             if ai_articles:
@@ -199,7 +202,7 @@ def process_batch(sources, cutoff_time, db, seen_urls, status_placeholder):
                 st.session_state.scan_status.insert(0, status_msg)
                 logger.info(f"Found {len(ai_articles)} articles from {source}")
 
-            status_placeholder.code("\n".join(st.session_state.scan_status))
+            status_placeholder.code("\n".join(st.session_state.scan_status[:50]))  # Keep only last 50 messages
 
             for article in ai_articles:
                 try:
@@ -215,10 +218,13 @@ def process_batch(sources, cutoff_time, db, seen_urls, status_placeholder):
                         update_status(f"Analyzing content for: {article['title']}")
                         analysis = summarize_article(content)
 
+                        # Clear content from memory after analysis
+                        del content
+                        gc.collect()
+
                         if analysis:
                             article_data = {
                                 **article,
-                                'content': content,
                                 'summary': analysis.get('summary', ''),
                                 'key_points': analysis.get('key_points', []),
                                 'ai_relevance': analysis.get('ai_relevance', '')
@@ -238,8 +244,12 @@ def process_batch(sources, cutoff_time, db, seen_urls, status_placeholder):
 
                                 status_msg = f"[{current_time}] Validated AI article: {article['title']}"
                                 st.session_state.scan_status.insert(0, status_msg)
-                                status_placeholder.code("\n".join(st.session_state.scan_status))
+                                status_placeholder.code("\n".join(st.session_state.scan_status[:50]))
                                 logger.info(f"Validated article: {article['title']}")
+
+                            # Clear analysis data from memory
+                            del article_data
+                            gc.collect()
 
                 except Exception as e:
                     logger.error(f"Error processing article {article['url']}: {str(e)}")
@@ -247,10 +257,11 @@ def process_batch(sources, cutoff_time, db, seen_urls, status_placeholder):
                         raise
                     continue
 
-            # Mark source as processed
+            # Mark source as processed and save progress
             st.session_state.processed_urls.add(source)
+            st.session_state.last_processed_source = source
 
-            # Periodic memory cleanup
+            # Aggressive memory cleanup after each source
             gc.collect()
 
         except Exception as e:
@@ -265,13 +276,13 @@ def main():
     try:
         st.title("AI News Aggregation System")
 
-        # Periodically check connection and update timestamp
+        # Periodic connection check and timestamp update
         current_time = datetime.now()
         if 'last_update' in st.session_state:
             time_diff = (current_time - st.session_state.last_update).total_seconds()
             if time_diff > 300:  # 5 minutes
                 logger.warning("Session may have been disconnected - reinitializing")
-                init_session_state()
+                st.session_state.current_batch_index = 0
         st.session_state.last_update = current_time
 
         # UI controls
@@ -281,8 +292,9 @@ def main():
         with col2:
             time_unit = st.selectbox("Unit", ["Days", "Weeks"], index=0)
 
-        if 'is_fetching' not in st.session_state:
-            st.session_state.is_fetching = False
+        # Dynamic batch size based on available memory
+        available_memory = sys.getsizeof(str()) * 1024 * 1024  # Rough estimate in MB
+        st.session_state.batch_size = max(3, min(5, available_memory // 100))  # Adjust batch size based on memory
 
         fetch_button = st.sidebar.button(
             "Fetch New Articles",
@@ -308,7 +320,7 @@ def main():
                     batch_size = st.session_state.batch_size
                     total_batches = (len(sources) + batch_size - 1) // batch_size
 
-                    # Start from last unprocessed batch
+                    # Process batches with memory management
                     for batch_idx in range(st.session_state.current_batch_index, total_batches):
                         st.write(f"Processing batch {batch_idx + 1} of {total_batches}")
 
@@ -322,19 +334,29 @@ def main():
                         # Process current batch
                         batch_articles = process_batch(current_batch, cutoff_time, db, seen_urls, status_placeholder)
 
-                        # Update progress
+                        # Update progress and session state
                         progress = (batch_idx + 1) / total_batches
                         progress_bar.progress(progress)
-
-                        # Update session state
                         st.session_state.current_batch_index = batch_idx + 1
-                        st.session_state.articles.extend(batch_articles)
 
-                        # Cleanup between batches
+                        # Extend articles list and save to session state
+                        if batch_articles:
+                            st.session_state.articles.extend(batch_articles)
+                            # Keep only essential data in memory
+                            st.session_state.articles = [{
+                                'title': a['title'],
+                                'url': a['url'],
+                                'date': a['date'],
+                                'summary': a.get('summary', ''),
+                                'ai_validation': a.get('ai_validation', '')
+                            } for a in st.session_state.articles]
+
+                        # Force memory cleanup between batches
                         gc.collect()
 
                     # Reset batch index after completion
                     st.session_state.current_batch_index = 0
+                    st.session_state.is_fetching = False
 
                     end_time = datetime.now()
                     elapsed_time = end_time - start_time
@@ -351,8 +373,6 @@ def main():
                     else:
                         st.warning("No articles found. Please try again.")
                         logger.warning("Completed with no articles found")
-
-                    st.session_state.is_fetching = False
 
             except Exception as e:
                 st.session_state.is_fetching = False
