@@ -364,6 +364,13 @@ def main():
                     minutes = int(elapsed_time.total_seconds() // 60)
                     seconds = int(elapsed_time.total_seconds() % 60)
                     st.session_state.processing_time = f"{minutes} minutes and {seconds} seconds"
+                    logger.info(f"Total processing time: {minutes} minutes and {seconds} seconds")
+                    
+                    # Update Streamlit display
+                    if minutes > 0:
+                        st.write(f"**Total processing time:** {minutes} minutes and {seconds} seconds")
+                    else:
+                        st.write(f"**Total processing time:** {seconds} seconds")
 
                     progress_bar.empty()
                     status_placeholder.empty()
