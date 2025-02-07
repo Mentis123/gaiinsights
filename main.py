@@ -209,9 +209,17 @@ def main():
                 start_time = datetime.now()
                 with st.spinner("Fetching AI news from sources..."):
                     sources = load_source_sites(test_mode=st.session_state.test_mode)
+                    import psutil
+                    import os
+
+                    def log_memory_usage():
+                        process = psutil.Process(os.getpid())
+                        logger.info(f"Memory usage: {process.memory_info().rss / 1024 / 1024:.2f} MB")
+
                     all_articles = []
                     seen_urls = set()
                     progress_bar = st.progress(0)
+                    log_memory_usage()  # Initial memory usage
 
                     # Clear memory periodically
                     if 'scan_status' in st.session_state:
@@ -256,7 +264,9 @@ def main():
                                         import gc
                                         gc.collect()
 
+                                    logger.info(f"Memory before content extraction: {psutil.Process(os.getpid()).memory_info().rss / 1024 / 1024:.2f} MB")
                                     content = extract_full_content(article['url'])
+                                    logger.info(f"Memory after content extraction: {psutil.Process(os.getpid()).memory_info().rss / 1024 / 1024:.2f} MB")
 
                                     if content:
                                         update_status(f"Analyzing content for: {article['title']}")

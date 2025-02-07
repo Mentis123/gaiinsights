@@ -20,4 +20,5 @@ dependencies = [
     "llama-index-embeddings-openai>=0.3.1",
     "pandas>=2.2.3",
     "pytz>=2024.2",
+    "psutil>=6.1.1",
 ]
