@@ -216,7 +216,8 @@ def main():
                         process = psutil.Process(os.getpid())
                         logger.info(f"Memory usage: {process.memory_info().rss / 1024 / 1024:.2f} MB")
 
-                    all_articles = []
+                    from utils.db_manager import DBManager
+                    db = DBManager()
                     seen_urls = set()
                     progress_bar = st.progress(0)
                     log_memory_usage()  # Initial memory usage
@@ -284,11 +285,16 @@ def main():
 
                                             if validation['is_relevant']:
                                                 seen_urls.add(article['url'])
-                                                all_articles.append({
+                                                article_to_save = {
                                                     **article_data,
                                                     'ai_confidence': 100,
                                                     'ai_validation': validation['reason']
-                                                })
+                                                }
+                                                db.save_article(article_to_save)
+                                                # Force cleanup of article data
+                                                del article_data
+                                                import gc
+                                                gc.collect()
 
                                                 status_msg = f"[{current_time}] Validated AI article: {article['title']}"
                                                 st.session_state.scan_status.insert(0, status_msg)
@@ -320,10 +326,10 @@ def main():
                     seconds = int(elapsed_time.total_seconds() % 60)
                     st.session_state.processing_time = f"{minutes} minutes and {seconds} seconds"
 
-                    st.session_state.articles = all_articles
+                    st.session_state.articles = db.get_articles()
 
-                    if len(all_articles) > 0:
-                        st.success(f"Found {len(all_articles)} relevant AI articles!")
+                    if len(st.session_state.articles) > 0:
+                        st.success(f"Found {len(st.session_state.articles)} relevant AI articles!")
                         logger.info(f"Successfully completed with {len(all_articles)} articles")
                     else:
                         st.warning("No articles found. Please try again.")
