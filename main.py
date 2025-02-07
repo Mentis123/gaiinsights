@@ -321,8 +321,9 @@ def main():
                     total_batches = (len(sources) + batch_size - 1) // batch_size
 
                     # Process batches with memory management
+                    batch_status = st.empty()
                     for batch_idx in range(st.session_state.current_batch_index, total_batches):
-                        st.write(f"Processing batch {batch_idx + 1} of {total_batches}")
+                        batch_status.write(f"Processing batch {batch_idx + 1} of {total_batches}")
 
                         start_idx = batch_idx * batch_size
                         end_idx = min(start_idx + batch_size, len(sources))
