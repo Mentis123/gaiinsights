@@ -19,9 +19,14 @@ def load_source_sites(test_mode: bool = True) -> List[str]:
     """Load the source sites from the CSV file."""
     try:
         df = pd.read_csv('attached_assets/search_sites.csv', header=None)
+        sites = df[0].tolist()
+        
+        # Ensure we don't process duplicate sites
+        sites = list(dict.fromkeys(sites))
+        
         if test_mode:
-            return df[0].head(6).tolist()
-        return df[0].tolist()
+            return sites[:6]  # Take first 6 unique sites
+        return sites
     except Exception as e:
         logger.error(f"Error loading source sites: {e}")
         return []
