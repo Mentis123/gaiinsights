@@ -212,15 +212,15 @@ def main():
                     all_articles = []
                     seen_urls = set()
                     progress_bar = st.progress(0)
-                    
+
                     # Clear memory periodically
                     if 'scan_status' in st.session_state:
                         st.session_state.scan_status = st.session_state.scan_status[-50:]  # Keep only last 50 status messages
                     else:
                         st.session_state.scan_status = []
-                        
+
                     status_placeholder = st.empty()
-                    
+
                     # Add periodic status updates to prevent timeout
                     last_update = datetime.now()
 
@@ -242,20 +242,20 @@ def main():
 
                             status_placeholder.code("\n".join(st.session_state.scan_status))
 
-                            for article in ai_articles:
+                            total_articles = len(ai_articles)
+                            for idx, article in enumerate(ai_articles, 1):
                                 try:
                                     if article['url'] in seen_urls:
                                         continue
 
-                                    logger.info(f"Processing article: {article['title']}")
-                                    update_status(f"Processing article: {article['title']}")
-                                    # Add periodic status update
-                                    current_time = datetime.now()
-                                    if (current_time - last_update).seconds > 10:
-                                        st.session_state.scan_status.insert(0, f"[{current_time.strftime('%H:%M:%S')}] Still processing...")
-                                        status_placeholder.code("\n".join(st.session_state.scan_status))
-                                        last_update = current_time
-                                        
+                                    logger.info(f"Processing article {idx}/{total_articles}: {article['title']}")
+                                    update_status(f"Processing article {idx}/{total_articles}: {article['title']}")
+
+                                    # Force garbage collection periodically
+                                    if idx % 5 == 0:
+                                        import gc
+                                        gc.collect()
+
                                     content = extract_full_content(article['url'])
 
                                     if content:
