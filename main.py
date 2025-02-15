@@ -281,12 +281,18 @@ def main():
                         st.write(f"Processing time: {minutes}m {seconds}s")
 
                         # Add export options
-                        col1, col2 = st.columns([1, 1])
-                        # Export buttons and downloads in one column to prevent conflicts
-                        export_col1, export_col2 = st.columns([1, 1])
+                        # Show articles first
+                        st.write("### Found AI Articles")
+                        for article in st.session_state.articles:
+                            st.write("---")
+                            st.markdown(f"### [{article['title']}]({article['url']})")
+                            st.write(f"Published: {article['date']}")
+                            st.write(article['summary'])
 
+                        # Then show export options
+                        export_col1, export_col2 = st.columns([1, 1])
                         with export_col1:
-                            if st.session_state.articles:  # Only generate if articles exist
+                            if st.session_state.articles:
                                 pdf_data = generate_pdf_report(st.session_state.articles)
                                 st.download_button(
                                     "Download PDF Report",
