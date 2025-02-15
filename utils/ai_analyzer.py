@@ -59,9 +59,10 @@ def _process_chunk(chunk: str) -> Optional[Dict[str, Any]]:
     """Process a single chunk of content with increased token limit."""
     try:
         prompt = (
-            "Analyze this text section and respond with ONLY valid JSON. No other text:\n\n" + 
+            "Analyze this text section for AI/artificial intelligence relevance and respond with ONLY valid JSON. " +
+            "Consider business applications, implementations, and strategic uses of AI. Be inclusive of AI-related content:\n\n" + 
             chunk + "\n\n" +
-            "Required format: {\"summary\": \"Brief summary\", \"key_points\": [\"Main points\"], \"ai_relevance\": \"AI relevance\"}"
+            "Required format: {\"summary\": \"Brief summary highlighting AI aspects\", \"key_points\": [\"Main AI-related points\"], \"ai_relevance\": \"AI relevance and implementation details\"}"
         )
 
         response = client.chat.completions.create(

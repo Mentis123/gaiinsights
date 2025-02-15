@@ -194,30 +194,70 @@ def validate_ai_relevance(article_data):
     summary = article_data.get('summary', '').lower()
     content = article_data.get('content', '').lower()
 
-    # Updated regex patterns for AI terms with word boundaries, including hyphenated forms
+    # Expanded AI patterns to catch more relevant content
     ai_patterns = [
-        r'\b[Aa][Ii]\b',  # Standalone "AI"
-        r'\b[Aa][Ii]-[a-zA-Z]+\b',  # AI-powered, AI-driven, etc.
-        r'\b[a-zA-Z]+-[Aa][Ii]\b',  # gen-AI, etc.
+        # Core AI terms
+        r'\b[Aa][Ii]\b',
         r'\bartificial intelligence\b',
         r'\bmachine learning\b',
         r'\bneural network\b',
+        r'\bdeep learning\b',
+        
+        # AI applications
+        r'\b[Aa][Ii]-[a-zA-Z]+\b',
+        r'\b[a-zA-Z]+-[Aa][Ii]\b',
         r'\bgenerative ai\b',
         r'\bchatgpt\b',
         r'\bllm\b',
         r'\blarge language model\b',
-        r'\bdeep learning\b'
+        
+        # AI technologies and tools
+        r'\bautonomous ai\b',
+        r'\bai-driven\b',
+        r'\bai-powered\b',
+        r'\bai automation\b',
+        r'\bai technology\b',
+        r'\bai solution\b',
+        
+        # Business AI terms
+        r'\bai strategy\b',
+        r'\bai implementation\b',
+        r'\bai adoption\b',
+        r'\bai transformation\b'
     ]
 
     ai_regex = re.compile('|'.join(ai_patterns), re.IGNORECASE)
 
-    # Look for matches in title and content
-    has_ai_match = bool(ai_regex.search(title) or ai_regex.search(summary) or ai_regex.search(content[:2000]))
-
-    if has_ai_match:
+    # Check title first (higher priority)
+    if ai_regex.search(title):
         return {
             "is_relevant": True,
-            "reason": f"Contains AI-related content: {title}"
+            "reason": f"Direct AI focus in title: {title}"
+        }
+
+    # Check summary and content
+    if ai_regex.search(summary) or ai_regex.search(content[:2000]):
+        return {
+            "is_relevant": True,
+            "reason": f"Contains AI-related content and implementation details"
+        }
+
+    # Look for contextual AI relevance
+    context_patterns = [
+        r'automation',
+        r'machine intelligence',
+        r'predictive analytics',
+        r'intelligent system',
+        r'cognitive computing',
+        r'natural language processing'
+    ]
+    
+    context_regex = re.compile('|'.join(context_patterns), re.IGNORECASE)
+    
+    if context_regex.search(title) or context_regex.search(summary[:500]):
+        return {
+            "is_relevant": True,
+            "reason": "Contains AI-related technologies and applications"
         }
 
     return {
