@@ -264,10 +264,13 @@ def is_specific_article(metadata: Dict[str, str]) -> bool:
     return True
 
 def find_ai_articles(url: str, cutoff_time: datetime) -> List[Dict[str, str]]:
-    """Find AI-related articles with improved filtering."""
+    """Find AI-related articles with improved filtering and rate limiting."""
     articles = []
     seen_urls = set()
     seen_titles = []
+    
+    # Add rate limiting
+    time.sleep(2)  # Base delay between requests
     try:
         response = make_request_with_backoff(url)
         if not response:

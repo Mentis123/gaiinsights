@@ -178,8 +178,13 @@ def update_status(message):
 
 
 def process_batch(sources, cutoff_time, db, seen_urls, status_placeholder):
-    """Process a batch of sources with improved memory management"""
+    """Process a batch of sources with improved memory management and error recovery"""
     batch_articles = []
+    errors = 0
+    max_errors = 3  # Maximum consecutive errors before skipping source
+    
+    # Force garbage collection
+    gc.collect()
 
     for source in sources:
         try:
