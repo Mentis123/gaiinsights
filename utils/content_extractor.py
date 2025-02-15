@@ -194,9 +194,11 @@ def validate_ai_relevance(article_data):
     summary = article_data.get('summary', '').lower()
     content = article_data.get('content', '').lower()
 
-    # Updated regex patterns for AI terms with word boundaries
+    # Updated regex patterns for AI terms with word boundaries, including hyphenated forms
     ai_patterns = [
-        r'\b[Aa][Ii]\b',  # Matches "AI", "ai" as standalone words
+        r'\b[Aa][Ii]\b',  # Standalone "AI"
+        r'\b[Aa][Ii]-[a-zA-Z]+\b',  # AI-powered, AI-driven, etc.
+        r'\b[a-zA-Z]+-[Aa][Ii]\b',  # gen-AI, etc.
         r'\bartificial intelligence\b',
         r'\bmachine learning\b',
         r'\bneural network\b',
@@ -209,17 +211,13 @@ def validate_ai_relevance(article_data):
 
     ai_regex = re.compile('|'.join(ai_patterns), re.IGNORECASE)
 
-    # Check for AI terms in title (weighted more heavily)
-    has_ai_title = bool(ai_regex.search(title))
+    # Look for matches in title and content
+    has_ai_match = bool(ai_regex.search(title) or ai_regex.search(summary) or ai_regex.search(content[:2000]))
 
-    # Check content and summary for AI terms
-    # Limit content check to first 2000 characters for performance
-    has_ai_content = bool(ai_regex.search(summary) or ai_regex.search(content[:2000]))
-
-    if has_ai_title or has_ai_content:  # Changed from just has_ai_title to include has_ai_content
+    if has_ai_match:
         return {
             "is_relevant": True,
-            "reason": "Contains AI-related content" if has_ai_content else "Direct AI focus in title"
+            "reason": f"Contains AI-related content: {title}"
         }
 
     return {
@@ -285,22 +283,19 @@ def find_ai_articles(url: str, cutoff_time: datetime) -> List[Dict[str, str]]:
     seen_urls = set()
     seen_titles = []
 
-    # Add rate limiting
-    time.sleep(2)  # Base delay between requests
     try:
         response = make_request_with_backoff(url)
         if not response:
             logger.error(f"Could not fetch content from {url}")
             return []
 
-        # Additional delay between source processing
-        time.sleep(2)
-
         soup = BeautifulSoup(response.text, 'html.parser')
 
-        # Updated regex patterns to match standalone AI terms with word boundaries
+        # Updated AI patterns to include hyphenated forms
         ai_patterns = [
-            r'\b[Aa][Ii]\b',  # Matches "AI", "ai" as standalone words
+            r'\b[Aa][Ii]\b',  # Standalone "AI"
+            r'\b[Aa][Ii]-[a-zA-Z]+\b',  # AI-powered, AI-driven, etc.
+            r'\b[a-zA-Z]+-[Aa][Ii]\b',  # gen-AI, etc.
             r'\bartificial intelligence\b',
             r'\bmachine learning\b',
             r'\bdeep learning\b',
@@ -313,7 +308,6 @@ def find_ai_articles(url: str, cutoff_time: datetime) -> List[Dict[str, str]]:
 
         ai_regex = re.compile('|'.join(ai_patterns), re.IGNORECASE)
 
-        # Add debug logging
         logger.info(f"Scanning URL: {url}")
 
         for link in soup.find_all('a', href=True):
@@ -326,28 +320,28 @@ def find_ai_articles(url: str, cutoff_time: datetime) -> List[Dict[str, str]]:
                 title = link.get('title', '').strip()
                 combined_text = f"{link_text} {title}"
 
-                # Add debug logging for matches
                 if ai_regex.search(combined_text):
                     logger.info(f"Found potential AI article: {combined_text}")
                     metadata = extract_metadata(href, cutoff_time)
                     if metadata and metadata['url'] not in seen_urls:
                         logger.info(f"Validated metadata for: {metadata['title']}")
-                        # Check for similar titles
                         is_duplicate = any(similar_titles(metadata['title'], existing['title']) 
                                         for existing in seen_titles)
-                        if not is_duplicate:
+
+                        # More lenient specific article check
+                        if not is_duplicate and len(metadata.get('title', '').split()) > 2:
                             articles.append(metadata)
                             seen_urls.add(metadata['url'])
                             seen_titles.append(metadata)
 
             except Exception as e:
-                logger.error(f"Error processing link {href}: {str(e)}")
+                logger.error(f"Error processing link: {str(e)}")
                 continue
 
-        # Apply filtering only after gathering all articles
+        # Less restrictive filtering
         filtered_articles = [
             article for article in articles 
-            if is_specific_article(article)
+            if len(article.get('title', '').split()) > 2  # Keep articles with substantial titles
         ]
 
         if filtered_articles:
@@ -357,9 +351,6 @@ def find_ai_articles(url: str, cutoff_time: datetime) -> List[Dict[str, str]]:
 
         return filtered_articles
 
-    except TooManyRequestsError as e:
-        logger.error(f"Rate limit exceeded for {url}: {str(e)}")
-        return []
     except Exception as e:
         logger.error(f"Error finding AI articles from {url}: {str(e)}")
         return []
