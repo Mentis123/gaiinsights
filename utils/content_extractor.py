@@ -183,6 +183,34 @@ def make_request_with_backoff(url: str, max_retries: int = 3, initial_delay: int
 
     raise TooManyRequestsError(f"Max retries exceeded for {url}")
 
+def similar_titles(title1: str, title2: str) -> bool:
+    """Checks if two titles are similar (simplified example)."""
+    # Replace with a more robust similarity check if needed (e.g., using difflib)
+    return title1.lower() == title2.lower()
+
+def validate_ai_relevance(article_data):
+    """Validate if an article is meaningfully about AI technology or applications."""
+    title = article_data.get('title', '').lower()
+    summary = article_data.get('summary', '').lower()
+
+    # Core AI-related terms
+    ai_terms = ['ai', 'artificial intelligence', 'machine learning', 'neural network', 
+                'generative ai', 'chatgpt', 'llm', 'language model']
+
+    # Check title and summary for AI terms
+    has_ai_term = any(term in title or term in summary for term in ai_terms)
+
+    if has_ai_term:
+        return {
+            "is_relevant": True,
+            "reason": "Contains direct AI-related content"
+        }
+
+    return {
+        "is_relevant": False,
+        "reason": "No significant AI-related content found"
+    }
+
 def is_specific_article(metadata: Dict[str, str]) -> bool:
     """
     Validate if the content represents a specific article rather than a category/section page.
@@ -234,11 +262,6 @@ def is_specific_article(metadata: Dict[str, str]) -> bool:
         return False
 
     return True
-
-def similar_titles(title1: str, title2: str) -> bool:
-    """Checks if two titles are similar (simplified example)."""
-    # Replace with a more robust similarity check if needed (e.g., using difflib)
-    return title1.lower() == title2.lower()
 
 def find_ai_articles(url: str, cutoff_time: datetime) -> List[Dict[str, str]]:
     """Find AI-related articles with improved filtering."""
