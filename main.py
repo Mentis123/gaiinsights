@@ -119,57 +119,6 @@ def generate_pdf_report(articles):
     buffer.close()
     return pdf_data
 
-def validate_ai_relevance(article):
-    """Validate if an article is meaningfully about AI technology or applications."""
-    try:
-        # If we found it in our initial scan, it's already been validated for AI relevance
-        if "Found potential AI article:" in article.get('_source_log', ''):
-            return {
-                "is_relevant": True,
-                "reason": "Identified as AI article during initial scan"
-            }
-
-        # Otherwise check title and content
-        title = article.get('title', '').lower()
-        content = article.get('content', '')[:2000]  # Limit content to first 2000 chars
-        summary = article.get('summary', '')[:500]   # Limit summary to first 500 chars
-
-        # Check for standalone "AI" and related terms
-        ai_patterns = [
-            r'\b[Aa][Ii]\b',  # Standalone "AI"
-            r'\b[Aa][Ii]-[a-zA-Z]+\b',  # AI-powered, AI-driven, etc.
-            r'\b[a-zA-Z]+-[Aa][Ii]\b',  # gen-AI, etc.
-            r'\bartificial intelligence\b',
-            r'\bmachine learning\b',
-            r'\bneural network\b',
-            r'\bgenerative ai\b',
-            r'\bchatgpt\b',
-            r'\bllm\b'
-        ]
-
-        import re
-        ai_regex = re.compile('|'.join(ai_patterns), re.IGNORECASE)
-
-        # Trust our initial detection more - if it made it this far, it's likely relevant
-        if ai_regex.search(title) or ai_regex.search(summary) or ai_regex.search(content):
-            return {
-                "is_relevant": True,
-                "reason": f"Contains AI-related content: {title}"
-            }
-
-        return {
-            "is_relevant": True,  # Default to including articles that made it this far
-            "reason": "Passed initial AI content scan"
-        }
-
-    except Exception as e:
-        logger.error(f"Error in AI validation: {str(e)}")
-        # If there's an error in validation, trust the initial detection
-        return {
-            "is_relevant": True,
-            "reason": "Included based on initial AI detection"
-        }
-
 def generate_csv_report(articles):
     """Generate CSV data from articles."""
     output = BytesIO()
@@ -193,101 +142,69 @@ def update_status(message):
 
 
 def process_batch(sources, cutoff_time, db, seen_urls, status_placeholder):
-    """Process a batch of sources with improved memory management and error recovery"""
+    """Process a batch of sources with simplified article handling"""
     batch_articles = []
-    errors = 0
-    max_errors = 3  # Maximum consecutive errors before skipping source
-
-    # Force garbage collection
-    gc.collect()
 
     for source in sources:
         try:
             if source in st.session_state.processed_urls:
-                logger.info(f"Skipping already processed source: {source}")
                 continue
 
             current_time = datetime.now().strftime("%H:%M:%S")
             status_msg = f"[{current_time}] Scanning: {source}"
             st.session_state.scan_status.insert(0, status_msg)
-            logger.info(f"Processing source {source}")
 
-            # Clear memory before processing new source
-            gc.collect()
-
+            # Find AI articles
             ai_articles = find_ai_articles(source, cutoff_time)
 
             if ai_articles:
-                status_msg = f"[{current_time}] Found {len(ai_articles)} potential AI articles from {source}"
+                status_msg = f"[{current_time}] Found {len(ai_articles)} AI articles from {source}"
                 st.session_state.scan_status.insert(0, status_msg)
-                logger.info(f"Found {len(ai_articles)} articles from {source}")
 
-            status_placeholder.code("\n".join(st.session_state.scan_status[:50]))  # Keep only last 50 messages
+                for article in ai_articles:
+                    try:
+                        if article['url'] in seen_urls:
+                            continue
 
-            for article in ai_articles:
-                try:
-                    if article['url'] in seen_urls:
+                        content = extract_full_content(article['url'])
+                        if content:
+                            # Get article summary if possible, but don't block if it fails
+                            try:
+                                analysis = summarize_article(content)
+                            except Exception as e:
+                                logger.warning(f"Summary generation failed for {article['title']}: {e}")
+                                analysis = {'summary': 'Summary generation failed', 'key_points': []}
+
+                            # Save the article
+                            article_data = {
+                                'title': article['title'],
+                                'url': article['url'],
+                                'date': article['date'],
+                                'summary': analysis.get('summary', 'No summary available'),
+                                'source': source,
+                                'ai_validation': "AI-related article found in scan"
+                            }
+
+                            batch_articles.append(article_data)
+                            seen_urls.add(article['url'])
+
+                            try:
+                                db.save_article(article_data)
+                            except Exception as e:
+                                logger.error(f"Failed to save article to database: {e}")
+
+                            status_msg = f"[{current_time}] Added: {article['title']}"
+                            st.session_state.scan_status.insert(0, status_msg)
+
+                    except Exception as e:
+                        logger.error(f"Error processing article {article['url']}: {str(e)}")
                         continue
 
-                    logger.info(f"Processing article: {article['title']}")
-                    update_status(f"Processing article: {article['title']}")
-
-                    content = extract_full_content(article['url'])
-
-                    if content:
-                        update_status(f"Analyzing content for: {article['title']}")
-                        analysis = summarize_article(content)
-
-                        # Clear content from memory after analysis
-                        del content
-                        gc.collect()
-
-                        if analysis:
-                            article_data = {
-                                **article,
-                                'summary': analysis.get('summary', ''),
-                                'key_points': analysis.get('key_points', []),
-                                'ai_relevance': analysis.get('ai_relevance', ''),
-                                '_source_log': f"Found potential AI article: {article['title']}"  # Add source log
-                            }
-
-                            # Always consider articles found by content_extractor as relevant
-                            article_to_save = {
-                                **article_data,
-                                'ai_confidence': 100,
-                                'ai_validation': "Found by AI content scanner"
-                            }
-
-                            seen_urls.add(article['url'])
-                            batch_articles.append(article_to_save)
-                            db.save_article(article_to_save)
-
-                            status_msg = f"[{current_time}] Saved AI article: {article['title']}"
-                            st.session_state.scan_status.insert(0, status_msg)
-                            status_placeholder.code("\n".join(st.session_state.scan_status[:50]))
-                            logger.info(f"Saved article: {article['title']}")
-
-                        # Clear analysis data from memory
-                        del article_data
-                        gc.collect()
-
-                except Exception as e:
-                    logger.error(f"Error processing article {article['url']}: {str(e)}")
-                    if "OpenAI API quota exceeded" in str(e):
-                        raise
-                    continue
-
-            # Mark source as processed and save progress
             st.session_state.processed_urls.add(source)
-            st.session_state.last_processed_source = source
-
-            # Aggressive memory cleanup after each source
-            gc.collect()
+            status_placeholder.code("\n".join(st.session_state.scan_status[:50]))
 
         except Exception as e:
             logger.error(f"Error processing source {source}: {str(e)}")
-            if "OpenAI API quota exceeded" in str(e):
-                raise
             continue
 
     return batch_articles
@@ -296,25 +213,11 @@ def main():
     try:
         st.title("AI News Aggregation System")
 
-        # Periodic connection check and timestamp update
-        current_time = datetime.now()
-        if 'last_update' in st.session_state:
-            time_diff = (current_time - st.session_state.last_update).total_seconds()
-            if time_diff > 300:  # 5 minutes
-                logger.warning("Session may have been disconnected - reinitializing")
-                st.session_state.current_batch_index = 0
-        st.session_state.last_update = current_time
-
-        # UI controls
         col1, col2 = st.sidebar.columns([2, 2])
         with col1:
             time_value = st.number_input("Time Period", min_value=1, value=1, step=1)
         with col2:
             time_unit = st.selectbox("Unit", ["Days", "Weeks"], index=0)
-
-        # Dynamic batch size based on available memory
-        available_memory = sys.getsizeof(str()) * 1024 * 1024  # Rough estimate in MB
-        st.session_state.batch_size = max(3, min(5, available_memory // 100))  # Adjust batch size based on memory
 
         fetch_button = st.sidebar.button(
             "Fetch New Articles",
@@ -332,19 +235,16 @@ def main():
                     from utils.db_manager import DBManager
                     db = DBManager()
 
-                    seen_urls = set(url['url'] for url in db.get_articles())
+                    seen_urls = set()  # Reset seen URLs each time
                     progress_bar = st.progress(0)
                     status_placeholder = st.empty()
 
-                    # Calculate batch boundaries
-                    batch_size = st.session_state.batch_size
+                    batch_size = 5
                     total_batches = (len(sources) + batch_size - 1) // batch_size
 
-                    # Process batches with memory management
-                    batch_status = st.empty()
-                    for batch_idx in range(st.session_state.current_batch_index, total_batches):
-                        batch_status.write(f"Processing batch {batch_idx + 1} of {total_batches}")
+                    st.session_state.articles = []  # Reset articles list
 
+                    for batch_idx in range(total_batches):
                         start_idx = batch_idx * batch_size
                         end_idx = min(start_idx + batch_size, len(sources))
                         current_batch = sources[start_idx:end_idx]
@@ -355,116 +255,45 @@ def main():
                         # Process current batch
                         batch_articles = process_batch(current_batch, cutoff_time, db, seen_urls, status_placeholder)
 
-                        # Update progress and session state
-                        progress = (batch_idx + 1) / total_batches
-                        progress_bar.progress(progress)
-                        st.session_state.current_batch_index = batch_idx + 1
-
-                        # Extend articles list and save to session state
+                        # Add articles to session state
                         if batch_articles:
                             st.session_state.articles.extend(batch_articles)
-                            # Keep only essential data in memory
-                            st.session_state.articles = [{
-                                'title': a['title'],
-                                'url': a['url'],
-                                'date': a['date'],
-                                'summary': a.get('summary', ''),
-                                'ai_validation': a.get('ai_validation', '')
-                            } for a in st.session_state.articles]
 
-                        # Force memory cleanup between batches
-                        gc.collect()
+                        # Update progress
+                        progress = (batch_idx + 1) / total_batches
+                        progress_bar.progress(progress)
 
-                    # Reset batch index after completion
-                    st.session_state.current_batch_index = 0
+                    # Reset fetching state
                     st.session_state.is_fetching = False
 
+                    # Show completion message and stats
                     end_time = datetime.now()
                     elapsed_time = end_time - start_time
                     minutes = int(elapsed_time.total_seconds() // 60)
                     seconds = int(elapsed_time.total_seconds() % 60)
-                    st.session_state.processing_time = f"{minutes} minutes and {seconds} seconds"
-                    logger.info(f"Total processing time: {minutes} minutes and {seconds} seconds")
 
-                    # Update Streamlit display
-                    if minutes > 0:
-                        st.write(f"**Total processing time:** {minutes} minutes and {seconds} seconds")
+                    if st.session_state.articles:
+                        st.success(f"Found {len(st.session_state.articles)} AI articles!")
+                        st.write(f"Processing time: {minutes}m {seconds}s")
+
+                        # Display articles
+                        st.write("### Found AI Articles")
+                        for article in st.session_state.articles:
+                            st.write("---")
+                            st.markdown(f"### [{article['title']}]({article['url']})")
+                            st.write(f"Published: {article['date']}")
+                            st.write(article['summary'])
                     else:
-                        st.write(f"**Total processing time:** {seconds} seconds")
-
-                    progress_bar.empty()
-                    status_placeholder.empty()
-
-                    if len(st.session_state.articles) > 0:
-                        st.success(f"Found {len(st.session_state.articles)} relevant AI articles!")
-                        logger.info(f"Successfully completed with {len(st.session_state.articles)} articles")
-                    else:
-                        st.warning("No articles found. Please try again.")
-                        logger.warning("Completed with no articles found")
+                        st.warning("No articles found. Please try adjusting the time period or check the source sites.")
 
             except Exception as e:
                 st.session_state.is_fetching = False
-                logger.error(f"Critical error in main process: {str(e)}")
                 st.error(f"An error occurred: {str(e)}")
-
-        # Display articles and export options
-        if st.session_state.articles:
-            if st.session_state.processing_time:
-                st.write(f"**Total processing time:** {st.session_state.processing_time}")
-
-            col1, col2 = st.columns([1, 1])
-            with col1:
-                if st.button("Export PDF"):
-                    try:
-                        formatted_articles = [{
-                            'title': article['title'],
-                            'url': article['url'],
-                            'date': article['date'],
-                            'summary': article.get('summary', 'No summary available'),
-                            'ai_validation': article.get('ai_validation', 'Not validated')
-                        } for article in st.session_state.articles]
-
-                        pdf_data = generate_pdf_report(formatted_articles)
-                        st.download_button(
-                            "Download PDF",
-                            pdf_data,
-                            "ai_news_report.pdf",
-                            "application/pdf"
-                        )
-                    except Exception as e:
-                        st.error(f"Error generating PDF: {str(e)}")
-
-            with col2:
-                if st.button("Export CSV"):
-                    try:
-                        csv_data = generate_csv_report(st.session_state.articles)
-                        st.download_button(
-                            "Download CSV",
-                            csv_data,
-                            "ai_news_report.csv",
-                            "text/csv"
-                        )
-                    except Exception as e:
-                        st.error(f"Error generating CSV: {str(e)}")
-
-            # Display articles in a simpler format
-            st.write(f"### AI Research Results ({len(st.session_state.articles)} articles)")
-
-            for article in st.session_state.articles:
-                st.write("---")
-                st.markdown(f"### [{article['title']}]({article['url']})")
-                st.write(f"Published: {article.get('date', 'Date not available')}")
-                st.write(article.get('summary', 'No summary available'))
+                logger.error(f"Error in main process: {str(e)}")
 
     except Exception as e:
-        logger.error(f"Critical error in main function: {str(e)}\n{traceback.format_exc()}")
-        st.error("An unexpected error occurred. Please refresh the page and try again.")
-
-    # Test Mode toggle in sidebar
-    with st.sidebar:
-        col1, col2 = st.columns([9, 1])
-        with col1:
-            st.session_state.test_mode = st.toggle("Test Mode", value=st.session_state.test_mode, help="In Test Mode, only 6 of 28 URLs are scanned")
+        st.error("An unexpected error occurred. Please refresh the page.")
+        logger.error(f"Critical error: {str(e)}")
 
 if __name__ == "__main__":
     main()
