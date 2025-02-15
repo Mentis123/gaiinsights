@@ -194,23 +194,29 @@ def validate_ai_relevance(article_data):
     summary = article_data.get('summary', '').lower()
     content = article_data.get('content', '').lower()
 
-    # More inclusive AI patterns that capture broader AI implementations
+    # Broadened patterns to catch more AI-related content
     ai_patterns = [
-        # Core AI terms - more permissive matching
-        r'ai\b|\bai[^a-z]',  # Match AI as standalone or with punctuation/space
-        r'artificial intelligence',
-        r'machine learning',
-        r'neural|intelligent',
-        r'automation',
+        # Core AI terms
+        r'\bai\b|\bai[^a-z]|artificial intelligence',
+        r'machine learning|ml\b|\bml[^a-z]',
+        r'neural|intelligent|smart|autonomous',
+        r'automation|automated',
+        r'robot|robotics?',
         
-        # Business & Implementation terms
-        r'generative',
-        r'transform.*retail',
-        r'retail.*transform',
-        r'optimize|optimization',
-        r'revenue.*growth',
-        r'supply chain.*ai',
-        r'ai.*supply chain',
+        # Business terms
+        r'generative|gen ai',
+        r'transform|optimiz|predict|analytics?',
+        r'digital|tech|innovation',
+        
+        # Applications
+        r'algorithm|model|training|inference',
+        r'computer vision|nlp|natural language',
+        r'deep learning|cognitive|intelligence',
+        
+        # Specific technologies
+        r'chatbot|virtual assistant|copilot',
+        r'openai|chatgpt|gpt|llm',
+        r'recognition|detection|classification',
         
         # Tools & Applications
         r'powered|driven|enabled|assisted|based',

@@ -128,9 +128,13 @@ def validate_ai_relevance(article):
         content = article.get('content', '')[:2000]  # Limit content to first 2000 chars
         summary = article.get('summary', '')[:500]   # Limit summary to first 500 chars
 
-        prompt = f"""Strictly evaluate if this article is about artificial intelligence, machine learning, or direct AI applications. Return JSON: {{"is_relevant": true/false, "reason": "brief reason"}}
+        prompt = f"""Evaluate if this article discusses AI technology, applications, or business impact. Return JSON: {{"is_relevant": true/false, "reason": "brief reason"}}
 
-        Only mark as relevant if the article primarily focuses on AI technology, not just mentions technical terms.
+        Mark as relevant if the article:
+        - Discusses AI technology or applications
+        - Covers AI business implementation or impact
+        - Mentions specific AI tools or platforms
+        - Reports on AI industry developments
 
         Title: {article['title']}
         Content excerpt: {content}
