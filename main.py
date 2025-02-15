@@ -35,6 +35,8 @@ if 'initialized' not in st.session_state:
         st.session_state.current_batch_index = 0  # Track current batch
         st.session_state.batch_size = 5  # Configurable batch size
         st.session_state.is_fetching = False
+        st.session_state.pdf_data = None  # Initialize PDF data
+        st.session_state.csv_data = None  # Initialize CSV data
         st.session_state.initialized = True
         st.session_state.last_update = datetime.now()
         logger.info("Session state initialized successfully")
@@ -253,9 +255,14 @@ def main():
                         end_idx = min(start_idx + batch_size, len(sources))
                         current_batch = sources[start_idx:end_idx]
 
-                        days_to_subtract = time_value  # Always use days directly
+                        # Calculate cutoff time based on selected unit
+                        if time_unit == "Weeks":
+                            days_to_subtract = time_value * 7
+                        else:  # Days
+                            days_to_subtract = time_value
+
                         cutoff_time = datetime.now() - timedelta(days=days_to_subtract)
-                        print(f"Time period: {time_value} {time_unit}, Cutoff: {cutoff_time}")  # Debug logging
+                        logger.info(f"Time period: {time_value} {time_unit}, Cutoff: {cutoff_time}")
 
                         # Process current batch
                         batch_articles = process_batch(current_batch, cutoff_time, db, seen_urls, status_placeholder)
@@ -281,14 +288,14 @@ def main():
                         st.success(f"Found {len(st.session_state.articles)} AI articles!")
                         st.write(f"Processing time: {minutes}m {seconds}s")
 
+                        # Generate report data first
+                        st.session_state.pdf_data = generate_pdf_report(st.session_state.articles)
+                        st.session_state.csv_data = generate_csv_report(st.session_state.articles)
+
                         # Show export options in an expander
                         with st.expander("Export Options", expanded=True):
                             export_col1, export_col2 = st.columns([1, 1])
-                            
-                            # Generate report data each time to ensure fresh data
-                            pdf_data = generate_pdf_report(st.session_state.articles)
-                            csv_data = generate_csv_report(st.session_state.articles)
-                            
+
                             with export_col1:
                                 st.download_button(
                                     "📄 Download PDF Report",
