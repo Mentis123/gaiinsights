@@ -194,19 +194,27 @@ def validate_ai_relevance(article_data):
     summary = article_data.get('summary', '').lower()
     content = article_data.get('content', '').lower()
 
-    # Core AI-related terms
-    ai_terms = [
-        'ai', 'artificial intelligence', 'machine learning', 'neural network',
-        'generative ai', 'chatgpt', 'llm', 'language model', 'deep learning',
-        'nlp', 'computer vision', 'ai model', 'ai system', 'ai technology',
-        'ai solution', 'ai platform', 'ai application'
+    # Updated regex patterns for AI terms with word boundaries
+    ai_patterns = [
+        r'\b[Aa][Ii]\b',  # Matches "AI", "ai" as standalone words
+        r'\bartificial intelligence\b',
+        r'\bmachine learning\b',
+        r'\bneural network\b',
+        r'\bgenerative ai\b',
+        r'\bchatgpt\b',
+        r'\bllm\b',
+        r'\blarge language model\b',
+        r'\bdeep learning\b'
     ]
 
+    ai_regex = re.compile('|'.join(ai_patterns), re.IGNORECASE)
+
     # Check for AI terms in title (weighted more heavily)
-    has_ai_title = any(term in title for term in ai_terms)
-    
+    has_ai_title = bool(ai_regex.search(title))
+
     # Check content and summary for AI terms
-    has_ai_content = any(term in summary or term in content[:2000] for term in ai_terms)
+    # Limit content check to first 2000 characters for performance
+    has_ai_content = bool(ai_regex.search(summary) or ai_regex.search(content[:2000]))
 
     if has_ai_title:
         return {
@@ -281,7 +289,7 @@ def find_ai_articles(url: str, cutoff_time: datetime) -> List[Dict[str, str]]:
     articles = []
     seen_urls = set()
     seen_titles = []
-    
+
     # Add rate limiting
     time.sleep(2)  # Base delay between requests
     try:
@@ -294,13 +302,21 @@ def find_ai_articles(url: str, cutoff_time: datetime) -> List[Dict[str, str]]:
         time.sleep(2)
 
         soup = BeautifulSoup(response.text, 'html.parser')
-        ai_keywords = [
-            'ai', 'artificial intelligence', 'machine learning',
-            'deep learning', 'neural network', 'generative ai',
-            'chatgpt', 'large language model', 'llm',
-            'ai development', 'ai technology', 'ai solution',
-            'ai research', 'ai breakthrough', 'ai innovation'
+
+        # Updated regex patterns to match standalone AI terms with word boundaries
+        ai_patterns = [
+            r'\b[Aa][Ii]\b',  # Matches "AI", "ai" as standalone words
+            r'\bartificial intelligence\b',
+            r'\bmachine learning\b',
+            r'\bdeep learning\b',
+            r'\bneural network\b',
+            r'\bgenerative ai\b',
+            r'\bchatgpt\b',
+            r'\blarge language model\b',
+            r'\bllm\b'
         ]
+
+        ai_regex = re.compile('|'.join(ai_patterns), re.IGNORECASE)
 
         for link in soup.find_all('a', href=True):
             try:
@@ -308,11 +324,12 @@ def find_ai_articles(url: str, cutoff_time: datetime) -> List[Dict[str, str]]:
                 if not href.startswith(('http://', 'https://')):
                     href = urljoin(url, href)
 
-                link_text = (link.text or '').lower()
-                title = link.get('title', '').lower()
+                link_text = (link.text or '').strip()
+                title = link.get('title', '').strip()
                 combined_text = f"{link_text} {title}"
 
-                if any(keyword in combined_text for keyword in ai_keywords):
+                # Use regex with word boundaries to find matches
+                if ai_regex.search(combined_text):
                     metadata = extract_metadata(href, cutoff_time)
                     if metadata and metadata['url'] not in seen_urls:
                         # Check for similar titles
