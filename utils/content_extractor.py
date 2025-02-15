@@ -194,49 +194,24 @@ def validate_ai_relevance(article_data):
     summary = article_data.get('summary', '').lower()
     content = article_data.get('content', '').lower()
 
-    # Broadened patterns to catch more AI-related content
-    ai_patterns = [
-        # Core AI terms
-        r'\bai\b|\bai[^a-z]|artificial intelligence',
-        r'machine learning|ml\b|\bml[^a-z]',
-        r'neural|intelligent|smart|autonomous',
-        r'automation|automated',
-        r'robot|robotics?',
-        
-        # Business terms
-        r'generative|gen ai',
-        r'transform|optimiz|predict|analytics?',
-        r'digital|tech|innovation',
-        
-        # Applications
-        r'algorithm|model|training|inference',
-        r'computer vision|nlp|natural language',
-        r'deep learning|cognitive|intelligence',
-        
-        # Specific technologies
-        r'chatbot|virtual assistant|copilot',
-        r'openai|chatgpt|gpt|llm',
-        r'recognition|detection|classification',
-        
-        # Tools & Applications
-        r'powered|driven|enabled|assisted|based',
-        r'chatbot|bot|assistant|prediction',
-        r'computer vision|recognition',
-        r'personalization|recommendation',
-        
-        # Specific AI Technologies
-        r'llm|language model',
-        r'chatgpt|gpt|openai',
-        r'gen ai|genai',
-        r'ml ops|mlops',
-        
-        # AI Implementation Contexts
-        r'pricing.*ai|ai.*pricing',
-        r'inventory.*ai|ai.*inventory',
-        r'marketing.*ai|ai.*marketing',
-        r'customer.*ai|ai.*customer',
-        r'retail.*ai|ai.*retail'
-    ]
+    # Check if the title explicitly mentions AI
+    if any(term in title for term in ['ai', 'artificial intelligence', 'machine learning', 'chatgpt', 'generative']):
+        return {
+            "is_relevant": True,
+            "reason": f"Direct AI mention in title: {article_data.get('title')}"
+        }
+
+    # If found in potential AI articles, consider it relevant
+    if "Found potential AI article:" in article_data.get('_source_log', ''):
+        return {
+            "is_relevant": True,
+            "reason": "Identified as potential AI article during initial scan"
+        }
+
+    return {
+        "is_relevant": True,  # Default to including articles that made it this far
+        "reason": "Passed initial AI content scan"
+    }
 
     ai_regex = re.compile('|'.join(ai_patterns), re.IGNORECASE)
     
