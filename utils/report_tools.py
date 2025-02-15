@@ -6,9 +6,10 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 import csv
 from urllib.parse import quote, unquote
+from io import BytesIO
 
 def generate_pdf_report(articles):
-    """Generate a PDF report with clean URLs and meaningful AI relevance"""
+    """Generate a PDF report with clean URLs"""
     buffer = BytesIO()
     doc = SimpleDocTemplate(
         buffer,
@@ -34,11 +35,9 @@ def generate_pdf_report(articles):
         leading=10
     )
 
-    # Table header without AI Relevance column
     table_data = [['Title', 'URL', 'Date', 'Summary']]
 
     for article in articles:
-        # Clean URL - ensure it's a proper web URL
         url = article['url']
         if 'file:///' in url:
             url = url.replace('file:///', '')
@@ -47,9 +46,8 @@ def generate_pdf_report(articles):
             elif 'http://' in url:
                 url = url.split('http://', 1)[1]
             url = f'https://{url}'
-        url = unquote(url)  # Remove URL encoding
+        url = unquote(url)
 
-        # Create clickable title with clean URL
         title = Paragraph(f'<para><a href="{url}">{article["title"]}</a></para>', link_style)
         url_para = Paragraph(url, normal_style)
         date = article['date']
@@ -57,11 +55,9 @@ def generate_pdf_report(articles):
 
         table_data.append([title, url_para, date, summary])
 
-    # Adjust column widths without AI Relevance column
     table = Table(table_data, colWidths=[2.5*inch, 2.5*inch, 1*inch, 4*inch])
 
     table.setStyle(TableStyle([
-        # Header styling
         ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
         ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
@@ -69,15 +65,11 @@ def generate_pdf_report(articles):
         ('FONTSIZE', (0, 0), (-1, 0), 9),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
         ('TOPPADDING', (0, 0), (-1, 0), 12),
-
-        # Content styling
         ('ALIGN', (0, 1), (-1, -1), 'LEFT'),
         ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
         ('FONTSIZE', (0, 1), (-1, -1), 8),
         ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
         ('TOPPADDING', (0, 1), (-1, -1), 6),
-
-        # Grid
         ('GRID', (0, 0), (-1, -1), 0.25, colors.grey),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
     ]))
@@ -91,7 +83,7 @@ def generate_csv_report(articles):
     """Generate CSV report matching PDF format"""
     output = BytesIO()
     writer = csv.writer(output)
-    writer.writerow(['Title', 'URL', 'Date', 'Summary'])  # Headers without AI Relevance
+    writer.writerow(['Title', 'URL', 'Date', 'Summary'])
 
     for article in articles:
         url = article['url']
