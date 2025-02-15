@@ -35,7 +35,7 @@ def generate_pdf_report(articles):
         leading=10
     )
 
-    table_data = [['Title', 'URL', 'Date', 'Summary']]
+    table_data = [['Title', 'Date', 'Summary']]
 
     for article in articles:
         url = article['url']
@@ -49,13 +49,12 @@ def generate_pdf_report(articles):
         url = unquote(url)
 
         title = Paragraph(f'<para><a href="{url}">{article["title"]}</a></para>', link_style)
-        url_para = Paragraph(url, normal_style)
         date = article['date']
         summary = Paragraph(article.get('summary', 'No summary available'), normal_style)
 
-        table_data.append([title, url_para, date, summary])
+        table_data.append([title, date, summary])
 
-    table = Table(table_data, colWidths=[2.5*inch, 2.5*inch, 1*inch, 4*inch])
+    table = Table(table_data, colWidths=[3*inch, 1*inch, 6*inch])
 
     table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
@@ -83,7 +82,7 @@ def generate_csv_report(articles):
     """Generate CSV report matching PDF format"""
     output = BytesIO()
     writer = csv.writer(output)
-    writer.writerow(['Title', 'URL', 'Date', 'Summary'])
+    writer.writerow(['Title', 'Date', 'Summary'])
 
     for article in articles:
         url = article['url']
@@ -94,7 +93,6 @@ def generate_csv_report(articles):
 
         writer.writerow([
             article['title'],
-            url,
             article['date'],
             article.get('summary', 'No summary available')
         ])
