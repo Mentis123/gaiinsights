@@ -286,24 +286,28 @@ def main():
 
                         # Add export options
                         col1, col2 = st.columns([1, 1])
-                        with col1:
-                            if st.button("Export PDF"):
-                                pdf_data = generate_pdf_report(st.session_state.articles)
-                                st.download_button(
-                                    "Download PDF",
-                                    pdf_data,
-                                    "ai_news_report.pdf",
-                                    "application/pdf"
-                                )
-                        with col2:
-                            if st.button("Export CSV"):
-                                csv_data = generate_csv_report(st.session_state.articles)
-                                st.download_button(
-                                    "Download CSV",
-                                    csv_data,
-                                    "ai_news_report.csv",
-                                    "text/csv"
-                                )
+                        # Export buttons and downloads in one column to prevent conflicts
+                        export_col1, export_col2 = st.columns([1, 1])
+                        
+                        with export_col1:
+                            pdf_data = generate_pdf_report(st.session_state.articles)
+                            st.download_button(
+                                "Download PDF Report",
+                                pdf_data,
+                                "ai_news_report.pdf",
+                                "application/pdf",
+                                use_container_width=True
+                            )
+                            
+                        with export_col2:
+                            csv_data = generate_csv_report(st.session_state.articles)
+                            st.download_button(
+                                "Download CSV Report",
+                                csv_data,
+                                "ai_news_report.csv",
+                                "text/csv",
+                                use_container_width=True
+                            )
 
                         # Display articles
                         st.write("### Found AI Articles")

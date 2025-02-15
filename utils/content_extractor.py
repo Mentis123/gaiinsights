@@ -25,8 +25,8 @@ def load_source_sites(test_mode: bool = False) -> List[str]:
         sites = list(dict.fromkeys(sites))
 
         if test_mode:
-            logger.info("Running in test mode - using first 6 sites only")
-            return sites[:6]  # Take first 6 unique sites
+            logger.info("Running in test mode - using 1 out of 32 sites")
+            return ['https://www.wired.com/tag/artificial-intelligence/']
         return sites
     except Exception as e:
         logger.error(f"Error loading source sites: {e}")
