@@ -218,7 +218,7 @@ def main():
             st.session_state.test_mode = st.toggle(
                 "Test Mode",
                 value=st.session_state.get('test_mode', False),
-                help="In Test Mode, only 6 of 28 URLs are scanned"
+                help="In Test Mode, only 1 of 32 URLs are scanned"
             )
 
         col1, col2 = st.sidebar.columns([2, 2])

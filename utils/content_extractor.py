@@ -26,6 +26,7 @@ def load_source_sites(test_mode: bool = False) -> List[str]:
 
         if test_mode:
             logger.info("Running in test mode - using 1 out of 32 sites")
+            logger.info("In Test Mode, only 1 out of 32 URLs are scanned")
             return ['https://www.wired.com/tag/artificial-intelligence/']
         return sites
     except Exception as e:
