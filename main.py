@@ -253,8 +253,9 @@ def main():
                         end_idx = min(start_idx + batch_size, len(sources))
                         current_batch = sources[start_idx:end_idx]
 
-                        days_to_subtract = (time_value * 7) if time_unit == "Weeks" else time_value
+                        days_to_subtract = time_value  # Always use days directly
                         cutoff_time = datetime.now() - timedelta(days=days_to_subtract)
+                        print(f"Time period: {time_value} {time_unit}, Cutoff: {cutoff_time}")  # Debug logging
 
                         # Process current batch
                         batch_articles = process_batch(current_batch, cutoff_time, db, seen_urls, status_placeholder)

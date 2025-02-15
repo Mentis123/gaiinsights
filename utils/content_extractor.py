@@ -199,16 +199,17 @@ def is_specific_article(metadata: Dict[str, str]) -> bool:
 
     return True
 
-def find_ai_articles(url: str, cutoff_time: datetime) -> List[Dict[str, str]]:
-    """Find AI-related articles with improved filtering."""
+def find_ai_articles(source_url, cutoff_time):
+    """Find AI-related articles from a source URL"""
+    print(f"Searching with cutoff time: {cutoff_time}")  # Debug logging
     articles = []
     seen_urls = set()
     seen_titles = []
 
     try:
-        response = make_request_with_backoff(url)
+        response = make_request_with_backoff(source_url)
         if not response:
-            logger.error(f"Could not fetch content from {url}")
+            logger.error(f"Could not fetch content from {source_url}")
             return []
 
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -230,13 +231,13 @@ def find_ai_articles(url: str, cutoff_time: datetime) -> List[Dict[str, str]]:
 
         ai_regex = re.compile('|'.join(ai_patterns), re.IGNORECASE)
 
-        logger.info(f"Scanning URL: {url}")
+        logger.info(f"Scanning URL: {source_url}")
 
         for link in soup.find_all('a', href=True):
             try:
                 href = link['href']
                 if not href.startswith(('http://', 'https://')):
-                    href = urljoin(url, href)
+                    href = urljoin(source_url, href)
 
                 link_text = (link.text or '').strip()
                 title = link.get('title', '').strip() or link_text
@@ -251,7 +252,7 @@ def find_ai_articles(url: str, cutoff_time: datetime) -> List[Dict[str, str]]:
                             'title': title,
                             'url': href,
                             'date': metadata.get('date', datetime.now().strftime('%Y-%m-%d')),
-                            'source': url
+                            'source': source_url
                         })
                         seen_urls.add(href)
 
@@ -259,9 +260,9 @@ def find_ai_articles(url: str, cutoff_time: datetime) -> List[Dict[str, str]]:
                 logger.error(f"Error processing link: {str(e)}")
                 continue
 
-        logger.info(f"Found {len(articles)} articles from {url}")
+        logger.info(f"Found {len(articles)} articles from {source_url}")
         return articles
 
     except Exception as e:
-        logger.error(f"Error finding AI articles from {url}: {str(e)}")
+        logger.error(f"Error finding AI articles from {source_url}: {str(e)}")
         return []
