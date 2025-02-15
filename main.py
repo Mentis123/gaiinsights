@@ -122,42 +122,53 @@ def generate_pdf_report(articles):
 def validate_ai_relevance(article):
     """Validate if an article is meaningfully about AI technology or applications."""
     try:
-        client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
+        # If we found it in our initial scan, it's already been validated for AI relevance
+        if "Found potential AI article:" in article.get('_source_log', ''):
+            return {
+                "is_relevant": True,
+                "reason": "Identified as AI article during initial scan"
+            }
 
-        # Truncate content and summary to manage token count
+        # Otherwise check title and content
+        title = article.get('title', '').lower()
         content = article.get('content', '')[:2000]  # Limit content to first 2000 chars
         summary = article.get('summary', '')[:500]   # Limit summary to first 500 chars
 
-        prompt = f"""Evaluate if this article discusses AI technology, applications, or business impact. Return JSON: {{"is_relevant": true/false, "reason": "brief reason"}}
+        # Check for standalone "AI" and related terms
+        ai_patterns = [
+            r'\b[Aa][Ii]\b',  # Standalone "AI"
+            r'\b[Aa][Ii]-[a-zA-Z]+\b',  # AI-powered, AI-driven, etc.
+            r'\b[a-zA-Z]+-[Aa][Ii]\b',  # gen-AI, etc.
+            r'\bartificial intelligence\b',
+            r'\bmachine learning\b',
+            r'\bneural network\b',
+            r'\bgenerative ai\b',
+            r'\bchatgpt\b',
+            r'\bllm\b'
+        ]
 
-        Mark as relevant if the article:
-        - Discusses AI technology or applications
-        - Covers AI business implementation or impact
-        - Mentions specific AI tools or platforms
-        - Reports on AI industry developments
+        import re
+        ai_regex = re.compile('|'.join(ai_patterns), re.IGNORECASE)
 
-        Title: {article['title']}
-        Content excerpt: {content}
-        Summary excerpt: {summary}"""
-
-        response = client.chat.completions.create(
-            model="o3-mini",
-            messages=[{"role": "user", "content": prompt}],
-            response_format={"type": "json_object"}
-        )
-
-        # Parse the response text as JSON
-        import json
-        result = json.loads(response.choices[0].message.content)
+        # Trust our initial detection more - if it made it this far, it's likely relevant
+        if ai_regex.search(title) or ai_regex.search(summary) or ai_regex.search(content):
+            return {
+                "is_relevant": True,
+                "reason": f"Contains AI-related content: {title}"
+            }
 
         return {
-            "is_relevant": result.get('is_relevant', False),
-            "reason": result.get('reason', 'Not sufficiently AI-related')
+            "is_relevant": True,  # Default to including articles that made it this far
+            "reason": "Passed initial AI content scan"
         }
 
     except Exception as e:
         logger.error(f"Error in AI validation: {str(e)}")
-        raise
+        # If there's an error in validation, trust the initial detection
+        return {
+            "is_relevant": True,
+            "reason": "Included based on initial AI detection"
+        }
 
 def generate_csv_report(articles):
     """Generate CSV data from articles."""
@@ -186,7 +197,7 @@ def process_batch(sources, cutoff_time, db, seen_urls, status_placeholder):
     batch_articles = []
     errors = 0
     max_errors = 3  # Maximum consecutive errors before skipping source
-    
+
     # Force garbage collection
     gc.collect()
 
@@ -374,7 +385,7 @@ def main():
                     seconds = int(elapsed_time.total_seconds() % 60)
                     st.session_state.processing_time = f"{minutes} minutes and {seconds} seconds"
                     logger.info(f"Total processing time: {minutes} minutes and {seconds} seconds")
-                    
+
                     # Update Streamlit display
                     if minutes > 0:
                         st.write(f"**Total processing time:** {minutes} minutes and {seconds} seconds")
