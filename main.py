@@ -136,9 +136,6 @@ def update_status(message):
     current_time = datetime.now().strftime("%H:%M:%S")
     status_msg = f"[{current_time}] {message}"
     st.session_state.scan_status.insert(0, status_msg)
-    status_placeholder = st.empty()
-    status_placeholder.code("\n".join(st.session_state.scan_status))
-    status_placeholder.empty()
 
 
 def process_batch(sources, cutoff_time, db, seen_urls, status_placeholder):
@@ -201,7 +198,6 @@ def process_batch(sources, cutoff_time, db, seen_urls, status_placeholder):
                         continue
 
             st.session_state.processed_urls.add(source)
-            status_placeholder.code("\n".join(st.session_state.scan_status[:50]))
 
         except Exception as e:
             logger.error(f"Error processing source {source}: {str(e)}")
@@ -288,7 +284,7 @@ def main():
                         col1, col2 = st.columns([1, 1])
                         # Export buttons and downloads in one column to prevent conflicts
                         export_col1, export_col2 = st.columns([1, 1])
-                        
+
                         with export_col1:
                             if st.session_state.articles:  # Only generate if articles exist
                                 pdf_data = generate_pdf_report(st.session_state.articles)
@@ -300,7 +296,7 @@ def main():
                                     use_container_width=True,
                                     key="pdf_download"  # Add unique key
                                 )
-                            
+
                         with export_col2:
                             csv_data = generate_csv_report(st.session_state.articles)
                             st.download_button(
