@@ -280,32 +280,35 @@ def main():
                         st.success(f"Found {len(st.session_state.articles)} AI articles!")
                         st.write(f"Processing time: {minutes}m {seconds}s")
 
-                        # Add export options
-                        # Show export options first
-                        st.write("### Export Options")
-                        export_col1, export_col2 = st.columns([1, 1])
-                        
-                        with export_col1:
-                            pdf_data = generate_pdf_report(st.session_state.articles)
-                            st.download_button(
-                                "📄 Download PDF Report",
-                                pdf_data,
-                                "ai_news_report.pdf",
-                                "application/pdf",
-                                use_container_width=True,
-                                key="pdf_download"
-                            )
+                        # Show export options in an expander
+                        with st.expander("Export Options", expanded=True):
+                            export_col1, export_col2 = st.columns([1, 1])
+                            
+                            # Cache the report data to prevent regeneration
+                            if 'pdf_data' not in st.session_state:
+                                st.session_state.pdf_data = generate_pdf_report(st.session_state.articles)
+                            if 'csv_data' not in st.session_state:
+                                st.session_state.csv_data = generate_csv_report(st.session_state.articles)
+                            
+                            with export_col1:
+                                st.download_button(
+                                    "📄 Download PDF Report",
+                                    st.session_state.pdf_data,
+                                    "ai_news_report.pdf",
+                                    "application/pdf",
+                                    use_container_width=True,
+                                    key="pdf_download"
+                                )
 
-                        with export_col2:
-                            csv_data = generate_csv_report(st.session_state.articles)
-                            st.download_button(
-                                "📊 Download CSV Report",
-                                csv_data,
-                                "ai_news_report.csv",
-                                "text/csv",
-                                use_container_width=True,
-                                key="csv_download"
-                            )
+                            with export_col2:
+                                st.download_button(
+                                    "📊 Download CSV Report",
+                                    st.session_state.csv_data,
+                                    "ai_news_report.csv",
+                                    "text/csv",
+                                    use_container_width=True,
+                                    key="csv_download"
+                                )
 
                         # Then show articles
                         st.write("### Found AI Articles")
