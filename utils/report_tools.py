@@ -40,11 +40,11 @@ def generate_pdf_report(articles, output_path):
     for article in articles:
         # Clean and format URL properly
         url = article["url"]
-        if url.startswith('file:///'):
-            url = url.split('file:///')[-1]
-            if 'https%3A' in url:
-                url = url.split('https%3A')[-1].replace('%3A', ':')
-                url = 'https:' + url
+        # Clean any file path artifacts from URL
+        if 'http' in url:
+            url = 'http' + url.split('http')[-1]
+            # Remove any URL encoding
+            url = url.replace('%3A', ':').replace('%2F', '/')
         title = Paragraph(f'<para><a href="{url}" target="_blank">{article["title"]}</a></para>', title_style)
         url = Paragraph(article['url'], normal_style)
         date = article['date']

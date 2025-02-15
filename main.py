@@ -290,14 +290,16 @@ def main():
                         export_col1, export_col2 = st.columns([1, 1])
                         
                         with export_col1:
-                            pdf_data = generate_pdf_report(st.session_state.articles)
-                            st.download_button(
-                                "Download PDF Report",
-                                pdf_data,
-                                "ai_news_report.pdf",
-                                "application/pdf",
-                                use_container_width=True
-                            )
+                            if st.session_state.articles:  # Only generate if articles exist
+                                pdf_data = generate_pdf_report(st.session_state.articles)
+                                st.download_button(
+                                    "Download PDF Report",
+                                    pdf_data,
+                                    "ai_news_report.pdf",
+                                    "application/pdf",
+                                    use_container_width=True,
+                                    key="pdf_download"  # Add unique key
+                                )
                             
                         with export_col2:
                             csv_data = generate_csv_report(st.session_state.articles)
