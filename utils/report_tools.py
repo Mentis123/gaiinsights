@@ -38,7 +38,14 @@ def generate_pdf_report(articles, output_path):
 
     # Process articles to match CSV format
     for article in articles:
-        title = Paragraph(f'<para><a href="{article["url"]}" target="_blank">{article["title"]}</a></para>', title_style)
+        # Clean and format URL properly
+        url = article["url"]
+        if url.startswith('file:///'):
+            url = url.split('file:///')[-1]
+            if 'https%3A' in url:
+                url = url.split('https%3A')[-1].replace('%3A', ':')
+                url = 'https:' + url
+        title = Paragraph(f'<para><a href="{url}" target="_blank">{article["title"]}</a></para>', title_style)
         url = Paragraph(article['url'], normal_style)
         date = article['date']
         summary = Paragraph(article.get('summary', 'No summary available'), normal_style)
