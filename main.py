@@ -298,36 +298,36 @@ def main():
                         st.success(f"Found {len(st.session_state.articles)} AI articles!")
                         st.write(f"Processing time: {minutes}m {seconds}s")
 
-                        # Generate report data first
-                        if st.session_state.pdf_data is None:
-                            st.session_state.pdf_data = generate_pdf_report(st.session_state.articles)
-                        if st.session_state.csv_data is None:
-                            st.session_state.csv_data = generate_csv_report(st.session_state.articles)
+                        # Store articles in session state if not already there
+                        if 'current_articles' not in st.session_state:
+                            st.session_state.current_articles = st.session_state.articles
+
+                        # Generate reports using the stored articles
+                        pdf_data = generate_pdf_report(st.session_state.current_articles)
+                        csv_data = generate_csv_report(st.session_state.current_articles)
 
                         # Show export options in an expander
                         with st.expander("Export Options", expanded=True):
                             export_col1, export_col2 = st.columns([1, 1])
 
                             with export_col1:
-                                if st.session_state.pdf_data:
+                                if pdf_data:
                                     st.download_button(
                                         "📄 Download PDF Report",
-                                        st.session_state.pdf_data,
+                                        pdf_data,
                                         "ai_news_report.pdf",
                                         "application/pdf",
-                                        use_container_width=True,
-                                        key=f"pdf_download_{datetime.now().timestamp()}"  # Unique key
+                                        use_container_width=True
                                     )
 
                             with export_col2:
-                                if st.session_state.csv_data:
+                                if csv_data:
                                     st.download_button(
                                         "📊 Download CSV Report",
-                                        st.session_state.csv_data,
+                                        csv_data,
                                         "ai_news_report.csv",
                                         "text/csv",
-                                        use_container_width=True,
-                                        key=f"csv_download_{datetime.now().timestamp()}"  # Unique key
+                                        use_container_width=True
                                     )
 
                         # Then show articles
