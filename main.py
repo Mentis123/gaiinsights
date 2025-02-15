@@ -253,7 +253,7 @@ def main():
                         end_idx = min(start_idx + batch_size, len(sources))
                         current_batch = sources[start_idx:end_idx]
 
-                        days_to_subtract = time_value * 7 if time_unit == "Weeks" else time_value
+                        days_to_subtract = (time_value * 7) if time_unit == "Weeks" else time_value
                         cutoff_time = datetime.now() - timedelta(days=days_to_subtract)
 
                         # Process current batch
