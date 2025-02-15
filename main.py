@@ -281,39 +281,33 @@ def main():
                         st.write(f"Processing time: {minutes}m {seconds}s")
 
                         # Add export options
-                        # Show articles first
-                        st.write("### Found AI Articles")
-                        for article in st.session_state.articles:
-                            st.write("---")
-                            st.markdown(f"### [{article['title']}]({article['url']})")
-                            st.write(f"Published: {article['date']}")
-                            st.write(article['summary'])
-
-                        # Then show export options
+                        # Show export options first
+                        st.write("### Export Options")
                         export_col1, export_col2 = st.columns([1, 1])
+                        
                         with export_col1:
-                            if st.session_state.articles:
-                                pdf_data = generate_pdf_report(st.session_state.articles)
-                                st.download_button(
-                                    "Download PDF Report",
-                                    pdf_data,
-                                    "ai_news_report.pdf",
-                                    "application/pdf",
-                                    use_container_width=True,
-                                    key="pdf_download"  # Add unique key
-                                )
+                            pdf_data = generate_pdf_report(st.session_state.articles)
+                            st.download_button(
+                                "📄 Download PDF Report",
+                                pdf_data,
+                                "ai_news_report.pdf",
+                                "application/pdf",
+                                use_container_width=True,
+                                key="pdf_download"
+                            )
 
                         with export_col2:
                             csv_data = generate_csv_report(st.session_state.articles)
                             st.download_button(
-                                "Download CSV Report",
+                                "📊 Download CSV Report",
                                 csv_data,
                                 "ai_news_report.csv",
                                 "text/csv",
-                                use_container_width=True
+                                use_container_width=True,
+                                key="csv_download"
                             )
 
-                        # Display articles
+                        # Then show articles
                         st.write("### Found AI Articles")
                         for article in st.session_state.articles:
                             st.write("---")
