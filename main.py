@@ -302,29 +302,31 @@ def main():
                         if 'current_articles' not in st.session_state:
                             st.session_state.current_articles = st.session_state.articles
 
-                        # Generate reports using the stored articles
-                        pdf_data = generate_pdf_report(st.session_state.current_articles)
-                        csv_data = generate_csv_report(st.session_state.current_articles)
+                        # Store reports in session state to prevent regeneration
+                        if 'pdf_data' not in st.session_state or not st.session_state.pdf_data:
+                            st.session_state.pdf_data = generate_pdf_report(st.session_state.current_articles)
+                        if 'csv_data' not in st.session_state or not st.session_state.csv_data:
+                            st.session_state.csv_data = generate_csv_report(st.session_state.current_articles)
 
                         # Show export options in an expander
                         with st.expander("Export Options", expanded=True):
                             export_col1, export_col2 = st.columns([1, 1])
 
                             with export_col1:
-                                if pdf_data:
+                                if st.session_state.pdf_data:
                                     st.download_button(
                                         "📄 Download PDF Report",
-                                        pdf_data,
+                                        st.session_state.pdf_data,
                                         "ai_news_report.pdf",
                                         "application/pdf",
                                         use_container_width=True
                                     )
 
                             with export_col2:
-                                if csv_data:
+                                if st.session_state.csv_data:
                                     st.download_button(
                                         "📊 Download CSV Report",
-                                        csv_data,
+                                        st.session_state.csv_data,
                                         "ai_news_report.csv",
                                         "text/csv",
                                         use_container_width=True
