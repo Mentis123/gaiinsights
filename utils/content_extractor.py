@@ -15,16 +15,17 @@ logger = logging.getLogger(__name__)
 class TooManyRequestsError(Exception):
     pass
 
-def load_source_sites(test_mode: bool = True) -> List[str]:
+def load_source_sites(test_mode: bool = False) -> List[str]:
     """Load the source sites from the CSV file."""
     try:
-        df = pd.read_csv('attached_assets/search_sites.csv', header=None)
+        df = pd.read_csv('data/search_sites.csv', header=None)
         sites = df[0].tolist()
 
         # Ensure we don't process duplicate sites
         sites = list(dict.fromkeys(sites))
 
         if test_mode:
+            logger.info("Running in test mode - using first 6 sites only")
             return sites[:6]  # Take first 6 unique sites
         return sites
     except Exception as e:
@@ -50,51 +51,14 @@ def extract_metadata(url: str, cutoff_time: datetime) -> Optional[Dict[str, str]
                 try:
                     import json
                     meta_dict = json.loads(metadata)
-                    date_str = meta_dict.get('date', '')
-                    title = meta_dict.get('title', '')
-
-                    # More flexible date parsing
-                    if date_str:
-                        try:
-                            # Try parsing with multiple formats
-                            for date_format in ['%Y-%m-%d', '%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M:%S', '%Y-%m-%dT%H:%M:%SZ']:
-                                try:
-                                    date_obj = datetime.strptime(str(date_str)[:19], date_format)
-                                    # Convert to UTC for consistent comparison
-                                    if date_obj.tzinfo is None:
-                                        date_obj = pytz.UTC.localize(date_obj)
-
-                                    # Compare with cutoff time (also in UTC)
-                                    cutoff_utc = pytz.UTC.localize(cutoff_time)
-
-                                    # Fixed: Keep articles that are newer than or equal to the cutoff date
-                                    if date_obj.date() < cutoff_utc.date():
-                                        return None
-                                    break
-                                except ValueError:
-                                    continue
-                        except Exception as e:
-                            logger.error(f"Date parsing error for {date_str}: {e}")
-                            # If we can't parse the date, assume it's recent
-                            date_str = datetime.now(pytz.UTC).strftime('%Y-%m-%d')
-
-                    else:
-                        # If no date is provided, assume it's recent
-                        date_str = datetime.now(pytz.UTC).strftime('%Y-%m-%d')
-
-                    # Always include the URL even if we couldn't get a title
-                    if not title:
-                        title = "Article from " + url.split('/')[2]  # Use domain as fallback title
-
                     return {
-                        'title': title,
-                        'date': date_str,
+                        'title': meta_dict.get('title', ''),
+                        'date': meta_dict.get('date', datetime.now(pytz.UTC).strftime('%Y-%m-%d')),
                         'url': url
                     }
 
                 except json.JSONDecodeError as e:
                     logger.error(f"JSON parsing error for {url}: {e}")
-                    # Even if metadata parsing fails, try to return basic info
                     return {
                         'title': "Article from " + url.split('/')[2],
                         'date': datetime.now(pytz.UTC).strftime('%Y-%m-%d'),
@@ -122,18 +86,16 @@ def extract_full_content(url: str) -> Optional[str]:
                     include_images=True,
                     include_tables=True,
                     with_metadata=False,
-                    favor_recall=True  # Added to improve content extraction
+                    favor_recall=True
                 )
                 if content:
                     return content
 
         except Exception as e:
-            logger.error(f"Error extracting content from {url}: {str(e)}")
+            logger.error(f"Error extracting content from {url} (attempt {attempt + 1}): {str(e)}")
             if attempt < max_retries - 1:
                 time.sleep(retry_delay)
                 continue
-
-        time.sleep(retry_delay)
 
     return None
 
@@ -158,30 +120,20 @@ def make_request_with_backoff(url: str, max_retries: int = 3, initial_delay: int
 
     for attempt in range(max_retries):
         try:
-            delay = initial_delay * (2 ** attempt)  # Exponential backoff
+            delay = initial_delay * (2 ** attempt)
             if attempt > 0:
-                logger.info(f"Retry attempt {attempt + 1}/{max_retries} for {url}, waiting {delay} seconds")
                 time.sleep(delay)
 
             response = requests.get(url, headers=headers, timeout=10)
-
-            if response.status_code == 429:
-                logger.warning(f"Rate limit hit for {url}, backing off...")
-                continue
-
-            if response.status_code == 404:
-                logger.warning(f"URL not found: {url}")
-                return None
-
             response.raise_for_status()
             return response
 
         except requests.exceptions.RequestException as e:
-            logger.error(f"Request error for {url}: {str(e)}")
+            logger.error(f"Request error for {url} (attempt {attempt + 1}): {str(e)}")
             if attempt == max_retries - 1:
                 raise
 
-    raise TooManyRequestsError(f"Max retries exceeded for {url}")
+    return None
 
 def similar_titles(title1: str, title2: str) -> bool:
     """Checks if two titles are similar (simplified example)."""
@@ -211,40 +163,6 @@ def validate_ai_relevance(article_data):
     return {
         "is_relevant": True,  # Default to including articles that made it this far
         "reason": "Passed initial AI content scan"
-    }
-
-    ai_regex = re.compile('|'.join(ai_patterns), re.IGNORECASE)
-    
-    # Check title - now more permissive
-    if ai_regex.search(title):
-        return {
-            "is_relevant": True,
-            "reason": f"AI-related focus in title: {title}"
-        }
-    
-    # More permissive content checking
-    # Examine full summary and larger content sample
-    if ai_regex.search(summary) or ai_regex.search(content[:4000]):
-        return {
-            "is_relevant": True,
-            "reason": "Contains AI-related concepts or implementation details"
-        }
-    
-    # Broader context check
-    title_words = set(title.lower().split())
-    ai_related_terms = {'technology', 'digital', 'automation', 'innovation', 'transformation', 'platform', 'solution'}
-    
-    if title_words & ai_related_terms:
-        # If title has tech terms, do a deeper content check
-        if ai_regex.search(content):
-            return {
-                "is_relevant": True,
-                "reason": "Technology article with AI components"
-            }
-    
-    return {
-        "is_relevant": False,
-        "reason": "No clear AI relevance found"
     }
 
 def is_specific_article(metadata: Dict[str, str]) -> bool:
@@ -281,7 +199,7 @@ def is_specific_article(metadata: Dict[str, str]) -> bool:
     return True
 
 def find_ai_articles(url: str, cutoff_time: datetime) -> List[Dict[str, str]]:
-    """Find AI-related articles with improved filtering and rate limiting."""
+    """Find AI-related articles with improved filtering."""
     articles = []
     seen_urls = set()
     seen_titles = []
@@ -320,39 +238,28 @@ def find_ai_articles(url: str, cutoff_time: datetime) -> List[Dict[str, str]]:
                     href = urljoin(url, href)
 
                 link_text = (link.text or '').strip()
-                title = link.get('title', '').strip()
-                combined_text = f"{link_text} {title}"
+                title = link.get('title', '').strip() or link_text
 
-                if ai_regex.search(combined_text):
-                    logger.info(f"Found potential AI article: {combined_text}")
+                if ai_regex.search(title):
+                    logger.info(f"Found potential AI article: {title}")
                     metadata = extract_metadata(href, cutoff_time)
-                    if metadata and metadata['url'] not in seen_urls:
-                        logger.info(f"Validated metadata for: {metadata['title']}")
-                        is_duplicate = any(similar_titles(metadata['title'], existing['title']) 
-                                        for existing in seen_titles)
 
-                        # More lenient specific article check
-                        if not is_duplicate and len(metadata.get('title', '').split()) > 2:
-                            articles.append(metadata)
-                            seen_urls.add(metadata['url'])
-                            seen_titles.append(metadata)
+                    if metadata and metadata['url'] not in seen_urls:
+                        logger.info(f"Found AI article: {title}")
+                        articles.append({
+                            'title': title,
+                            'url': href,
+                            'date': metadata.get('date', datetime.now().strftime('%Y-%m-%d')),
+                            'source': url
+                        })
+                        seen_urls.add(href)
 
             except Exception as e:
                 logger.error(f"Error processing link: {str(e)}")
                 continue
 
-        # Less restrictive filtering
-        filtered_articles = [
-            article for article in articles 
-            if len(article.get('title', '').split()) > 2  # Keep articles with substantial titles
-        ]
-
-        if filtered_articles:
-            logger.info(f"Found {len(filtered_articles)} specific articles from {url}")
-            for article in filtered_articles:
-                logger.info(f"Filtered article title: {article['title']}")
-
-        return filtered_articles
+        logger.info(f"Found {len(articles)} articles from {url}")
+        return articles
 
     except Exception as e:
         logger.error(f"Error finding AI articles from {url}: {str(e)}")

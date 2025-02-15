@@ -213,6 +213,14 @@ def main():
     try:
         st.title("AI News Aggregation System")
 
+        # Add test mode toggle back to sidebar
+        with st.sidebar:
+            st.session_state.test_mode = st.toggle(
+                "Test Mode",
+                value=st.session_state.get('test_mode', False),
+                help="In Test Mode, only 6 of 28 URLs are scanned"
+            )
+
         col1, col2 = st.sidebar.columns([2, 2])
         with col1:
             time_value = st.number_input("Time Period", min_value=1, value=1, step=1)
@@ -275,6 +283,27 @@ def main():
                     if st.session_state.articles:
                         st.success(f"Found {len(st.session_state.articles)} AI articles!")
                         st.write(f"Processing time: {minutes}m {seconds}s")
+
+                        # Add export options
+                        col1, col2 = st.columns([1, 1])
+                        with col1:
+                            if st.button("Export PDF"):
+                                pdf_data = generate_pdf_report(st.session_state.articles)
+                                st.download_button(
+                                    "Download PDF",
+                                    pdf_data,
+                                    "ai_news_report.pdf",
+                                    "application/pdf"
+                                )
+                        with col2:
+                            if st.button("Export CSV"):
+                                csv_data = generate_csv_report(st.session_state.articles)
+                                st.download_button(
+                                    "Download CSV",
+                                    csv_data,
+                                    "ai_news_report.csv",
+                                    "text/csv"
+                                )
 
                         # Display articles
                         st.write("### Found AI Articles")
