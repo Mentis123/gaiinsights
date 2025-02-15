@@ -197,33 +197,31 @@ def validate_ai_relevance(article_data):
     # Core AI-related terms
     ai_terms = [
         'ai', 'artificial intelligence', 'machine learning', 'neural network',
-        'generative ai', 'chatgpt', 'llm', 'language model', 'automation',
-        'algorithm', 'data science', 'predictive', 'smart technology',
-        'digital transformation', 'robotics', 'intelligent system'
+        'generative ai', 'chatgpt', 'llm', 'language model', 'deep learning',
+        'nlp', 'computer vision', 'ai model', 'ai system', 'ai technology',
+        'ai solution', 'ai platform', 'ai application'
     ]
 
-    # Check all content for AI terms
-    has_ai_term = any(term in title or term in summary or term in content[:2000] for term in ai_terms)
-
-    if has_ai_term:
-        return {
-            "is_relevant": True,
-            "reason": "Contains AI-related content or applications"
-        }
+    # Check for AI terms in title (weighted more heavily)
+    has_ai_title = any(term in title for term in ai_terms)
     
-    # Check for technology innovation context
-    tech_terms = ['innovation', 'technology', 'digital', 'platform', 'solution']
-    has_tech_context = any(term in title or term in summary for term in tech_terms)
+    # Check content and summary for AI terms
+    has_ai_content = any(term in summary or term in content[:2000] for term in ai_terms)
 
-    if has_tech_context:
+    if has_ai_title:
         return {
             "is_relevant": True,
-            "reason": "Technology innovation context"
+            "reason": "Direct AI focus in title"
+        }
+    elif has_ai_content:
+        return {
+            "is_relevant": True,
+            "reason": "Contains significant AI-related content"
         }
 
     return {
         "is_relevant": False,
-        "reason": "No significant AI or technology content found"
+        "reason": "No significant AI content found"
     }
 
 def is_specific_article(metadata: Dict[str, str]) -> bool:
