@@ -216,15 +216,10 @@ def validate_ai_relevance(article_data):
     # Limit content check to first 2000 characters for performance
     has_ai_content = bool(ai_regex.search(summary) or ai_regex.search(content[:2000]))
 
-    if has_ai_title:
+    if has_ai_title or has_ai_content:  # Changed from just has_ai_title to include has_ai_content
         return {
             "is_relevant": True,
-            "reason": "Direct AI focus in title"
-        }
-    elif has_ai_content:
-        return {
-            "is_relevant": True,
-            "reason": "Contains significant AI-related content"
+            "reason": "Contains AI-related content" if has_ai_content else "Direct AI focus in title"
         }
 
     return {
@@ -318,6 +313,9 @@ def find_ai_articles(url: str, cutoff_time: datetime) -> List[Dict[str, str]]:
 
         ai_regex = re.compile('|'.join(ai_patterns), re.IGNORECASE)
 
+        # Add debug logging
+        logger.info(f"Scanning URL: {url}")
+
         for link in soup.find_all('a', href=True):
             try:
                 href = link['href']
@@ -328,13 +326,15 @@ def find_ai_articles(url: str, cutoff_time: datetime) -> List[Dict[str, str]]:
                 title = link.get('title', '').strip()
                 combined_text = f"{link_text} {title}"
 
-                # Use regex with word boundaries to find matches
+                # Add debug logging for matches
                 if ai_regex.search(combined_text):
+                    logger.info(f"Found potential AI article: {combined_text}")
                     metadata = extract_metadata(href, cutoff_time)
                     if metadata and metadata['url'] not in seen_urls:
+                        logger.info(f"Validated metadata for: {metadata['title']}")
                         # Check for similar titles
                         is_duplicate = any(similar_titles(metadata['title'], existing['title']) 
-                                         for existing in seen_titles)
+                                        for existing in seen_titles)
                         if not is_duplicate:
                             articles.append(metadata)
                             seen_urls.add(metadata['url'])
@@ -352,6 +352,8 @@ def find_ai_articles(url: str, cutoff_time: datetime) -> List[Dict[str, str]]:
 
         if filtered_articles:
             logger.info(f"Found {len(filtered_articles)} specific articles from {url}")
+            for article in filtered_articles:
+                logger.info(f"Filtered article title: {article['title']}")
 
         return filtered_articles
 
