@@ -214,30 +214,22 @@ def is_specific_article(metadata: Dict[str, str]) -> bool:
         logger.info(f"Excluding too short title: {title}")
         return False
 
-    # URL pattern checks
+    # URL pattern checks - less restrictive
     url_patterns_to_exclude = [
-        r'/category/',
-        r'/section/',
-        r'/topics?/',
-        r'/tag/',
         r'/index',
         r'/about\b',
         r'/contact\b',
         r'/privacy\b',
         r'/terms\b',
-        r'\?utm_',  # Exclude marketing UTM parameter URLs
-        r'#main-content$',  # Exclude anchor links
-        r'/artificial-intelligence/?$',  # Exclude generic AI category pages
-        r'/technology/?$',  # Exclude generic technology pages
-        r'/news/?$'  # Exclude generic news pages
+        r'#main-content$'  # Exclude anchor links
     ]
 
     if any(re.search(pattern, url) for pattern in url_patterns_to_exclude):
         logger.info(f"Excluding category/section URL: {url}")
         return False
 
-    # Minimum title length requirement (excluding very short titles)
-    if len(title) < 20:  # Arbitrary minimum length for a reasonable article title
+    # More lenient title length check
+    if len(title) < 10:  # Reduced minimum length
         logger.info(f"Excluding too short title: {title}")
         return False
 
