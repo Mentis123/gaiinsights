@@ -253,6 +253,10 @@ def find_ai_articles(source_url, cutoff_time):
                             # Add UTC timezone to match cutoff_time
                             article_date = pytz.UTC.localize(article_date)
 
+                            # Ensure cutoff_time is timezone aware
+                            if not cutoff_time.tzinfo:
+                                cutoff_time = pytz.UTC.localize(cutoff_time)
+
                             # Only add articles that are newer than or equal to cutoff time
                             if article_date >= cutoff_time:
                                 logger.info(f"Found AI article within time range: {title} ({metadata['date']})")
