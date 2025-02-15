@@ -38,9 +38,9 @@ def extract_metadata(url: str, cutoff_time: datetime) -> Optional[Dict[str, str]
         if downloaded:
             metadata = trafilatura.extract(
                 downloaded,
-                include_links=False,
-                include_images=False,
-                include_tables=False,
+                include_links=True,
+                include_images=True,
+                include_tables=True,
                 with_metadata=True,
                 output_format='json',
                 favor_recall=True
@@ -286,39 +286,20 @@ def is_specific_article(metadata: Dict[str, str]) -> bool:
     title = metadata.get('title', '').lower()
     url = metadata.get('url', '').lower()
 
-    # Generic title patterns to exclude
-    generic_titles = {
-        'technology', 'sustainability', 'retail', 'business', 'news',
-        'home', 'index', 'main', 'category', 'section', 'topics',
-        'about', 'contact', 'privacy policy', 'terms'
-    }
-
-    # Check for generic single-word titles
-    if title.strip() in generic_titles:
-        logger.info(f"Excluding generic title: {title}")
-        return False
-
-    # Check for overly short titles (likely section headers)
-    if len(title.split()) < 2:
-        logger.info(f"Excluding too short title: {title}")
-        return False
-
-    # URL pattern checks - less restrictive
+    # Only exclude obvious non-articles
     url_patterns_to_exclude = [
-        r'/index',
-        r'/about\b',
-        r'/contact\b',
         r'/privacy\b',
         r'/terms\b',
-        r'#main-content$'  # Exclude anchor links
+        r'/about\b',
+        r'/contact\b'
     ]
 
     if any(re.search(pattern, url) for pattern in url_patterns_to_exclude):
-        logger.info(f"Excluding category/section URL: {url}")
+        logger.info(f"Excluding non-article URL: {url}")
         return False
 
-    # More lenient title length check
-    if len(title) < 10:  # Reduced minimum length
+    # Accept more titles, only exclude extremely short ones
+    if len(title.split()) < 2 and len(title) < 5:
         logger.info(f"Excluding too short title: {title}")
         return False
 
