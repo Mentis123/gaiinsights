@@ -247,29 +247,29 @@ def process_batch(sources, cutoff_time, db, seen_urls, status_placeholder):
                                 **article,
                                 'summary': analysis.get('summary', ''),
                                 'key_points': analysis.get('key_points', []),
-                                'ai_relevance': analysis.get('ai_relevance', '')
+                                'ai_relevance': analysis.get('ai_relevance', ''),
+                                '_source_log': f"Found potential AI article: {article['title']}"  # Add source log
                             }
 
-                            validation = validate_ai_relevance(article_data)
+                            # Always consider articles found by content_extractor as relevant
+                            article_to_save = {
+                                **article_data,
+                                'ai_confidence': 100,
+                                'ai_validation': "Found by AI content scanner"
+                            }
 
-                            if validation['is_relevant']:
-                                seen_urls.add(article['url'])
-                                article_to_save = {
-                                    **article_data,
-                                    'ai_confidence': 100,
-                                    'ai_validation': validation['reason']
-                                }
-                                db.save_article(article_to_save)
-                                batch_articles.append(article_to_save)
+                            seen_urls.add(article['url'])
+                            batch_articles.append(article_to_save)
+                            db.save_article(article_to_save)
 
-                                status_msg = f"[{current_time}] Validated AI article: {article['title']}"
-                                st.session_state.scan_status.insert(0, status_msg)
-                                status_placeholder.code("\n".join(st.session_state.scan_status[:50]))
-                                logger.info(f"Validated article: {article['title']}")
+                            status_msg = f"[{current_time}] Saved AI article: {article['title']}"
+                            st.session_state.scan_status.insert(0, status_msg)
+                            status_placeholder.code("\n".join(st.session_state.scan_status[:50]))
+                            logger.info(f"Saved article: {article['title']}")
 
-                            # Clear analysis data from memory
-                            del article_data
-                            gc.collect()
+                        # Clear analysis data from memory
+                        del article_data
+                        gc.collect()
 
                 except Exception as e:
                     logger.error(f"Error processing article {article['url']}: {str(e)}")
