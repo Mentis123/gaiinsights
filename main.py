@@ -140,6 +140,7 @@ def update_status(message):
     st.session_state.scan_status.insert(0, status_msg)
 
 
+
 def process_batch(sources, cutoff_time, db, seen_urls, status_placeholder):
     """Process a batch of sources with simplified article handling"""
     batch_articles = []
@@ -216,7 +217,7 @@ def main():
             st.session_state.test_mode = st.toggle(
                 "Test Mode",
                 value=st.session_state.get('test_mode', False),
-                help="In Test Mode, only 1 of 32 URLs are scanned"
+                help="In Test Mode, only Wired.com is scanned"
             )
 
         col1, col2 = st.sidebar.columns([2, 2])
