@@ -192,23 +192,38 @@ def validate_ai_relevance(article_data):
     """Validate if an article is meaningfully about AI technology or applications."""
     title = article_data.get('title', '').lower()
     summary = article_data.get('summary', '').lower()
+    content = article_data.get('content', '').lower()
 
     # Core AI-related terms
-    ai_terms = ['ai', 'artificial intelligence', 'machine learning', 'neural network', 
-                'generative ai', 'chatgpt', 'llm', 'language model']
+    ai_terms = [
+        'ai', 'artificial intelligence', 'machine learning', 'neural network',
+        'generative ai', 'chatgpt', 'llm', 'language model', 'automation',
+        'algorithm', 'data science', 'predictive', 'smart technology',
+        'digital transformation', 'robotics', 'intelligent system'
+    ]
 
-    # Check title and summary for AI terms
-    has_ai_term = any(term in title or term in summary for term in ai_terms)
+    # Check all content for AI terms
+    has_ai_term = any(term in title or term in summary or term in content[:2000] for term in ai_terms)
 
     if has_ai_term:
         return {
             "is_relevant": True,
-            "reason": "Contains direct AI-related content"
+            "reason": "Contains AI-related content or applications"
+        }
+    
+    # Check for technology innovation context
+    tech_terms = ['innovation', 'technology', 'digital', 'platform', 'solution']
+    has_tech_context = any(term in title or term in summary for term in tech_terms)
+
+    if has_tech_context:
+        return {
+            "is_relevant": True,
+            "reason": "Technology innovation context"
         }
 
     return {
         "is_relevant": False,
-        "reason": "No significant AI-related content found"
+        "reason": "No significant AI or technology content found"
     }
 
 def is_specific_article(metadata: Dict[str, str]) -> bool:
