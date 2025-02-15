@@ -194,75 +194,76 @@ def validate_ai_relevance(article_data):
     summary = article_data.get('summary', '').lower()
     content = article_data.get('content', '').lower()
 
-    # Expanded AI patterns to catch more relevant content
+    # More inclusive AI patterns that capture broader AI implementations
     ai_patterns = [
-        # Core AI terms
-        r'\b[Aa][Ii]\b',
-        r'\bartificial intelligence\b',
-        r'\bmachine learning\b',
-        r'\bneural network\b',
-        r'\bdeep learning\b',
+        # Core AI terms - more permissive matching
+        r'ai\b|\bai[^a-z]',  # Match AI as standalone or with punctuation/space
+        r'artificial intelligence',
+        r'machine learning',
+        r'neural|intelligent',
+        r'automation',
         
-        # AI applications
-        r'\b[Aa][Ii]-[a-zA-Z]+\b',
-        r'\b[a-zA-Z]+-[Aa][Ii]\b',
-        r'\bgenerative ai\b',
-        r'\bchatgpt\b',
-        r'\bllm\b',
-        r'\blarge language model\b',
+        # Business & Implementation terms
+        r'generative',
+        r'transform.*retail',
+        r'retail.*transform',
+        r'optimize|optimization',
+        r'revenue.*growth',
+        r'supply chain.*ai',
+        r'ai.*supply chain',
         
-        # AI technologies and tools
-        r'\bautonomous ai\b',
-        r'\bai-driven\b',
-        r'\bai-powered\b',
-        r'\bai automation\b',
-        r'\bai technology\b',
-        r'\bai solution\b',
+        # Tools & Applications
+        r'powered|driven|enabled|assisted|based',
+        r'chatbot|bot|assistant|prediction',
+        r'computer vision|recognition',
+        r'personalization|recommendation',
         
-        # Business AI terms
-        r'\bai strategy\b',
-        r'\bai implementation\b',
-        r'\bai adoption\b',
-        r'\bai transformation\b'
+        # Specific AI Technologies
+        r'llm|language model',
+        r'chatgpt|gpt|openai',
+        r'gen ai|genai',
+        r'ml ops|mlops',
+        
+        # AI Implementation Contexts
+        r'pricing.*ai|ai.*pricing',
+        r'inventory.*ai|ai.*inventory',
+        r'marketing.*ai|ai.*marketing',
+        r'customer.*ai|ai.*customer',
+        r'retail.*ai|ai.*retail'
     ]
 
     ai_regex = re.compile('|'.join(ai_patterns), re.IGNORECASE)
-
-    # Check title first (higher priority)
+    
+    # Check title - now more permissive
     if ai_regex.search(title):
         return {
             "is_relevant": True,
-            "reason": f"Direct AI focus in title: {title}"
+            "reason": f"AI-related focus in title: {title}"
         }
-
-    # Check summary and content
-    if ai_regex.search(summary) or ai_regex.search(content[:2000]):
+    
+    # More permissive content checking
+    # Examine full summary and larger content sample
+    if ai_regex.search(summary) or ai_regex.search(content[:4000]):
         return {
             "is_relevant": True,
-            "reason": f"Contains AI-related content and implementation details"
+            "reason": "Contains AI-related concepts or implementation details"
         }
-
-    # Look for contextual AI relevance
-    context_patterns = [
-        r'automation',
-        r'machine intelligence',
-        r'predictive analytics',
-        r'intelligent system',
-        r'cognitive computing',
-        r'natural language processing'
-    ]
     
-    context_regex = re.compile('|'.join(context_patterns), re.IGNORECASE)
+    # Broader context check
+    title_words = set(title.lower().split())
+    ai_related_terms = {'technology', 'digital', 'automation', 'innovation', 'transformation', 'platform', 'solution'}
     
-    if context_regex.search(title) or context_regex.search(summary[:500]):
-        return {
-            "is_relevant": True,
-            "reason": "Contains AI-related technologies and applications"
-        }
-
+    if title_words & ai_related_terms:
+        # If title has tech terms, do a deeper content check
+        if ai_regex.search(content):
+            return {
+                "is_relevant": True,
+                "reason": "Technology article with AI components"
+            }
+    
     return {
         "is_relevant": False,
-        "reason": "No significant AI content found"
+        "reason": "No clear AI relevance found"
     }
 
 def is_specific_article(metadata: Dict[str, str]) -> bool:
