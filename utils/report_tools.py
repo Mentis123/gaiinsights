@@ -38,7 +38,7 @@ def generate_pdf_report(articles, output_path):
 
     # Process articles to match CSV format
     for article in articles:
-        title = Paragraph(article['title'], title_style)
+        title = Paragraph(f'<para><a href="{article["url"]}" target="_blank">{article["title"]}</a></para>', title_style)
         url = Paragraph(article['url'], normal_style)
         date = article['date']
         summary = Paragraph(article.get('summary', 'No summary available'), normal_style)

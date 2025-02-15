@@ -20,10 +20,10 @@ def load_source_sites(test_mode: bool = True) -> List[str]:
     try:
         df = pd.read_csv('attached_assets/search_sites.csv', header=None)
         sites = df[0].tolist()
-        
+
         # Ensure we don't process duplicate sites
         sites = list(dict.fromkeys(sites))
-        
+
         if test_mode:
             return sites[:6]  # Take first 6 unique sites
         return sites
@@ -235,9 +235,16 @@ def is_specific_article(metadata: Dict[str, str]) -> bool:
 
     return True
 
+def similar_titles(title1: str, title2: str) -> bool:
+    """Checks if two titles are similar (simplified example)."""
+    # Replace with a more robust similarity check if needed (e.g., using difflib)
+    return title1.lower() == title2.lower()
+
 def find_ai_articles(url: str, cutoff_time: datetime) -> List[Dict[str, str]]:
     """Find AI-related articles with improved filtering."""
     articles = []
+    seen_urls = set()
+    seen_titles = []
     try:
         response = make_request_with_backoff(url)
         if not response:
@@ -268,8 +275,14 @@ def find_ai_articles(url: str, cutoff_time: datetime) -> List[Dict[str, str]]:
 
                 if any(keyword in combined_text for keyword in ai_keywords):
                     metadata = extract_metadata(href, cutoff_time)
-                    if metadata:  # Removed early filtering here
-                        articles.append(metadata)
+                    if metadata and metadata['url'] not in seen_urls:
+                        # Check for similar titles
+                        is_duplicate = any(similar_titles(metadata['title'], existing['title']) 
+                                         for existing in seen_titles)
+                        if not is_duplicate:
+                            articles.append(metadata)
+                            seen_urls.add(metadata['url'])
+                            seen_titles.append(metadata)
 
             except Exception as e:
                 logger.error(f"Error processing link {href}: {str(e)}")
