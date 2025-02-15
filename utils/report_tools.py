@@ -41,7 +41,11 @@ def generate_pdf_report(articles):
         # Clean URL - ensure it's a proper web URL
         url = article['url']
         if 'file:///' in url:
-            url = url.split('https://')[-1]
+            url = url.replace('file:///', '')
+            if 'https://' in url:
+                url = url.split('https://', 1)[1]
+            elif 'http://' in url:
+                url = url.split('http://', 1)[1]
             url = f'https://{url}'
         url = unquote(url)  # Remove URL encoding
 
