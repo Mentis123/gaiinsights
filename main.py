@@ -78,48 +78,57 @@ def generate_pdf_report(articles):
     # Create table data with clickable URLs
     table_data = [['Article Title', 'Date', 'Summary', 'AI Relevance']]
     for article in articles:
-        # Create a clickable link using ReportLab's paragraph with link
-        title_with_link = Paragraph(
-            f'<para><a href="{quote(article["url"])}">{article["title"]}</a></para>',
+        # Create a clickable link using just the URL
+        title_link = Paragraph(
+            f'{article["title"]}<br/><a href="{article["url"]}" color="blue">{article["url"]}</a>',
             link_style
         )
 
         table_data.append([
-            title_with_link,
-            Paragraph(article['date'] if isinstance(article['date'], str) else article['date'].strftime('%Y-%m-%d'), ParagraphStyle('Date', parent=styles['Normal'], fontSize=8)),
-            Paragraph(article.get('summary', 'No summary available'), ParagraphStyle('Summary', parent=styles['Normal'], fontSize=8)),
-            Paragraph(article.get('ai_validation', 'Not validated'), ParagraphStyle('AI Relevance', parent=styles['Normal'], fontSize=8))
+            title_link,
+            Paragraph(article['date'] if isinstance(article['date'], str) else article['date'].strftime('%Y-%m-%d'), 
+                     ParagraphStyle('Date', parent=styles['Normal'], fontSize=8)),
+            Paragraph(article.get('summary', 'No summary available'), 
+                     ParagraphStyle('Summary', parent=styles['Normal'], fontSize=8)),
+            Paragraph(article.get('ai_validation', 'Not validated'), 
+                     ParagraphStyle('AI Relevance', parent=styles['Normal'], fontSize=8))
         ])
 
     # Create table with improved formatting
-    col_widths = [3*inch, 0.8*inch, 3*inch, 3*inch]  # Adjusted column widths
+    col_widths = [4*inch, 0.8*inch, 3*inch, 2*inch]  # Adjusted column widths
     table = Table(table_data, colWidths=col_widths, repeatRows=1)
     table.setStyle(TableStyle([
         # Header formatting
         ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 10),  # Reduced header font size
-        ('TOPPADDING', (0, 0), (-1, 0), 6),  # Reduced padding
+        ('FONTSIZE', (0, 0), (-1, 0), 10),
+        ('TOPPADDING', (0, 0), (-1, 0), 6),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
 
         # Content formatting
         ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 1), (-1, -1), 8),  # Reduced content font size
-        ('TOPPADDING', (0, 1), (-1, -1), 4),  # Reduced padding
+        ('FONTSIZE', (0, 1), (-1, -1), 8),
+        ('TOPPADDING', (0, 1), (-1, -1), 4),
         ('BOTTOMPADDING', (0, 1), (-1, -1), 4),
 
         # Borders and alignment
-        ('GRID', (0, 0), (-1, -1), 0.25, colors.grey),  # Thinner grid lines
+        ('GRID', (0, 0), (-1, -1), 0.25, colors.grey),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('ALIGN', (1, 1), (2, -1), 'CENTER'),  # Center date and score columns
+        ('ALIGN', (1, 1), (2, -1), 'CENTER'),
     ]))
 
     elements.append(table)
-    doc.build(elements)
-    pdf_data = buffer.getvalue()
-    buffer.close()
-    return pdf_data
+
+    try:
+        doc.build(elements)
+        pdf_data = buffer.getvalue()
+        buffer.close()
+        return pdf_data
+    except Exception as e:
+        logger.error(f"Error generating PDF: {str(e)}")
+        st.error("Error generating PDF report. Please try again.")
+        return None
 
 def generate_csv_report(articles):
     """Generate CSV data from articles."""
@@ -290,32 +299,36 @@ def main():
                         st.write(f"Processing time: {minutes}m {seconds}s")
 
                         # Generate report data first
-                        st.session_state.pdf_data = generate_pdf_report(st.session_state.articles)
-                        st.session_state.csv_data = generate_csv_report(st.session_state.articles)
+                        if st.session_state.pdf_data is None:
+                            st.session_state.pdf_data = generate_pdf_report(st.session_state.articles)
+                        if st.session_state.csv_data is None:
+                            st.session_state.csv_data = generate_csv_report(st.session_state.articles)
 
                         # Show export options in an expander
                         with st.expander("Export Options", expanded=True):
                             export_col1, export_col2 = st.columns([1, 1])
 
                             with export_col1:
-                                st.download_button(
-                                    "📄 Download PDF Report",
-                                    st.session_state.pdf_data,
-                                    "ai_news_report.pdf",
-                                    "application/pdf",
-                                    use_container_width=True,
-                                    key="pdf_download"
-                                )
+                                if st.session_state.pdf_data:
+                                    st.download_button(
+                                        "📄 Download PDF Report",
+                                        st.session_state.pdf_data,
+                                        "ai_news_report.pdf",
+                                        "application/pdf",
+                                        use_container_width=True,
+                                        key=f"pdf_download_{datetime.now().timestamp()}"  # Unique key
+                                    )
 
                             with export_col2:
-                                st.download_button(
-                                    "📊 Download CSV Report",
-                                    st.session_state.csv_data,
-                                    "ai_news_report.csv",
-                                    "text/csv",
-                                    use_container_width=True,
-                                    key="csv_download"
-                                )
+                                if st.session_state.csv_data:
+                                    st.download_button(
+                                        "📊 Download CSV Report",
+                                        st.session_state.csv_data,
+                                        "ai_news_report.csv",
+                                        "text/csv",
+                                        use_container_width=True,
+                                        key=f"csv_download_{datetime.now().timestamp()}"  # Unique key
+                                    )
 
                         # Then show articles
                         st.write("### Found AI Articles")

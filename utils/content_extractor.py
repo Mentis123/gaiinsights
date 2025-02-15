@@ -246,15 +246,29 @@ def find_ai_articles(source_url, cutoff_time):
                     logger.info(f"Found potential AI article: {title}")
                     metadata = extract_metadata(href, cutoff_time)
 
-                    if metadata and metadata['url'] not in seen_urls:
-                        logger.info(f"Found AI article: {title}")
-                        articles.append({
-                            'title': title,
-                            'url': href,
-                            'date': metadata.get('date', datetime.now().strftime('%Y-%m-%d')),
-                            'source': source_url
-                        })
-                        seen_urls.add(href)
+                    if metadata:
+                        # Parse the article date
+                        try:
+                            article_date = datetime.strptime(metadata['date'], '%Y-%m-%d')
+                            # Add UTC timezone to match cutoff_time
+                            article_date = pytz.UTC.localize(article_date)
+
+                            # Only add articles that are newer than or equal to cutoff time
+                            if article_date >= cutoff_time:
+                                logger.info(f"Found AI article within time range: {title} ({metadata['date']})")
+                                if metadata['url'] not in seen_urls:
+                                    articles.append({
+                                        'title': title,
+                                        'url': href,
+                                        'date': metadata['date'],
+                                        'source': source_url
+                                    })
+                                    seen_urls.add(href)
+                            else:
+                                logger.info(f"Skipping article older than cutoff: {title} ({metadata['date']})")
+                        except ValueError as e:
+                            logger.error(f"Error parsing date for article {title}: {e}")
+                            continue
 
             except Exception as e:
                 logger.error(f"Error processing link: {str(e)}")
