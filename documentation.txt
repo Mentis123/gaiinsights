@@ -1,0 +1,189 @@
+AI News Aggregation System Documentation
+======================================
+
+1. System Overview
+-----------------
+The AI News Aggregation System is a sophisticated platform that automatically collects, analyzes, and summarizes AI-related news articles from various online sources. Built with Python and Streamlit, it provides a user-friendly interface for accessing curated AI news content with advanced filtering and summarization capabilities.
+
+2. Core Components
+-----------------
+a) Web Interface (Streamlit)
+   - Interactive dashboard for article viewing and control
+   - Configurable time period selection
+   - Test mode toggle for development
+   - Export functionality (PDF and CSV)
+
+b) Content Extraction (Trafilatura)
+   - Efficient web scraping
+   - Clean content extraction
+   - URL validation and processing
+
+c) AI Analysis (OpenAI/GPT-4)
+   - Article summarization
+   - AI relevance validation
+   - Key points extraction
+
+d) Data Management
+   - PostgreSQL database for article storage
+   - URL deduplication
+   - Batch processing system
+
+3. Key Features
+--------------
+- Real-time news scanning and aggregation
+- AI-powered content summarization
+- Configurable time period for article collection
+- Batch processing for efficient resource usage
+- Export capabilities (PDF and CSV formats)
+- Test mode for development and debugging
+- Progress tracking and status updates
+- Duplicate article prevention
+- Error handling and logging
+
+4. Technical Architecture
+------------------------
+Main Components:
+- main.py: Core application logic and UI
+- utils/content_extractor.py: Web scraping and content extraction
+- utils/ai_analyzer.py: AI processing and summarization
+- utils/db_manager.py: Database operations
+
+Data Flow:
+1. User initiates article fetch
+2. System loads source sites
+3. Batch processing of sources
+4. Content extraction and validation
+5. AI analysis and summarization
+6. Database storage
+7. UI presentation
+
+5. Dependencies
+--------------
+Core Libraries:
+- streamlit: Web interface
+- pandas: Data manipulation
+- reportlab: PDF generation
+- openai: AI analysis
+- trafilatura: Web content extraction
+- llama-index: Document processing
+- serpapi: News gathering
+- beautifulsoup4: HTML parsing
+- psutil: System resource monitoring
+
+6. Configuration
+---------------
+Environment Variables:
+- OPENWEATHERMAP_API_KEY: Required for API access
+- Database configuration (handled by DBManager)
+
+Settings:
+- Batch size: 5 articles
+- Configurable time period (days/weeks)
+- Test mode for limited source scanning
+
+7. Workflow
+----------
+1. User Interface:
+   - Time period selection
+   - Test mode toggle
+   - Fetch initiation
+
+2. Processing:
+   - Source loading
+   - Batch processing
+   - Content extraction
+   - AI analysis
+   - Data storage
+
+3. Output:
+   - Article display
+   - PDF report generation
+   - CSV export
+   - Status updates
+
+8. Potential Improvements
+------------------------
+1. Performance Enhancements:
+   - Implement caching for frequently accessed articles
+   - Optimize batch processing size based on system resources
+   - Add parallel processing for content extraction
+
+2. Feature Additions:
+   - Category-based filtering
+   - Custom source addition interface
+   - Advanced search functionality
+   - Email notifications for new articles
+   - User preferences storage
+   - Article bookmarking system
+
+3. UI Improvements:
+   - Mobile-responsive design
+   - Dark mode support
+   - Interactive article previews
+   - Custom export templates
+   - Progress visualization improvements
+
+4. Technical Improvements:
+   - Add comprehensive unit tests
+   - Implement rate limiting for API calls
+   - Enhanced error recovery mechanisms
+   - Better memory management for large datasets
+   - API endpoint for external access
+
+5. Content Analysis:
+   - Sentiment analysis for articles
+   - Trending topic identification
+   - Related article linking
+   - Source credibility scoring
+   - Custom summarization length options
+
+6. Data Management:
+   - Article archiving system
+   - Backup and restore functionality
+   - Data compression for storage optimization
+   - Enhanced duplicate detection
+
+7. Security Enhancements:
+   - API key rotation
+   - Rate limiting
+   - Input validation
+   - Security headers
+   - CORS policy implementation
+
+9. Known Limitations
+-------------------
+- Single-threaded processing
+- Fixed batch size
+- Limited error recovery
+- Basic duplicate detection
+- No user authentication system
+- Limited customization options
+- Basic export formats
+
+10. Best Practices
+-----------------
+- Regular dependency updates
+- Error logging review
+- Database maintenance
+- API usage monitoring
+- Regular performance audits
+- Backup strategy implementation
+
+11. Troubleshooting
+------------------
+Common Issues:
+1. API rate limiting
+2. Memory usage spikes
+3. Slow processing times
+4. Failed article extraction
+5. Export generation errors
+
+Solutions:
+- Monitor system resources
+- Check API quotas
+- Verify source accessibility
+- Review error logs
+- Clear session state
+- Restart application
+
+This documentation serves as a comprehensive guide to the AI News Aggregation System. Regular updates should be made to reflect system changes and improvements.
