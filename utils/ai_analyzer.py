@@ -156,3 +156,197 @@ def summarize_article(content: str) -> Optional[Dict[str, Any]]:
     except Exception as e:
         print(f"Error summarizing article: {str(e)}")
         return None
+import os
+import json
+import logging
+from datetime import datetime
+from openai import OpenAI
+
+logger = logging.getLogger(__name__)
+
+def summarize_article(content):
+    """Summarize article content and extract key information"""
+    if not content or len(content) < 100:
+        logger.warning("Content too short for summarization")
+        return None
+        
+    try:
+        client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+        
+        # Truncate content if too long to avoid token limits
+        max_content_length = 15000
+        if len(content) > max_content_length:
+            content = content[:max_content_length] + "..."
+        
+        prompt = f"""
+        Analyze the following article content and provide:
+        1. A concise summary (3-5 sentences)
+        2. 3-5 key points or takeaways
+        3. The main entities mentioned (people, companies, technologies)
+        4. A sentiment score for AI technology (-5 to +5, where -5 is extremely negative, 0 is neutral, +5 is extremely positive)
+        5. Relevance score to AI technology (0-100)
+        6. Classification of article type (news, opinion, tutorial, research, etc.)
+        7. Technology maturity assessment (research, early adoption, mainstream, established)
+
+        Format your response as a JSON object with these keys:
+        summary, key_points, entities, sentiment_score, relevance_score, article_type, tech_maturity
+
+        Article content:
+        {content}
+        """
+        
+        response = client.chat.completions.create(
+            model="o3-mini",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,
+            response_format={"type": "json_object"}
+        )
+        
+        result = json.loads(response.choices[0].message.content)
+        
+        # Ensure the result has the expected structure
+        for key in ['summary', 'key_points', 'entities', 'sentiment_score', 'relevance_score', 'article_type', 'tech_maturity']:
+            if key not in result:
+                if key == 'key_points' and not result.get(key):
+                    result[key] = []
+                elif key == 'entities' and not result.get(key):
+                    result[key] = []
+                else:
+                    result[key] = "Not available"
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error summarizing article: {str(e)}")
+        # Provide basic summary to avoid breaking the flow
+        return {
+            'summary': "Summary not available due to processing error.",
+            'key_points': [],
+            'entities': [],
+            'sentiment_score': 0,
+            'relevance_score': 50,
+            'article_type': "unknown",
+            'tech_maturity': "unknown"
+        }
+
+def analyze_sentiment_trends(articles):
+    """Analyze sentiment trends across multiple articles"""
+    if not articles:
+        return None
+        
+    try:
+        # Extract sentiment scores
+        sentiment_scores = [a.get('sentiment_score', 0) for a in articles if 'sentiment_score' in a]
+        
+        if not sentiment_scores:
+            return None
+            
+        # Calculate overall sentiment metrics
+        avg_sentiment = sum(sentiment_scores) / len(sentiment_scores)
+        sentiment_distribution = {
+            'very_negative': len([s for s in sentiment_scores if s <= -4]),
+            'negative': len([s for s in sentiment_scores if -3 <= s <= -1]),
+            'neutral': len([s for s in sentiment_scores if -0.9 <= s <= 0.9]),
+            'positive': len([s for s in sentiment_scores if 1 <= s <= 3]),
+            'very_positive': len([s for s in sentiment_scores if s >= 4])
+        }
+        
+        # Calculate sentiment over time if dates available
+        time_series = []
+        for article in articles:
+            if 'sentiment_score' in article and ('published_date' in article or 'date' in article):
+                date_str = article.get('published_date') or article.get('date')
+                if isinstance(date_str, str):
+                    try:
+                        date = datetime.strptime(date_str, '%Y-%m-%d')
+                        time_series.append((date, article['sentiment_score']))
+                    except ValueError:
+                        continue
+                        
+        # Sort by date
+        time_series.sort(key=lambda x: x[0])
+        
+        # Group by date
+        daily_sentiment = {}
+        for date, score in time_series:
+            date_str = date.strftime('%Y-%m-%d')
+            if date_str not in daily_sentiment:
+                daily_sentiment[date_str] = []
+            daily_sentiment[date_str].append(score)
+            
+        # Calculate average sentiment per day
+        sentiment_trend = [
+            {'date': date, 'sentiment': sum(scores)/len(scores)}
+            for date, scores in daily_sentiment.items()
+        ]
+        
+        return {
+            'average_sentiment': avg_sentiment,
+            'distribution': sentiment_distribution,
+            'trend': sentiment_trend
+        }
+        
+    except Exception as e:
+        logger.error(f"Error analyzing sentiment trends: {str(e)}")
+        return None
+
+def generate_trend_insights(articles):
+    """Generate insights from trends in article sentiment and content"""
+    if not articles or len(articles) < 3:
+        return {
+            'insights': ["Not enough articles to generate meaningful insights."],
+            'emerging_topics': []
+        }
+        
+    try:
+        # Prepare data from articles
+        article_data = []
+        for article in articles:
+            article_data.append({
+                'title': article.get('title', ''),
+                'date': article.get('published_date') or article.get('date', ''),
+                'key_points': article.get('key_points', []),
+                'sentiment': article.get('sentiment_score', 0),
+                'entities': article.get('entities', []),
+                'tech_maturity': article.get('tech_maturity', '')
+            })
+            
+        # Use AI to generate insights
+        client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+        
+        prompt = f"""
+        Analyze these {len(article_data)} articles about AI technology and identify:
+        1. 3-5 key insights or trends
+        2. 2-3 emerging topics or technologies
+        3. Sentiment trajectory (improving, worsening, or stable)
+        
+        Format your response as a JSON object with these keys:
+        insights, emerging_topics, sentiment_trajectory
+        
+        Article data: 
+        {json.dumps(article_data)}
+        """
+        
+        response = client.chat.completions.create(
+            model="o3-mini",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.5,
+            response_format={"type": "json_object"}
+        )
+        
+        result = json.loads(response.choices[0].message.content)
+        
+        # Ensure the result has the expected structure
+        for key in ['insights', 'emerging_topics', 'sentiment_trajectory']:
+            if key not in result:
+                result[key] = []
+                
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error generating trend insights: {str(e)}")
+        return {
+            'insights': ["Unable to generate insights due to processing error."],
+            'emerging_topics': [],
+            'sentiment_trajectory': "unknown"
+        }

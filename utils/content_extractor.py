@@ -73,32 +73,130 @@ def extract_metadata(url: str, cutoff_time: datetime) -> Optional[Dict[str, str]
     return None
 
 def extract_full_content(url: str) -> Optional[str]:
-    """Extract full content after metadata validation."""
+    """
+    Extract full content with multiple fallback strategies
+    for better coverage across different site structures
+    """
     max_retries = 3
-    retry_delay = 1
+    retry_delay = 2  # Increased to avoid rate limiting
 
-    for attempt in range(max_retries):
-        try:
-            downloaded = trafilatura.fetch_url(url)
-            if downloaded:
-                content = trafilatura.extract(
-                    downloaded,
-                    include_links=True,
-                    include_images=True,
-                    include_tables=True,
-                    with_metadata=False,
-                    favor_recall=True
-                )
-                if content:
+    # Define extraction methods in order of preference
+    extraction_methods = [
+        _extract_with_trafilatura,
+        _extract_with_newspaper,
+        _extract_with_beautifulsoup
+    ]
+    
+    # Try each method until success
+    for method in extraction_methods:
+        for attempt in range(max_retries):
+            try:
+                content = method(url)
+                if content and len(content.strip()) > 100:  # Ensure we got meaningful content
+                    # Clean content for better quality
+                    content = _clean_extracted_content(content)
                     return content
-
-        except Exception as e:
-            logger.error(f"Error extracting content from {url} (attempt {attempt + 1}): {str(e)}")
-            if attempt < max_retries - 1:
-                time.sleep(retry_delay)
-                continue
-
+                    
+            except Exception as e:
+                logger.error(f"Error with {method.__name__} from {url} (attempt {attempt + 1}): {str(e)}")
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay * (attempt + 1))  # Exponential backoff
+                    continue
+                    
+    # If all methods fail, return None
+    logger.error(f"All extraction methods failed for {url}")
     return None
+
+def _extract_with_trafilatura(url: str) -> Optional[str]:
+    """Extract content using trafilatura library"""
+    downloaded = trafilatura.fetch_url(url)
+    if downloaded:
+        content = trafilatura.extract(
+            downloaded,
+            include_links=True,
+            include_images=True,
+            include_tables=True,
+            with_metadata=False,
+            favor_recall=True
+        )
+        return content
+    return None
+
+def _extract_with_newspaper(url: str) -> Optional[str]:
+    """Extract content using newspaper3k library"""
+    try:
+        # Only import if needed to avoid dependency issues
+        import newspaper
+        article = newspaper.Article(url)
+        article.download()
+        article.parse()
+        return article.text
+    except ImportError:
+        logger.warning("newspaper3k library not available, skipping this extraction method")
+        return None
+    except Exception as e:
+        logger.error(f"newspaper3k extraction error: {str(e)}")
+        return None
+
+def _extract_with_beautifulsoup(url: str) -> Optional[str]:
+    """Extract content using BeautifulSoup with article detection heuristics"""
+    try:
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+        response = requests.get(url, headers=headers, timeout=10)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # Remove unwanted elements
+        for element in soup(['script', 'style', 'nav', 'footer', 'header', 'aside']):
+            element.decompose()
+            
+        # Try common article containers
+        article_containers = [
+            soup.find('article'),
+            soup.find(class_=lambda c: c and ('article' in c.lower() or 'content' in c.lower())),
+            soup.find(id=lambda i: i and ('article' in i.lower() or 'content' in i.lower())),
+            soup.find('div', class_=lambda c: c and ('post' in c.lower())),
+            soup.find('main')
+        ]
+        
+        for container in article_containers:
+            if container:
+                # Extract paragraphs from container
+                paragraphs = container.find_all('p')
+                if paragraphs:
+                    return '\n\n'.join(p.get_text().strip() for p in paragraphs)
+        
+        # Fallback to extracting all paragraphs with length filtering
+        all_paragraphs = soup.find_all('p')
+        meaningful_paragraphs = [p.get_text().strip() for p in all_paragraphs if len(p.get_text().strip()) > 40]
+        if meaningful_paragraphs:
+            return '\n\n'.join(meaningful_paragraphs)
+            
+        return None
+    except Exception as e:
+        logger.error(f"BeautifulSoup extraction error: {str(e)}")
+        return None
+
+def _clean_extracted_content(content: str) -> str:
+    """Clean and normalize extracted content"""
+    import re
+    
+    # Remove excessive whitespace
+    content = re.sub(r'\s+', ' ', content)
+    
+    # Remove common newsletter/subscription patterns
+    content = re.sub(r'Subscribe to our newsletter.*?\.', '', content, flags=re.IGNORECASE)
+    content = re.sub(r'Sign up for our.*?newsletter.*?\.', '', content, flags=re.IGNORECASE)
+    
+    # Remove URL artifacts
+    content = re.sub(r'https?://\S+', '', content)
+    
+    # Split into paragraphs for better readability
+    paragraphs = [p.strip() for p in content.split('\n') if p.strip()]
+    content = '\n\n'.join(paragraphs)
+    
+    return content.strip()
 
 def is_consent_or_main_page(text: str) -> bool:
     """Check if the page is a consent form or main landing page."""
