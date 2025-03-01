@@ -835,8 +835,12 @@ def main():
                                 </div>
                                 <div class="article-content">
                                     <div class="article-details">
-                                        {f'<div class="article-summary" style="display: {"block" if show_summaries else "none"}">{article.get("summary", "No summary available")}</div>'}
-                                        {f'<div class="article-relevance" style="display: {"block" if show_relevance else "none"}"><span style="color: #4CAF50; font-weight: 500;">AI Relevance:</span> {ai_relevance}</div>'}
+                                        <div class="article-summary" style="display: {'block' if show_summaries else 'none'};">
+                                            {article.get('summary', 'No summary available')}
+                                        </div>
+                                        <div class="article-relevance" style="display: {'block' if show_relevance else 'none'};">
+                                            <span style="color: #4CAF50; font-weight: 500;">AI Relevance:</span> {ai_relevance}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
