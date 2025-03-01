@@ -161,6 +161,18 @@ def process_batch(sources, cutoff_time, db, seen_urls, status_placeholder):
 
     for source in sources:
         try:
+            # Display the current URL being processed to provide real-time feedback
+            if 'current_url_display' in st.session_state:
+                url_display = f"""
+                <div style="padding: 10px; background-color: rgba(20, 20, 35, 0.7); 
+                     border-radius: 8px; margin-bottom: 10px; text-align: center;">
+                    <span style="color: #cccccc; font-size: 0.9rem;">Currently scanning:</span>
+                    <div style="color: #7D56F4; font-weight: 500; word-break: break-all; 
+                         font-size: 1rem; margin-top: 5px;">{source}</div>
+                </div>
+                """
+                st.session_state.current_url_display.markdown(url_display, unsafe_allow_html=True)
+            
             if source in st.session_state.processed_urls:
                 continue
 
@@ -180,6 +192,21 @@ def process_batch(sources, cutoff_time, db, seen_urls, status_placeholder):
                     try:
                         if article['url'] in seen_urls:
                             continue
+
+                        # Update display to show article being processed
+                        if 'current_url_display' in st.session_state:
+                            article_display = f"""
+                            <div style="padding: 10px; background-color: rgba(20, 20, 35, 0.7); 
+                                 border-radius: 8px; margin-bottom: 10px; text-align: center;">
+                                <span style="color: #cccccc; font-size: 0.9rem;">Currently scanning:</span>
+                                <div style="color: #7D56F4; font-weight: 500; word-break: break-all; 
+                                     font-size: 1rem; margin-top: 5px;">{source}</div>
+                                <div style="color: #e0e0e0; font-size: 0.9rem; margin-top: 8px;">
+                                    Processing article: {article['title']}
+                                </div>
+                            </div>
+                            """
+                            st.session_state.current_url_display.markdown(article_display, unsafe_allow_html=True)
 
                         content = extract_full_content(article['url'])
                         if content:
@@ -496,19 +523,12 @@ def main():
             st.markdown('<div class="sidebar-section">', unsafe_allow_html=True)
             st.markdown('<div class="sidebar-title">Source Management</div>', unsafe_allow_html=True)
             
-            # Initialize button states if not present
-            if 'sources_button_active' not in st.session_state:
-                st.session_state.sources_button_active = False
-            if 'test_urls_button_active' not in st.session_state:
-                st.session_state.test_urls_button_active = False
-                
-            # Set the correct button text based on the current state
-            sources_button_text = "📋 Close Editor" if st.session_state.show_url_editor and st.session_state.edit_mode == 'source' else "📋 Edit Sources"
-            test_button_text = "🧪 Close Editor" if st.session_state.show_url_editor and st.session_state.edit_mode == 'test' else "🧪 Edit Test URLs"
-            
             col1, col2 = st.columns(2)
             with col1:
-                # Toggle button for Edit Sources with immediate text change
+                # Determine button text based on current state
+                sources_button_text = "📋 Close Editor" if st.session_state.show_url_editor and st.session_state.edit_mode == 'source' else "📋 Edit Sources"
+                
+                # Toggle button for Edit Sources
                 if st.button(sources_button_text, use_container_width=True, key="edit_sources_button"):
                     # Toggle the editor state
                     if st.session_state.show_url_editor and st.session_state.edit_mode == 'source':
@@ -533,7 +553,10 @@ def main():
                         st.rerun()
 
             with col2:
-                # Toggle button for Edit Test URLs with immediate text change
+                # Determine button text based on current state
+                test_button_text = "🧪 Close Editor" if st.session_state.show_url_editor and st.session_state.edit_mode == 'test' else "🧪 Edit Test URLs"
+                
+                # Toggle button for Edit Test URLs
                 if st.button(test_button_text, use_container_width=True, key="edit_test_urls_button"):
                     # Toggle the editor state
                     if st.session_state.show_url_editor and st.session_state.edit_mode == 'test':
@@ -698,14 +721,39 @@ def main():
                 try:
                     start_time = datetime.now()
                     
-                    # Enhanced fetching visual with animation
-                    st.markdown("""
-                    <div style="text-align: center; margin: 2rem 0;">
-                        <div style="font-size: 1.2rem; margin-bottom: 1rem; color: #7D56F4; font-weight: 500;">
-                            Fetching AI news from trusted sources...
+                    # Reset any previous scan artifacts
+                    if 'progress_bar' in st.session_state:
+                        del st.session_state.progress_bar
+                    if 'progress_text' in st.session_state:
+                        del st.session_state.progress_text
+                    if 'status_display' in st.session_state:
+                        del st.session_state.status_display
+                    if 'current_url_display' in st.session_state:
+                        del st.session_state.current_url_display
+                    
+                    # Create placeholders for dynamic content
+                    info_container = st.container()
+                    with info_container:
+                        st.markdown("""
+                        <div style="text-align: center; margin: 2rem 0;">
+                            <div style="font-size: 1.2rem; margin-bottom: 1rem; color: #7D56F4; font-weight: 500;">
+                                Fetching AI news from trusted sources...
+                            </div>
                         </div>
-                    </div>
-                    """, unsafe_allow_html=True)
+                        """, unsafe_allow_html=True)
+                        
+                        # Create a placeholder for displaying the current URL being processed
+                        st.session_state.current_url_display = st.empty()
+                        
+                        # Progress indicators
+                        progress_cols = st.columns([3, 1])
+                        with progress_cols[0]:
+                            st.session_state.progress_bar = st.progress(0)
+                        with progress_cols[1]:
+                            st.session_state.progress_text = st.empty()
+                        
+                        # Status display
+                        st.session_state.status_display = st.empty()
                     
                     # Fetch sources and setup
                     from utils.content_extractor import load_source_sites
@@ -715,14 +763,7 @@ def main():
 
                     seen_urls = set()  # Reset seen URLs each time
                     
-                    # Enhanced progress display
-                    progress_col1, progress_col2 = st.columns([3, 1])
-                    with progress_col1:
-                        progress_bar = st.progress(0)
-                    with progress_col2:
-                        progress_text = st.empty()
-                    
-                    status_placeholder = st.empty()
+                    status_placeholder = st.session_state.status_display
 
                     batch_size = 5
                     total_batches = (len(sources) + batch_size - 1) // batch_size
@@ -756,9 +797,18 @@ def main():
 
                         # Update progress with percentage
                         progress = (batch_idx + 1) / total_batches
-                        progress_bar.progress(progress)
-                        progress_text.markdown(f"<div style='text-align: center; font-weight: 500;'>{int(progress*100)}%</div>", unsafe_allow_html=True)
+                        if 'progress_bar' in st.session_state:
+                            st.session_state.progress_bar.progress(progress)
+                        if 'progress_text' in st.session_state:
+                            st.session_state.progress_text.markdown(
+                                f"<div style='text-align: center; font-weight: 500;'>{int(progress*100)}%</div>", 
+                                unsafe_allow_html=True
+                            )
 
+                    # Clear the current URL display when fetching completes
+                    if 'current_url_display' in st.session_state:
+                        st.session_state.current_url_display.empty()
+                        
                     # Reset fetching state
                     st.session_state.is_fetching = False
 
