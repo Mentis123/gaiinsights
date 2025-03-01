@@ -219,69 +219,117 @@ def process_batch(sources, cutoff_time, db, seen_urls, status_placeholder):
 
 def main():
     try:
-        st.title("AI News Aggregation System")
+        # Custom CSS for basic styling
+        st.markdown("""
+        <style>
+        .main-header {
+            font-size: 2.2rem;
+            color: #7D56F4;
+            margin-bottom: 0.8rem;
+        }
+        .subheader {
+            font-size: 1.1rem;
+            color: #cccccc;
+            margin-bottom: 1.5rem;
+        }
+        .section-header {
+            font-weight: 600;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 0.3rem;
+            margin-top: 1rem;
+        }
+        .article-container {
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background-color: rgba(0, 0, 0, 0.2);
+        }
+        .article-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        .article-meta {
+            font-size: 0.8rem;
+            color: #bbbbbb;
+            margin-bottom: 0.5rem;
+        }
+        </style>
+        """, unsafe_allow_html=True)
 
-        # Add test mode toggle back to sidebar
+        # Main header with description
+        st.markdown('<div class="main-header">AI News Aggregation System</div>', unsafe_allow_html=True)
+        st.markdown('<div class="subheader">Collect and analyze the latest AI news from around the web</div>', unsafe_allow_html=True)
+
+        # Clean up sidebar organization
         with st.sidebar:
+            st.markdown("### Configuration")
+
+            # Mode and time controls in groups
+            st.markdown("#### Scan Settings")
             st.session_state.test_mode = st.toggle(
                 "Test Mode",
-                value=st.session_state.get('test_mode', False)
+                value=st.session_state.get('test_mode', False),
+                help="When enabled, only test URLs will be scanned"
             )
 
-        col1, col2 = st.sidebar.columns([2, 2])
-        with col1:
-            time_value = st.number_input("Time Period", min_value=1, value=1, step=1)
-        with col2:
-            time_unit = st.selectbox("Unit", ["Days", "Weeks"], index=0)
+            st.markdown("#### Time Range")
+            col1, col2 = st.columns([1, 1])
+            with col1:
+                time_value = st.number_input("Period", min_value=1, value=1, step=1)
+            with col2:
+                time_unit = st.selectbox("Unit", ["Days", "Weeks"], index=0)
 
-        fetch_button = st.sidebar.button(
-            "Fetch New Articles",
-            disabled=st.session_state.is_fetching,
-            type="primary"
-        )
+            # Prominent fetch button
+            st.markdown("#### Actions")
+            fetch_button = st.button(
+                "🔍 Fetch New Articles",
+                disabled=st.session_state.is_fetching,
+                type="primary",
+                use_container_width=True
+            )
 
-        # Initialize URL management state
-        if 'show_url_editor' not in st.session_state:
-            st.session_state.show_url_editor = False
-        if 'edit_mode' not in st.session_state:
-            st.session_state.edit_mode = 'source'  # 'source' or 'test'
+            # Add visual separator
+            st.markdown("---")
 
-        # URL Editor buttons in sidebar
-        col1, col2 = st.sidebar.columns(2)
-        with col1:
-            if st.button("Edit Source URLs"):
-                st.session_state.show_url_editor = True
-                st.session_state.edit_mode = 'source'
-                # Load source URLs
-                try:
-                    from utils.content_extractor import load_source_sites
-                    source_urls = load_source_sites(raw=True)
-                    st.session_state.current_urls = '\n'.join(source_urls)
-                except Exception as e:
-                    logger.error(f"Error loading source URLs: {str(e)}")
-                    st.session_state.current_urls = ""
+            # URL management section
+            st.markdown("#### Source Management")
+            col1, col2 = st.sidebar.columns(2)
+            with col1:
+                if st.button("Edit Source URLs"):
+                    st.session_state.show_url_editor = True
+                    st.session_state.edit_mode = 'source'
+                    # Load source URLs
+                    try:
+                        from utils.content_extractor import load_source_sites
+                        source_urls = load_source_sites(raw=True)
+                        st.session_state.current_urls = '\n'.join(source_urls)
+                    except Exception as e:
+                        logger.error(f"Error loading source URLs: {str(e)}")
+                        st.session_state.current_urls = ""
 
-        with col2:
-            if st.button("Edit Test URLs"):
-                st.session_state.show_url_editor = True
-                st.session_state.edit_mode = 'test'
-                # Load test URLs
-                try:
-                    test_urls_file = 'data/test_urls.csv'
-                    if not os.path.exists(test_urls_file):
-                        with open(test_urls_file, 'w', newline='') as f:
-                            f.write("https://www.wired.com/\n")  # Default test URL
+            with col2:
+                if st.button("Edit Test URLs"):
+                    st.session_state.show_url_editor = True
+                    st.session_state.edit_mode = 'test'
+                    # Load test URLs
+                    try:
+                        test_urls_file = 'data/test_urls.csv'
+                        if not os.path.exists(test_urls_file):
+                            with open(test_urls_file, 'w', newline='') as f:
+                                f.write("https://www.wired.com/\n")  # Default test URL
 
-                    test_urls = []
-                    with open(test_urls_file, 'r') as f:
-                        for line in f:
-                            if line.strip():
-                                test_urls.append(line.strip())
+                        test_urls = []
+                        with open(test_urls_file, 'r') as f:
+                            for line in f:
+                                if line.strip():
+                                    test_urls.append(line.strip())
 
-                    st.session_state.current_urls = '\n'.join(test_urls)
-                except Exception as e:
-                    logger.error(f"Error loading test URLs: {str(e)}")
-                    st.session_state.current_urls = "https://www.wired.com/"
+                        st.session_state.current_urls = '\n'.join(test_urls)
+                    except Exception as e:
+                        logger.error(f"Error loading test URLs: {str(e)}")
+                        st.session_state.current_urls = "https://www.wired.com/"
 
         # Display modal dialog for URL editing when enabled
         if st.session_state.show_url_editor:
@@ -369,7 +417,7 @@ def main():
                             days_to_subtract = time_value
 
                         cutoff_time = datetime.now() - timedelta(days=days_to_subtract)
-                        
+
                         # Log which mode we're using and the time period
                         mode_str = "TEST MODE" if st.session_state.test_mode else "NORMAL MODE"
                         logger.info(f"{mode_str} active - Time period: {time_value} {time_unit}, Cutoff: {cutoff_time}")

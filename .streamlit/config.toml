@@ -4,13 +4,14 @@ address = "0.0.0.0"
 port = 8501
 enableCORS = false
 enableXsrfProtection = false
+enableStaticServing = true
 
 [theme]
 base = "dark"
-primaryColor = "#9C5CFF"
-backgroundColor = "#0E1525"
-secondaryBackgroundColor = "#1C2333"
-textColor = "#F5F9FC"
+primaryColor = "#7D56F4"
+backgroundColor = "#0E1117"
+secondaryBackgroundColor = "#1E2226"
+textColor = "#FAFAFA"
 font = "sans serif"
 
 [client]
