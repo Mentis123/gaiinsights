@@ -261,7 +261,7 @@ def main():
             margin: 0 auto;
         }
 
-        /* Article Cards */
+        /* Article Cards - Enhanced for persistent styling */
         .article-container {
             border: 1px solid rgba(125, 86, 244, 0.3);
             border-radius: 12px;
@@ -270,6 +270,10 @@ def main():
             background-color: rgba(20, 20, 35, 0.7);
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             transition: transform 0.2s, box-shadow 0.2s;
+            min-height: 120px; /* Ensure minimum height even when empty */
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
         }
 
         .article-container:hover {
@@ -298,11 +302,17 @@ def main():
             padding: 0.5rem 0;
         }
 
+        .article-content {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            flex: 1;
+        }
+
         .article-summary {
             font-size: 1rem;
             line-height: 1.6;
             color: #e0e0e0;
-            margin: 1rem 0;
             padding: 1rem;
             background-color: rgba(30, 30, 45, 0.5);
             border-radius: 8px;
@@ -317,181 +327,6 @@ def main():
             padding: 1rem;
             border-radius: 8px;
             border-left: 3px solid #4CAF50;
-            margin-top: 1rem;
-        }
-
-        /* Header Styles */
-        .main-header {
-            font-size: 2.5rem;
-            font-weight: 800;
-            background: linear-gradient(90deg, #7D56F4, #AD7BFF);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 0.5rem;
-            text-align: center;
-            letter-spacing: -0.5px;
-        }
-
-        .subheader {
-            font-size: 1.2rem;
-            color: #cccccc;
-            margin-bottom: 2rem;
-            text-align: center;
-            font-weight: 300;
-        }
-
-        /* Section Headers */
-        .section-header {
-            font-weight: 600;
-            border-bottom: 1px solid rgba(125, 86, 244, 0.3);
-            padding-bottom: 0.5rem;
-            margin-top: 1.5rem;
-            margin-bottom: 1rem;
-            color: #7D56F4;
-            letter-spacing: 0.5px;
-        }
-
-
-        /* Buttons and Interactive Elements */
-        .custom-button {
-            border-radius: 6px;
-            font-weight: 500;
-            transition: all 0.2s;
-            letter-spacing: 0.3px;
-        }
-
-        /* Status Indicators */
-        .status-container {
-            background-color: rgba(20, 20, 35, 0.7);
-            border-radius: 8px;
-            padding: 0.8rem;
-            border: 1px solid rgba(125, 86, 244, 0.2);
-            margin-top: 1rem;
-            max-height: 200px;
-            overflow-y: auto;
-        }
-
-        .status-item {
-            padding: 6px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            font-size: 0.9rem;
-        }
-
-        /* URL Editor */
-        .url-editor-container {
-            background-color: rgba(20, 20, 35, 0.9);
-            border-radius: 8px;
-            border: 1px solid rgba(125, 86, 244, 0.3);
-            padding: 1.5rem;
-            margin-top: 1rem;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-        }
-
-        /* Sidebar Refinements */
-        .sidebar-header {
-            font-size: 1.3rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            color: #7D56F4;
-        }
-
-        .sidebar-section {
-            margin-bottom: 1.5rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .sidebar-title {
-            font-size: 1rem;
-            font-weight: 500;
-            margin-bottom: 0.5rem;
-            color: #e0e0e0;
-        }
-
-        /* Dashboard Cards */
-        .dashboard-card {
-            background-color: rgba(20, 20, 35, 0.7);
-            border-radius: 8px;
-            padding: 1.2rem;
-            border: 1px solid rgba(125, 86, 244, 0.2);
-            margin-bottom: 1rem;
-            text-align: center;
-        }
-
-        .stat-number {
-            font-size: 2rem;
-            font-weight: 700;
-            color: #7D56F4;
-            margin-bottom: 0.3rem;
-        }
-
-        .stat-label {
-            font-size: 0.9rem;
-            color: #cccccc;
-        }
-
-        /* Error messages */
-        .error-container {
-            background-color: rgba(169, 48, 48, 0.2);
-            border: 1px solid rgba(220, 53, 69, 0.4);
-            border-radius: 8px;
-            padding: 1rem;
-            margin: 1rem 0;
-        }
-
-        /* Loading indicators */
-        .loader-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 2rem;
-        }
-
-        /* Toggle button enhancements */
-        .toggle-label {
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        /* Export section */
-        .export-section {
-            margin-top: 1.5rem;
-            background-color: rgba(20, 20, 35, 0.7);
-            border-radius: 8px;
-            padding: 1.2rem;
-            border: 1px solid rgba(125, 86, 244, 0.2);
-        }
-
-        /* Hide default Streamlit elements */
-        #MainMenu {visibility: hidden;}
-        .stDeployButton {display:none;}
-        footer {visibility: hidden;}
-        header {visibility: hidden;}
-
-        /* Make elements more compact in the sidebar */
-        .sidebar .stSelectbox, .sidebar .stNumberInput {
-            margin-bottom: 0.5rem;
-        }
-
-        /* Custom scrollbar for dark theme */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: rgba(20, 20, 35, 0.7);
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: rgba(125, 86, 244, 0.5);
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(125, 86, 244, 0.7);
         }
         </style>
         """, unsafe_allow_html=True)
@@ -965,37 +800,34 @@ def main():
                         st.markdown(f"<div style='margin-bottom: 1rem; font-size: 0.9rem; color: #cccccc;'>Showing {len(filtered_articles)} of {len(st.session_state.articles)} articles</div>", unsafe_allow_html=True)
 
                         # Display articles in modern cards
-                        displayed_articles = filtered_articles
-                        for article in displayed_articles:
-                            # Parse date if needed
-                            if isinstance(article['date'], str):
-                                try:
-                                    display_date = article['date']
-                                except:
-                                    display_date = article['date']
-                            else:
-                                display_date = article['date'].strftime('%Y-%m-%d')
+                        for article in filtered_articles:
+                            try:
+                                display_date = article['date'].strftime('%Y-%m-%d') if isinstance(article['date'], datetime) else article['date']
+                            except:
+                                display_date = article['date']
 
-                            # Get AI relevance content
                             ai_relevance = article.get('ai_business_value', article.get('ai_validation', 'AI-related article found in scan'))
 
-                            # Build complete article HTML in one string with conditional sections
                             article_html = f"""
                             <div class="article-container">
-                                <div class="article-title">
-                                    <a href="{article['url']}" target="_blank" style="text-decoration: none; color: #7D56F4;">
-                                        {article['title']}
-                                    </a>
+                                <div class="article-header">
+                                    <div class="article-title">
+                                        <a href="{article['url']}" target="_blank" style="text-decoration: none; color: #7D56F4;">
+                                            {article['title']}
+                                        </a>
+                                    </div>
+                                    <div class="article-meta">
+                                        <span>📅 {display_date}</span>
+                                        <span>🔍 Source: {article.get('source', 'Unknown')}</span>
+                                    </div>
                                 </div>
-                                <div class="article-meta">
-                                    <span>📅 {display_date}</span>
-                                    <span style="margin-left: 10px;">🔍 Source: {article.get('source', 'Unknown')}</span>
+                                <div class="article-content">
+                                    {f'<div class="article-summary">{article.get("summary", "No summary available")}</div>' if show_summaries else ''}
+                                    {f'<div class="article-relevance"><span style="color: #4CAF50; font-weight: 500;">AI Relevance:</span> {ai_relevance}</div>' if show_relevance else ''}
                                 </div>
-                                {"<div class='article-summary'>" + article.get('summary', 'No summary available') + "</div>" if show_summaries else ""}
-                                {"<div class='article-relevance'><span style='color: #4CAF50; font-weight: 500;'>AI Relevance:</span> " + ai_relevance + "</div>" if show_relevance else ""}
                             </div>
                             """
-                            # Render complete article with a single markdown call
+
                             st.markdown(article_html, unsafe_allow_html=True)
 
                     else:
@@ -1145,31 +977,27 @@ def main():
                 st.markdown(f"<div style='margin-bottom: 1rem; font-size: 0.9rem; color: #cccccc;'>Showing {len(filtered_articles)} of {len(st.session_state.articles)} articles</div>", unsafe_allow_html=True)
 
                 # Display each article in a card with conditional summaries
-                displayed_articles = filtered_articles
-                for article in displayed_articles:
-                    # Parse date if needed
-                    if isinstance(article['date'], str):
-                        try:
-                            display_date = article['date']
-                        except:
-                            display_date = article['date']
-                    else:
-                        display_date = article['date'].strftime('%Y-%m-%d')
+                for article in filtered_articles:
+                    try:
+                        display_date = article['date'].strftime('%Y-%m-%d') if isinstance(article['date'], datetime) else article['date']
+                    except:
+                        display_date = article['date']
 
-                    # Get AI relevance content
                     ai_relevance = article.get('ai_business_value', article.get('ai_validation', 'AI-related article found in scan'))
 
                     # Start container div
                     st.markdown(
                         f'''<div class="article-container">
-                            <div class="article-title">
-                                <a href="{article['url']}" target="_blank" rel="noopener noreferrer" style="text-decoration: none; color: #7D56F4;">
-                                    {article['title']}
-                                </a>
-                            </div>
-                            <div class="article-meta">
-                                <span>📅 {display_date}</span>
-                                <span style="margin-left: 10px;">🔍 Source: {article.get('source', 'Unknown')}</span>
+                            <div class="article-header">
+                                <div class="article-title">
+                                    <a href="{article['url']}" target="_blank" rel="noopener noreferrer" style="text-decoration: none; color: #7D56F4;">
+                                        {article['title']}
+                                    </a>
+                                </div>
+                                <div class="article-meta">
+                                    <span>📅 {display_date}</span>
+                                    <span>🔍 Source: {article.get('source', 'Unknown')}</span>
+                                </div>
                             </div>''',
                         unsafe_allow_html=True
                     )
