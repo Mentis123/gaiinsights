@@ -363,7 +363,7 @@ def main():
                     help="When enabled, only test URLs will be scanned"
                 )
             with test_mode_col2:
-                st.markdown("ⓘ", help="Test mode uses a limited set of URLs for faster scanning and testing")
+                pass #removed help icon
 
             # Time Range with improved layout
             st.markdown('<div class="sidebar-title">Time Range</div>', unsafe_allow_html=True)
