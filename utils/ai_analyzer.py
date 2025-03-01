@@ -188,18 +188,18 @@ def summarize_article(content):
             content = content[:max_content_length] + "..."
         
         prompt = f"""
-        Analyze this article content about AI technology:
+        Analyze this article content about AI technology from an enterprise perspective:
         
         {content}
         
         Provide only a JSON response with:
-        1. summary: A concise 3-5 sentence summary highlighting AI aspects
-        2. key_points: 3-5 key takeaways as bullet points
-        3. entities: Key companies, technologies, or people mentioned
+        1. summary: A concise 2-3 sentence executive summary highlighting business implications of the AI technology
+        2. key_points: 3 key strategic takeaways for business leaders
+        3. entities: Key companies, technologies, or solutions mentioned
         4. sentiment_score: Rating from -5 (negative) to +5 (positive)
-        5. relevance_score: How relevant to AI (0-100)
-        6. article_type: Classification (news, opinion, research)
-        7. tech_maturity: Technology maturity (research, early adoption, mainstream)
+        5. relevance_score: How relevant to enterprise AI strategy (0-100)
+        6. article_type: Classification (news, analysis, research, implementation)
+        7. tech_maturity: Technology readiness (research, early adoption, mainstream)
         """
         
         response = client.chat.completions.create(
@@ -230,16 +230,18 @@ def summarize_article(content):
             if result['summary'].startswith('"') and result['summary'].endswith('"'):
                 result['summary'] = result['summary'][1:-1]
                 
-            # Add AI relevance statement based on score
+            # Add enterprise-focused AI relevance statement based on score
             relevance = result.get('relevance_score', 50)
-            if relevance > 80:
-                result['ai_validation'] = "High AI relevance: Primary focus on AI technology"
-            elif relevance > 60:
-                result['ai_validation'] = "Medium AI relevance: Significant AI component"
-            elif relevance > 40:
-                result['ai_validation'] = "Moderate AI relevance: Contains AI-related content"
+            if relevance > 85:
+                result['ai_validation'] = "Strategic AI implementation with significant business impact potential"
+            elif relevance > 70:
+                result['ai_validation'] = "Notable AI application with measurable operational implications"
+            elif relevance > 50:
+                result['ai_validation'] = "Relevant AI development with potential business applications"
+            elif relevance > 30:
+                result['ai_validation'] = "Emerging AI technology with future business considerations"
             else:
-                result['ai_validation'] = "AI-related article found in scan"
+                result['ai_validation'] = "AI-related development with indirect business relevance"
                 
             return result
     except Exception as e:
@@ -256,13 +258,13 @@ def summarize_article(content):
             intro_content = ' '.join(content.split()[:500])
             
             prompt = f"""
-            Extract from this article intro:
+            Extract from this article intro for enterprise leadership:
             
             {intro_content}
             
             Respond with ONLY a JSON object containing:
-            1. summary: A 2-3 sentence summary
-            2. ai_relevance: How this relates to AI technology
+            1. summary: A concise 2-sentence strategic summary
+            2. ai_relevance: Business implications of this AI technology
             """
             
             response = client.chat.completions.create(
@@ -424,13 +426,14 @@ def generate_trend_insights(articles):
         client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
         
         prompt = f"""
-        Analyze these {len(article_data)} articles about AI technology and identify:
-        1. 3-5 key insights or trends
-        2. 2-3 emerging topics or technologies
-        3. Sentiment trajectory (improving, worsening, or stable)
+        Analyze these {len(article_data)} articles about AI technology from an enterprise leadership perspective and identify:
+        1. 3 strategic business implications or trends
+        2. 2 emerging technologies with competitive advantage potential
+        3. Implementation readiness assessment (experimental, early adoption, mainstream)
+        4. Sentiment trajectory (improving, worsening, or stable)
         
         Format your response as a JSON object with these keys:
-        insights, emerging_topics, sentiment_trajectory
+        strategic_implications, competitive_technologies, implementation_readiness, sentiment_trajectory
         
         Article data: 
         {json.dumps(article_data)}

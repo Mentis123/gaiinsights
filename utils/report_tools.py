@@ -11,50 +11,50 @@ from datetime import datetime
 import re
 
 def generate_executive_relevance(article):
-    """Generate executive-focused AI relevance content based on article context"""
+    """Generate enterprise executive-focused AI relevance assessment"""
     title = article.get('title', '').lower()
     summary = article.get('summary', '').lower()
     
-    # Default relevance if we can't determine anything specific
-    default_relevance = "AI implementation with potential enterprise value"
+    # Default relevance for enterprise context
+    default_relevance = "Potential business value through AI implementation"
     
-    # Look for industry-specific indicators
+    # Industry-specific strategic relevance
     industries = {
-        'retail': "Strategic for retail digital transformation, customer experience enhancement through AI",
-        'fashion': "AI innovation in fashion industry supply chain and manufacturing processes",
-        'manufacturing': "AI-driven manufacturing optimization and quality control applications",
-        'healthcare': "Healthcare AI applications that could transform patient care and operations",
-        'finance': "Financial services AI implementation that may impact risk management or customer experience",
-        'banking': "Banking sector AI applications with regulatory and customer service implications",
-        'education': "Educational technology AI developments relevant to training and development",
-        'media': "Media industry AI applications that impact content distribution and localization",
-        'language': "Language AI technology with global communication implications for multinational enterprises",
-        'customer': "Customer-facing AI implementations that may impact service delivery",
-        'security': "Security-related AI applications relevant to enterprise risk management",
-        'supply chain': "Supply chain optimization through AI with operational efficiency implications"
+        'retail': "Strategic retail transformation opportunity through AI-enhanced customer experience",
+        'fashion': "Supply chain optimization and manufacturing innovation via AI technology",
+        'manufacturing': "Production efficiency and quality control improvements through AI integration",
+        'healthcare': "Operational transformation and care delivery enhancement through AI applications",
+        'finance': "Risk management and customer experience improvements via AI implementation",
+        'banking': "Regulatory compliance and service delivery optimization through AI technology",
+        'education': "Training effectiveness and skills development advancements via AI tools",
+        'media': "Content distribution optimization and global reach through AI-powered localization",
+        'language': "Cross-border communication enhancement through advanced language AI",
+        'customer': "Service quality and satisfaction improvements via AI-driven interaction",
+        'security': "Risk mitigation and threat detection capabilities through AI systems",
+        'supply chain': "Operational efficiency and resilience improvements through AI optimization"
     }
     
-    # Check for specific AI technologies
+    # Technology-specific business implications
     technologies = {
-        'generative ai': "Generative AI with potential for content creation and automation",
-        'llm': "Large Language Model deployment with enterprise communication applications",
-        'machine learning': "Machine learning implementation with data-driven decision making potential",
-        'neural network': "Neural network technology with pattern recognition capabilities",
-        'computer vision': "Computer vision applications for quality control and process monitoring",
-        'natural language': "Natural language processing for customer service and documentation",
-        'automation': "AI-driven process automation with efficiency implications",
-        'predictive': "Predictive analytics for business forecasting and planning"
+        'generative ai': "Content creation automation and scalability through generative AI",
+        'llm': "Communication efficiency and knowledge management through large language models",
+        'machine learning': "Data-driven decision making and predictive capabilities via machine learning",
+        'neural network': "Pattern recognition and anomaly detection through neural network technology",
+        'computer vision': "Visual data processing and monitoring efficiency via computer vision",
+        'natural language': "Customer interaction and documentation efficiency through NLP",
+        'automation': "Process optimization and resource allocation through AI automation",
+        'predictive': "Strategic planning and risk assessment through predictive analytics"
     }
     
-    # Combined text for analysis
+    # Combined text for comprehensive analysis
     text = title + " " + summary
     
-    # Check for industry relevance
+    # Check for industry-specific strategic relevance
     for industry, relevance in industries.items():
         if industry in text:
             return relevance
     
-    # Check for technology relevance
+    # Check for technology-specific business implications
     for tech, relevance in technologies.items():
         if tech in text:
             return relevance
@@ -62,11 +62,11 @@ def generate_executive_relevance(article):
     return default_relevance
 
 def clean_summary(summary_text):
-    """Clean summary text to remove strange characters and formatting issues"""
+    """Clean and condense summary for executive-friendly format"""
     if not summary_text:
-        return "This article discusses AI technology applications."
+        return "This article discusses AI technology applications and implications."
     
-    # Replace square brackets, parentheses and their contents when they look like metadata
+    # Remove metadata formatting
     summary_text = re.sub(r'\[(.*?)\]', '', summary_text)
     summary_text = re.sub(r'\([^)]*\)', '', summary_text)
     
@@ -79,10 +79,16 @@ def clean_summary(summary_text):
     # Normalize whitespace
     summary_text = re.sub(r'\s+', ' ', summary_text).strip()
     
-    # Limit length to make it more concise (about 2-3 sentences)
+    # Ensure conciseness (2-3 sentences max)
+    sentences = re.split(r'(?<=[.!?])\s+', summary_text)
+    
+    if len(sentences) > 3:
+        summary_text = ' '.join(sentences[:3])
+    
+    # Further length constraint (maximum 30 words)
     words = summary_text.split()
-    if len(words) > 40:
-        summary_text = ' '.join(words[:40]) + '...'
+    if len(words) > 30:
+        summary_text = ' '.join(words[:30]) + '...'
     
     return summary_text
 
@@ -105,11 +111,12 @@ def generate_pdf_report(articles):
 
     styles = getSampleStyleSheet()
     
-    # Enhanced styles for better readability
+    # Enhanced styles for executive presentation
     title_style = ParagraphStyle(
         'TitleStyle',
         parent=styles['Normal'],
-        textColor=colors.blue,
+        textColor=colors.navy,
+        fontName='Helvetica-Bold',
         underline=True,
         fontSize=9,
         leading=11
@@ -118,6 +125,7 @@ def generate_pdf_report(articles):
     normal_style = ParagraphStyle(
         'NormalStyle',
         parent=styles['Normal'],
+        fontName='Helvetica',
         fontSize=8,
         leading=10
     )
@@ -125,9 +133,10 @@ def generate_pdf_report(articles):
     relevance_style = ParagraphStyle(
         'RelevanceStyle',
         parent=styles['Normal'],
+        fontName='Helvetica-Bold',
         fontSize=8,
         leading=10,
-        textColor=colors.darkgreen
+        textColor=colors.darkblue
     )
 
     # Include AI Relevance in the report
@@ -198,9 +207,9 @@ def generate_pdf_report(articles):
         ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.whitesmoke, colors.white]),
     ]))
 
-    # Add a title to the report with current date
+    # Add a title to the report with executive focus
     current_date = datetime.now().strftime('%Y-%m-%d')
-    title = Paragraph(f"AI News Aggregation Report - {current_date}", styles['Title'])
+    title = Paragraph(f"Enterprise AI Intelligence Brief - {current_date}", styles['Title'])
     date_generated = Paragraph(f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M')}", styles['Normal'])
     
     # Build the document
