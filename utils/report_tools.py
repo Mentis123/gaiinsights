@@ -24,34 +24,34 @@ def generate_executive_relevance(article):
     summary = article.get('summary', '').lower()
 
     # Default relevance for enterprise executive context
-    default_relevance = "C-suite leaders deploying this AI solution can gain significant competitive advantage and measurable ROI through strategic implementation"
+    default_relevance = "Enterprise executives should evaluate how this AI application can be adapted within their organization to improve operational efficiency and enhance employee capabilities"
 
-    # Industry-specific strategic relevance with executive-focused business impact
+    # Industry-specific strategic relevance with enterprise adoption focus
     industries = {
-        'retail': "CEOs implementing this retail AI solution can achieve 15-20% higher customer retention and 12% margin improvement within 6-12 months",
-        'fashion': "Fashion executives can realize 30% supply chain cost reduction and market-leading responsiveness through this AI manufacturing solution",
-        'manufacturing': "Manufacturing leaders who deploy this AI quality system typically see 25% defect reduction and $2-5M annual cost savings",
-        'healthcare': "Healthcare executives can demonstrate improved patient outcomes while reducing operational costs by 18% with this AI technology",
-        'finance': "Financial services leaders can reduce fraud losses by 40% and improve customer retention 22% via this AI risk management system",
-        'banking': "Banking executives can cut compliance costs by 35% while delivering superior customer experiences through this AI monitoring solution",
-        'education': "Education leaders implementing this AI platform report 40% improvement in training effectiveness and accelerated skills development",
-        'media': "Media executives can expand revenue streams by 25% and global reach by 50% through AI-powered content localization",
-        'language': "C-suite leaders can fast-track international market entry by 6-8 months using these advanced language AI technologies",
-        'customer': "Customer experience leaders achieve 30% higher satisfaction scores and 25% support cost reduction with this AI solution",
-        'security': "Security executives deploying this AI system report 60% faster threat detection and millions in breach cost avoidance",
-        'supply chain': "Supply chain leaders implementing this AI optimization platform reduce inventory costs 22% while enhancing resilience"
+        'retail': "Retail organizations should consider similar AI applications to enhance customer personalization and streamline inventory management processes",
+        'fashion': "Fashion industry leaders can apply these AI approaches to improve demand forecasting and create more responsive supply chain operations",
+        'manufacturing': "Manufacturing executives should evaluate how these AI quality systems could reduce defects and optimize production workflows",
+        'healthcare': "Healthcare organizations can adopt comparable AI solutions to improve clinical workflows and enhance patient care coordination",
+        'finance': "Financial services teams should explore implementing similar AI tools to strengthen risk assessment and automate compliance monitoring",
+        'banking': "Banking leaders can leverage this type of AI to enhance fraud detection capabilities and deliver personalized customer experiences",
+        'education': "Education institutions should consider these AI applications to develop personalized learning experiences and administrative efficiencies",
+        'media': "Media organizations can implement similar AI solutions to optimize content creation workflows and audience targeting capabilities",
+        'language': "Organizations with global operations should adopt these language AI technologies to improve cross-border collaboration",
+        'customer': "Customer service teams can implement this AI approach to enhance support operations and provide more personalized interactions",
+        'security': "Security operations can benefit from similar AI implementations to strengthen threat detection and automate incident response",
+        'supply chain': "Supply chain leaders should consider these AI capabilities to improve forecasting accuracy and create more resilient operations"
     }
 
-    # Technology-specific business implications with C-suite advantage focus
+    # Technology-specific business implications with organization adoption focus
     technologies = {
-        'generative ai': "C-suite leaders deploying this generative AI solution report 40% content production cost reduction and 3x creative output scaling",
-        'llm': "Executive teams using these large language models achieve 30% knowledge worker productivity gains and measurably improved communications",
-        'machine learning': "Decision-makers implementing this machine learning system reduce decision latency 65% with 40% higher prediction accuracy",
-        'neural network': "Operations executives can reduce error rates by 45% and gain unmatched pattern recognition capabilities with this neural technology",
-        'computer vision': "Manufacturing leaders implement this computer vision solution to eliminate 85% of visual inspection costs with better quality",
-        'natural language': "Customer experience executives reduce support costs 35% while improving satisfaction scores through this NLP solution",
-        'automation': "COOs implementing this AI-driven automation achieve 40% operational expense reduction and optimal resource allocation",
-        'predictive': "Strategic leaders leverage this predictive analytics platform to identify market opportunities 6-12 months before competitors"
+        'generative ai': "Enterprise teams should evaluate how this generative AI approach could enhance content creation processes and knowledge work productivity",
+        'llm': "Organizations can implement similar large language model applications to augment knowledge workers and streamline information access",
+        'machine learning': "Operational teams should consider how these machine learning capabilities could improve decision-making processes and forecasting accuracy",
+        'neural network': "Quality control operations can benefit from implementing similar neural network solutions to enhance pattern recognition capabilities",
+        'computer vision': "Organizations should explore how computer vision technologies like this could automate inspection processes and enhance quality control",
+        'natural language': "Customer service departments can adopt comparable NLP solutions to improve response efficiency and maintain consistent service quality",
+        'automation': "Operational leaders should evaluate how this AI-driven automation could streamline workflows and reduce manual processing requirements",
+        'predictive': "Organizations can implement similar predictive analytics approaches to improve planning accuracy and enhance resource allocation decisions"
     }
 
     # Combined text for comprehensive analysis

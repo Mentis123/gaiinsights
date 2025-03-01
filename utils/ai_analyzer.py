@@ -193,13 +193,13 @@ def summarize_article(content):
         IMPORTANT FORMATTING REQUIREMENTS:
         1. Keep summaries extremely concise (25-40 words maximum)
         2. Do NOT use brackets, parentheses, or metadata markers in your text
-        3. Focus exclusively on business implications, competitive advantage, and ROI
+        3. Focus exclusively on business implications, competitive advantage, and practical use cases
         4. The ai_business_value field MUST be ONE clear, actionable sentence (15-25 words) that:
-           - Speaks directly to a C-suite executive (CEO, CIO, CFO, Chief AI Officer)
-           - Highlights tangible business outcomes like revenue growth, cost reduction, or market differentiation
-           - Uses language that resonates with business leaders, not technologists
-           - Includes specific metrics or competitive advantages where possible (e.g., "20% cost reduction")
-           - Focuses on strategic value, not technical implementation
+           - Speaks directly to a C-suite executive about their organization's GenAI adoption strategy
+           - Highlights how this information relates to their internal AI implementation plans
+           - Focuses on practical organizational use cases, not investment opportunities
+           - Connects to enterprise digital transformation priorities and operational improvements
+           - Provides specific insights on how to apply similar AI approaches in their organization
         5. Avoid technical jargon that wouldn't resonate with executive leadership
         6. Use confident, decisive language appropriate for strategic decision-makers
         """
@@ -253,15 +253,15 @@ def summarize_article(content):
             # Ensure we have the new ai_business_value field for consistency
             if 'ai_business_value' not in result or not result['ai_business_value']:
                 if relevance > 85:
-                    result['ai_business_value'] = "Enterprise executives should prioritize implementation for immediate competitive advantage and operational cost reduction"
+                    result['ai_business_value'] = "Enterprise leaders should incorporate this AI approach in their current digital transformation roadmap to enhance operational efficiency across departments"
                 elif relevance > 70:
-                    result['ai_business_value'] = "Leadership teams can leverage this AI solution to drive measurable efficiency improvements and market differentiation"
+                    result['ai_business_value'] = "This AI application demonstrates a practical use case that could be adapted for your organization's customer service and process automation needs"
                 elif relevance > 50:
-                    result['ai_business_value'] = "C-suite consideration warranted for strategic deployment to enhance business outcomes and customer experience"
+                    result['ai_business_value'] = "Consider exploring how this AI capability could address existing workflow challenges in your organization's daily operations"
                 elif relevance > 30:
-                    result['ai_business_value'] = "Executive teams should monitor this emerging AI capability for potential future competitive implications"
+                    result['ai_business_value'] = "Organizations should evaluate similar GenAI implementations to identify potential internal applications that align with business objectives"
                 else:
-                    result['ai_business_value'] = "Limited immediate executive attention needed, but worth tracking in quarterly technology reviews"
+                    result['ai_business_value'] = "Monitor this AI development for potential organizational adoption as the technology matures and use cases become more defined"
 
             # Also maintain backward compatibility with ai_validation field
             result['ai_validation'] = result.get('ai_business_value', "AI-related article found in scan")
