@@ -10,8 +10,8 @@ enableStaticServing = true
 base = "dark"
 primaryColor = "#7D56F4"
 backgroundColor = "#0E1117"
-secondaryBackgroundColor = "#1E2226"
-textColor = "#FAFAFA"
+secondaryBackgroundColor = "#151A23"
+textColor = "#F8F9FA"
 font = "sans serif"
 
 [client]
