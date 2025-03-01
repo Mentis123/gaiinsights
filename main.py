@@ -240,6 +240,49 @@ def main():
             disabled=st.session_state.is_fetching,
             type="primary"
         )
+        
+        # URL Editor section
+        with st.sidebar.expander("Edit Source URLs", expanded=False):
+            # Initialize source_urls in session state if not present
+            if 'source_urls' not in st.session_state:
+                try:
+                    from utils.content_extractor import load_source_sites
+                    source_urls = load_source_sites(raw=True)
+                    st.session_state.source_urls = '\n'.join(source_urls)
+                except Exception as e:
+                    logger.error(f"Error loading source URLs: {str(e)}")
+                    st.session_state.source_urls = ""
+            
+            # Display editable text area with the URLs
+            st.text_area(
+                "Edit source URLs (one per line)",
+                value=st.session_state.source_urls,
+                height=300,
+                key="edited_urls"
+            )
+            
+            # Save button
+            if st.button("Save URLs"):
+                try:
+                    # Get edited URLs and split into list
+                    edited_urls = st.session_state.edited_urls.strip().split('\n')
+                    # Filter out empty lines
+                    edited_urls = [url.strip() for url in edited_urls if url.strip()]
+                    
+                    # Save to CSV file
+                    with open('data/search_sites.csv', 'w', newline='') as f:
+                        for url in edited_urls:
+                            f.write(f"{url}\n")
+                    
+                    # Update session state
+                    st.session_state.source_urls = st.session_state.edited_urls
+                    st.success("URLs saved successfully!")
+                    
+                    # Clear processed URLs to ensure new sites are scanned
+                    st.session_state.processed_urls = set()
+                except Exception as e:
+                    logger.error(f"Error saving URLs: {str(e)}")
+                    st.error(f"Error saving URLs: {str(e)}")
 
         if fetch_button or st.session_state.is_fetching:
             st.session_state.is_fetching = True

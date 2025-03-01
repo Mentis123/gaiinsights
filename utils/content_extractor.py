@@ -15,22 +15,34 @@ logger = logging.getLogger(__name__)
 class TooManyRequestsError(Exception):
     pass
 
-def load_source_sites(test_mode: bool = False) -> List[str]:
-    """Load the source sites from the CSV file."""
+def load_source_sites(test_mode: bool = False, raw: bool = False) -> List[str]:
+    """
+    Loads source sites from CSV file. 
+    If test_mode is True, only returns the first site.
+    If raw is True, returns the raw URL strings without processing.
+    """
     try:
-        df = pd.read_csv('data/search_sites.csv', header=None)
-        sites = df[0].tolist()
+        sites = []
+        with open('data/search_sites.csv', 'r') as f:
+            for line in f:
+                if line.strip():
+                    sites.append(line.strip())
 
-        # Ensure we don't process duplicate sites
-        sites = list(dict.fromkeys(sites))
+        # If raw mode, return unfiltered list
+        if raw:
+            return sites
 
         if test_mode:
-            logger.info("Running in test mode - using Wired.com only")
-            logger.info("In Test Mode, only Wired.com is scanned")
-            return ['https://www.wired.com/tag/artificial-intelligence/']
+            # In test mode, only return Wired URL for faster testing
+            for site in sites:
+                if 'wired.com' in site:
+                    return [site]
+            # If wired.com not found, return first site
+            return [sites[0]] if sites else []
+
         return sites
     except Exception as e:
-        logger.error(f"Error loading source sites: {e}")
+        print(f"Error loading source sites: {e}")
         return []
 
 def extract_metadata(url: str, cutoff_time: datetime) -> Optional[Dict[str, str]]:
@@ -86,7 +98,7 @@ def extract_full_content(url: str) -> Optional[str]:
         _extract_with_newspaper,
         _extract_with_beautifulsoup
     ]
-    
+
     # Try each method until success
     for method in extraction_methods:
         for attempt in range(max_retries):
@@ -96,13 +108,13 @@ def extract_full_content(url: str) -> Optional[str]:
                     # Clean content for better quality
                     content = _clean_extracted_content(content)
                     return content
-                    
+
             except Exception as e:
                 logger.error(f"Error with {method.__name__} from {url} (attempt {attempt + 1}): {str(e)}")
                 if attempt < max_retries - 1:
                     time.sleep(retry_delay * (attempt + 1))  # Exponential backoff
                     continue
-                    
+
     # If all methods fail, return None
     logger.error(f"All extraction methods failed for {url}")
     return None
@@ -146,11 +158,11 @@ def _extract_with_beautifulsoup(url: str) -> Optional[str]:
         }
         response = requests.get(url, headers=headers, timeout=10)
         soup = BeautifulSoup(response.text, 'html.parser')
-        
+
         # Remove unwanted elements
         for element in soup(['script', 'style', 'nav', 'footer', 'header', 'aside']):
             element.decompose()
-            
+
         # Try common article containers
         article_containers = [
             soup.find('article'),
@@ -159,20 +171,20 @@ def _extract_with_beautifulsoup(url: str) -> Optional[str]:
             soup.find('div', class_=lambda c: c and ('post' in c.lower())),
             soup.find('main')
         ]
-        
+
         for container in article_containers:
             if container:
                 # Extract paragraphs from container
                 paragraphs = container.find_all('p')
                 if paragraphs:
                     return '\n\n'.join(p.get_text().strip() for p in paragraphs)
-        
+
         # Fallback to extracting all paragraphs with length filtering
         all_paragraphs = soup.find_all('p')
         meaningful_paragraphs = [p.get_text().strip() for p in all_paragraphs if len(p.get_text().strip()) > 40]
         if meaningful_paragraphs:
             return '\n\n'.join(meaningful_paragraphs)
-            
+
         return None
     except Exception as e:
         logger.error(f"BeautifulSoup extraction error: {str(e)}")
@@ -181,21 +193,21 @@ def _extract_with_beautifulsoup(url: str) -> Optional[str]:
 def _clean_extracted_content(content: str) -> str:
     """Clean and normalize extracted content"""
     import re
-    
+
     # Remove excessive whitespace
     content = re.sub(r'\s+', ' ', content)
-    
+
     # Remove common newsletter/subscription patterns
     content = re.sub(r'Subscribe to our newsletter.*?\.', '', content, flags=re.IGNORECASE)
     content = re.sub(r'Sign up for our.*?newsletter.*?\.', '', content, flags=re.IGNORECASE)
-    
+
     # Remove URL artifacts
     content = re.sub(r'https?://\S+', '', content)
-    
+
     # Split into paragraphs for better readability
     paragraphs = [p.strip() for p in content.split('\n') if p.strip()]
     content = '\n\n'.join(paragraphs)
-    
+
     return content.strip()
 
 def is_consent_or_main_page(text: str) -> bool:
