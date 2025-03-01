@@ -12,6 +12,15 @@ import re
 
 def generate_executive_relevance(article):
     """Generate enterprise executive-focused AI relevance assessment"""
+    # First try to use the AI-generated business value if available
+    if 'ai_business_value' in article and article['ai_business_value'] and len(article['ai_business_value']) > 10:
+        return article['ai_business_value']
+    
+    # Next try to use the ai_validation field if it exists and is meaningful
+    if 'ai_validation' in article and article['ai_validation'] and article['ai_validation'] != "AI-related article found in scan":
+        return article['ai_validation']
+    
+    # As a fallback, generate a relevance statement based on keywords
     title = article.get('title', '').lower()
     summary = article.get('summary', '').lower()
     
@@ -79,16 +88,16 @@ def clean_summary(summary_text):
     # Normalize whitespace
     summary_text = re.sub(r'\s+', ' ', summary_text).strip()
     
-    # Ensure conciseness (2-3 sentences max)
+    # Ensure extreme conciseness (max 2 sentences)
     sentences = re.split(r'(?<=[.!?])\s+', summary_text)
     
-    if len(sentences) > 3:
-        summary_text = ' '.join(sentences[:3])
+    if len(sentences) > 2:
+        summary_text = ' '.join(sentences[:2])
     
-    # Further length constraint (maximum 30 words)
+    # Apply strict length constraint (maximum 25 words for PDF reports)
     words = summary_text.split()
-    if len(words) > 30:
-        summary_text = ' '.join(words[:30]) + '...'
+    if len(words) > 25:
+        summary_text = ' '.join(words[:25]) + '...'
     
     return summary_text
 

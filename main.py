@@ -893,7 +893,19 @@ def main():
 
                         with filter_col3:
                             st.markdown("<br>", unsafe_allow_html=True)  # Add spacing for alignment
-                            show_summaries = st.checkbox("Show Summaries", value=True, key="show_summaries_initial_view")
+                            if "show_summaries_state" not in st.session_state:
+                                st.session_state.show_summaries_state = True
+
+                            # Use the on_change parameter to update the state consistently
+                            def toggle_summaries():
+                                st.session_state.show_summaries_state = not st.session_state.show_summaries_state
+
+                            show_summaries = st.checkbox(
+                                "Show Summaries", 
+                                value=st.session_state.show_summaries_state,
+                                key="fetch_show_summaries",
+                                on_change=toggle_summaries
+                            )
 
                         # Apply filters and sorting
                         filtered_articles = st.session_state.articles
@@ -1028,7 +1040,19 @@ def main():
 
                 with filter_col3:
                     st.markdown("<br>", unsafe_allow_html=True)  # Add spacing for alignment
-                    show_summaries = st.checkbox("Show Summaries", value=True, key="show_summaries_previous_view")
+                    if "show_summaries_state" not in st.session_state:
+                        st.session_state.show_summaries_state = True
+
+                    # Use the on_change parameter to update the state consistently
+                    def toggle_summaries():
+                        st.session_state.show_summaries_state = not st.session_state.show_summaries_state
+
+                    show_summaries = st.checkbox(
+                        "Show Summaries", 
+                        value=st.session_state.show_summaries_state,
+                        key="prev_show_summaries",
+                        on_change=toggle_summaries
+                    )
 
                 # Apply filters and sorting
                 filtered_articles = st.session_state.articles
