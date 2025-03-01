@@ -283,6 +283,10 @@ def main():
             background-color: rgba(25, 25, 40, 0.8);
         }
 
+        .article-header {
+            flex: 0 0 auto;
+        }
+
         .article-title {
             font-size: 1.4rem;
             font-weight: 600;
@@ -303,10 +307,17 @@ def main():
         }
 
         .article-content {
+            flex: 1;
             display: flex;
             flex-direction: column;
             gap: 1rem;
+        }
+
+        .article-details {
             flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
         }
 
         .article-summary {
@@ -695,7 +706,7 @@ def main():
                         if 'pdf_data' not in st.session_state or not st.session_state.pdf_data:
                             st.session_state.pdf_data = generate_pdf_report(st.session_state.current_articles)
                         if 'csv_data' not in st.session_state or not st.session_state.csv_data:
-                            st.session_state.csv_data = generate_csv_report(st.session_state.current_articles)
+                            st.session_state.csv_data= generate_csv_report(st.session_state.current_articles)
 
                         # Enhanced export section with attractive design
                         st.markdown('<div class="export-section">', unsafe_allow_html=True)
@@ -808,6 +819,7 @@ def main():
 
                             ai_relevance = article.get('ai_business_value', article.get('ai_validation', 'AI-related article found in scan'))
 
+                            # Create a single container with all content
                             article_html = f"""
                             <div class="article-container">
                                 <div class="article-header">
@@ -818,16 +830,17 @@ def main():
                                     </div>
                                     <div class="article-meta">
                                         <span>📅 {display_date}</span>
-                                        <span>🔍 Source: {article.get('source', 'Unknown')}</span>
+                                        <span style="margin-left: 10px;">🔍 Source: {article.get('source', 'Unknown')}</span>
                                     </div>
                                 </div>
                                 <div class="article-content">
-                                    {f'<div class="article-summary">{article.get("summary", "No summary available")}</div>' if show_summaries else ''}
-                                    {f'<div class="article-relevance"><span style="color: #4CAF50; font-weight: 500;">AI Relevance:</span> {ai_relevance}</div>' if show_relevance else ''}
+                                    <div class="article-details">
+                                        {f'<div class="article-summary" style="display: {"block" if show_summaries else "none"}">{article.get("summary", "No summary available")}</div>'}
+                                        {f'<div class="article-relevance" style="display: {"block" if show_relevance else "none"}"><span style="color: #4CAF50; font-weight: 500;">AI Relevance:</span> {ai_relevance}</div>'}
+                                    </div>
                                 </div>
                             </div>
                             """
-
                             st.markdown(article_html, unsafe_allow_html=True)
 
                     else:
