@@ -217,16 +217,16 @@ def process_batch(sources, cutoff_time, db, seen_urls, status_placeholder):
                                 logger.warning(f"Summary generation failed for {article['title']}: {e}")
                                 analysis = {'summary': 'Summary generation failed', 'key_points': []}
 
-                                # Save the article with the business value from the analysis
-                                article_data = {
-                                    'title': article['title'],
-                                    'url': article['url'],
-                                    'date': article['date'],
-                                    'summary': analysis.get('summary', 'No summary available'),
-                                    'source': source,
-                                    'ai_business_value': analysis.get('ai_business_value', 'C-suite leaders can gain strategic advantage through this AI solution'),
-                                    'ai_validation': analysis.get('ai_business_value', "AI-related article found in scan")
-                                }
+                            # Save the article with the business value from the analysis
+                            article_data = {
+                                'title': article['title'],
+                                'url': article['url'],
+                                'date': article['date'],
+                                'summary': analysis.get('summary', 'No summary available'),
+                                'source': source,
+                                'ai_business_value': analysis.get('ai_business_value', 'C-suite leaders can gain strategic advantage through this AI solution'),
+                                'ai_validation': analysis.get('ai_business_value', "AI-related article found in scan")
+                            }
 
                             batch_articles.append(article_data)
                             seen_urls.add(article['url'])
