@@ -979,7 +979,7 @@ def main():
                             # Get AI relevance content
                             ai_relevance = article.get('ai_business_value', article.get('ai_validation', 'AI-related article found in scan'))
 
-                            # Build complete article HTML in one string
+                            # Build complete article HTML in one string with conditional sections
                             article_html = f"""
                             <div class="article-container">
                                 <div class="article-title">
@@ -991,12 +991,11 @@ def main():
                                     <span>📅 {display_date}</span>
                                     <span style="margin-left: 10px;">🔍 Source: {article.get('source', 'Unknown')}</span>
                                 </div>
-                                {f'<div class="article-summary">{article.get("summary", "No summary available")}</div>' if show_summaries else ''}
-                                {f'<div class="article-relevance"><span style="color: #4CAF50; font-weight: 500;">AI Relevance:</span> {ai_relevance}</div>' if show_relevance else ''}
+                                {"<div class='article-summary'>" + article.get('summary', 'No summary available') + "</div>" if show_summaries else ""}
+                                {"<div class='article-relevance'><span style='color: #4CAF50; font-weight: 500;'>AI Relevance:</span> " + ai_relevance + "</div>" if show_relevance else ""}
                             </div>
                             """
-
-                            # Render the complete article in a single markdown call
+                            # Render complete article with a single markdown call
                             st.markdown(article_html, unsafe_allow_html=True)
 
                     else:
