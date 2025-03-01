@@ -972,26 +972,38 @@ def main():
                             # Get AI relevance content if available - prioritize ai_business_value
                             ai_relevance = article.get('ai_business_value', article.get('ai_validation', 'AI-related article found in scan'))
 
-                            # Prepare the article HTML parts separately
-                            summary_html = f"<div class='article-summary'>{article.get('summary', '')}</div>" if show_summaries else ''
-                            # Always create proper HTML for relevance, just don't include it when not requested
-                            relevance_html = f"<div class='article-relevance'><span style='color: #4CAF50; font-weight: 500;'>AI Relevance:</span> {ai_relevance}</div>" if show_relevance else ''
+                            # Create a function to generate properly escaped HTML
+                            def generate_article_html(article, show_summaries, show_relevance):
+                                # Get AI relevance content if available
+                                ai_relevance = article.get('ai_business_value', article.get('ai_validation', 'AI-related article found in scan'))
 
-                            article_html = f"""
-                            <div class="article-container">
-                                <div class="article-title">
-                                    <a href="{article['url']}" target="_blank" rel="noopener noreferrer" style="text-decoration: none; color: #7D56F4;">
-                                        {article['title']}
-                                    </a>
+                                # Prepare the article HTML parts separately
+                                summary_html = f"""<div class='article-summary'>{article.get('summary', '')}</div>""" if show_summaries else ''
+
+                                # Create the relevance HTML only if requested
+                                relevance_html = ''
+                                if show_relevance:
+                                    relevance_html = f"""<div class='article-relevance'><span style='color: #4CAF50; font-weight: 500;'>AI Relevance:</span> {ai_relevance}</div>"""
+
+                                # Build the full HTML
+                                return f"""
+                                <div class="article-container">
+                                    <div class="article-title">
+                                        <a href="{article['url']}" target="_blank" rel="noopener noreferrer" style="text-decoration: none; color: #7D56F4;">
+                                            {article['title']}
+                                        </a>
+                                    </div>
+                                    <div class="article-meta">
+                                        <span>📅 {display_date}</span>
+                                        <span style="margin-left: 10px;">🔍 Source: {article.get('source', 'Unknown')}</span>
+                                    </div>
+                                    {summary_html}
+                                    {relevance_html}
                                 </div>
-                                <div class="article-meta">
-                                    <span>📅 {display_date}</span>
-                                    <span style="margin-left: 10px;">🔍 Source: {article.get('source', 'Unknown')}</span>
-                                </div>
-                                {summary_html}
-                                {relevance_html}
-                            </div>
-                            """
+                                """
+
+                            # Generate HTML using the function
+                            article_html = generate_article_html(article, show_summaries, show_relevance)
 
                             st.markdown(article_html, unsafe_allow_html=True)
                     else:
@@ -1151,34 +1163,38 @@ def main():
                     else:
                         display_date = article['date'].strftime('%Y-%m-%d')
 
-                    # Create a beautiful card for each article with conditional summary and relevance
+                    # Create a function to generate properly escaped HTML
+                    def generate_article_html(article, show_summaries, show_relevance):
+                        # Get AI relevance content if available
+                        ai_relevance = article.get('ai_business_value', article.get('ai_validation', 'AI-related article found in scan'))
 
-                    # Get AI relevance content if available - prioritize ai_business_value
-                    ai_relevance = article.get('ai_business_value', article.get('ai_validation', 'AI-related article found in scan'))
+                        # Prepare the article HTML parts separately
+                        summary_html = f"""<div class='article-summary'>{article.get('summary', '')}</div>""" if show_summaries else ''
 
-                    # Initialize show_relevance checkbox state if not already present 
-                    if "show_relevance_state" not in st.session_state:
-                        st.session_state.show_relevance_state = True
+                        # Create the relevance HTML only if requested
+                        relevance_html = ''
+                        if show_relevance:
+                            relevance_html = f"""<div class='article-relevance'><span style='color: #4CAF50; font-weight: 500;'>AI Relevance:</span> {ai_relevance}</div>"""
 
-                    # Prepare the article HTML parts separately
-                    summary_html = f"<div class='article-summary'>{article.get('summary', '')}</div>" if show_summaries else ''
-                    relevance_html = f"<div class='article-relevance'><span style='color: #4CAF50; font-weight: 500;'>AI Relevance:</span> {ai_relevance}</div>" if show_relevance else ''
-
-                    article_html = f"""
-                    <div class="article-container">
-                        <div class="article-title">
-                            <a href="{article['url']}" target="_blank" rel="noopener noreferrer" style="text-decoration: none; color: #7D56F4;">
-                                {article['title']}
-                            </a>
+                        # Build the full HTML
+                        return f"""
+                        <div class="article-container">
+                            <div class="article-title">
+                                <a href="{article['url']}" target="_blank" rel="noopener noreferrer" style="text-decoration: none; color: #7D56F4;">
+                                    {article['title']}
+                                </a>
+                            </div>
+                            <div class="article-meta">
+                                <span>📅 {display_date}</span>
+                                <span style="margin-left: 10px;">🔍 Source: {article.get('source', 'Unknown')}</span>
+                            </div>
+                            {summary_html}
+                            {relevance_html}
                         </div>
-                        <div class="article-meta">
-                            <span>📅 {display_date}</span>
-                            <span style="margin-left: 10px;">🔍 Source: {article.get('source', 'Unknown')}</span>
-                        </div>
-                        {summary_html}
-                        {relevance_html}
-                    </div>
-                    """
+                        """
+
+                    # Generate HTML using the function
+                    article_html = generate_article_html(article, show_summaries, show_relevance)
 
                     st.markdown(article_html, unsafe_allow_html=True)
 
