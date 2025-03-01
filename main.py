@@ -154,12 +154,25 @@ def update_status(message):
     st.session_state.scan_status.insert(0, status_msg)
 
 
-def process_batch(sources, cutoff_time, db, seen_urls, status_placeholder):
-    """Process a batch of sources with simplified article handling"""
+def process_batch(sources, cutoff_time, db, seen_urls, status_placeholder, total_sources):
+    """Process a batch of sources with simplified article handling and per-URL progress updates"""
     batch_articles = []
 
     for source in sources:
         try:
+            # Update progress counter for this source and recalculate percentage
+            st.session_state.processed_source_count += 1
+            progress_percentage = st.session_state.processed_source_count / total_sources
+            
+            # Update progress bar and text with precise percentage
+            if 'progress_bar' in st.session_state:
+                st.session_state.progress_bar.progress(progress_percentage)
+            if 'progress_text' in st.session_state:
+                st.session_state.progress_text.markdown(
+                    f"<div style='text-align: center; font-weight: 500;'>{int(progress_percentage*100)}%</div>", 
+                    unsafe_allow_html=True
+                )
+            
             # Display the current URL being processed to provide real-time feedback
             if 'current_url_display' in st.session_state:
                 url_display = f"""
@@ -168,6 +181,9 @@ def process_batch(sources, cutoff_time, db, seen_urls, status_placeholder):
                     <span style="color: #cccccc; font-size: 0.9rem;">Currently scanning:</span>
                     <div style="color: #7D56F4; font-weight: 500; word-break: break-all; 
                          font-size: 1rem; margin-top: 5px;">{source}</div>
+                    <div style="color: #cccccc; font-size: 0.8rem; margin-top: 5px;">
+                        URL {st.session_state.processed_source_count} of {total_sources}
+                    </div>
                 </div>
                 """
                 st.session_state.current_url_display.markdown(url_display, unsafe_allow_html=True)
@@ -202,6 +218,9 @@ def process_batch(sources, cutoff_time, db, seen_urls, status_placeholder):
                                      font-size: 1rem; margin-top: 5px;">{source}</div>
                                 <div style="color: #e0e0e0; font-size: 0.9rem; margin-top: 8px;">
                                     Processing article: {article['title']}
+                                </div>
+                                <div style="color: #cccccc; font-size: 0.8rem; margin-top: 5px;">
+                                    URL {st.session_state.processed_source_count} of {total_sources}
                                 </div>
                             </div>
                             """
@@ -626,12 +645,27 @@ def main():
                     db = DBManager()
 
                     seen_urls = set()  # Reset seen URLs each time
-
                     status_placeholder = st.session_state.status_display
+                    
+                    # Store total sources count for progress tracking
+                    total_sources = len(sources)
+                    st.session_state.processed_source_count = 0
+                    
+                    # Calculate cutoff time based on selected unit
+                    if time_unit == "Weeks":
+                        days_to_subtract = time_value * 7
+                    else:  # Days
+                        days_to_subtract = time_value
 
+                    cutoff_time = datetime.now() - timedelta(days=days_to_subtract)
+
+                    # Log which mode we're using and the time period
+                    mode_str = "TEST MODE" if st.session_state.test_mode else "NORMAL MODE"
+                    logger.info(f"{mode_str} active - Time period: {time_value} {time_unit}, Cutoff: {cutoff_time}")
+
+                    # We'll process in smaller batches but track progress per URL
                     batch_size = 5
                     total_batches = (len(sources) + batch_size - 1) // batch_size
-                    total_sources = len(sources)
 
                     st.session_state.articles = []  # Reset articles list
 
@@ -640,34 +674,13 @@ def main():
                         end_idx = min(start_idx + batch_size, len(sources))
                         current_batch = sources[start_idx:end_idx]
 
-                        # Calculate cutoff time based on selected unit
-                        if time_unit == "Weeks":
-                            days_to_subtract = time_value * 7
-                        else:  # Days
-                            days_to_subtract = time_value
-
-                        cutoff_time = datetime.now() - timedelta(days=days_to_subtract)
-
-                        # Log which mode we're using and the time period
-                        mode_str = "TEST MODE" if st.session_state.test_mode else "NORMAL MODE"
-                        logger.info(f"{mode_str} active - Time period: {time_value} {time_unit}, Cutoff: {cutoff_time}")
-
                         # Process current batch
-                        batch_articles = process_batch(current_batch, cutoff_time, db, seen_urls, status_placeholder)
+                        batch_articles = process_batch(current_batch, cutoff_time, db, seen_urls, status_placeholder, 
+                                                      total_sources)
 
                         # Add articles to session state
                         if batch_articles:
                             st.session_state.articles.extend(batch_articles)
-
-                        # Update progress with percentage
-                        progress = (batch_idx + 1) / total_batches
-                        if 'progress_bar' in st.session_state:
-                            st.session_state.progress_bar.progress(progress)
-                        if 'progress_text' in st.session_state:
-                            st.session_state.progress_text.markdown(
-                                f"<div style='text-align: center; font-weight: 500;'>{int(progress*100)}%</div>", 
-                                unsafe_allow_html=True
-                            )
 
                     # Clear the current URL display when fetching completes
                     if 'current_url_display' in st.session_state:
