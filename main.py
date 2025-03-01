@@ -328,7 +328,7 @@ def main():
                             # Close the editor
                             st.session_state.show_url_editor = False
                             # Force page refresh for changes to take effect
-                            st.experimental_rerun()
+                            st.rerun()
 
                         except Exception as e:
                             logger.error(f"Error saving URLs: {str(e)}")
@@ -337,7 +337,7 @@ def main():
                 with col2:
                     if st.button("Cancel"):
                         st.session_state.show_url_editor = False
-                        st.experimental_rerun()
+                        st.rerun()
 
         if fetch_button or st.session_state.is_fetching:
             st.session_state.is_fetching = True
@@ -370,7 +370,10 @@ def main():
                             days_to_subtract = time_value
 
                         cutoff_time = datetime.now() - timedelta(days=days_to_subtract)
-                        logger.info(f"Time period: {time_value} {time_unit}, Cutoff: {cutoff_time}")
+                        
+                        # Log which mode we're using and the time period
+                        mode_str = "TEST MODE" if st.session_state.test_mode else "NORMAL MODE"
+                        logger.info(f"{mode_str} active - Time period: {time_value} {time_unit}, Cutoff: {cutoff_time}")
 
                         # Process current batch
                         batch_articles = process_batch(current_batch, cutoff_time, db, seen_urls, status_placeholder)

@@ -15,6 +15,8 @@ logger = logging.getLogger(__name__)
 class TooManyRequestsError(Exception):
     pass
 
+import os
+
 def load_source_sites(test_mode: bool = False, raw: bool = False) -> List[str]:
     """
     Loads source sites from CSV file. 
@@ -27,7 +29,6 @@ def load_source_sites(test_mode: bool = False, raw: bool = False) -> List[str]:
         
         # Create default test file if it doesn't exist
         if test_mode and not os.path.exists(file_path):
-            import os
             os.makedirs('data', exist_ok=True)
             with open(file_path, 'w') as f:
                 f.write("https://www.wired.com/\n")
