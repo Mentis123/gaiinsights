@@ -18,32 +18,36 @@ class TooManyRequestsError(Exception):
 def load_source_sites(test_mode: bool = False, raw: bool = False) -> List[str]:
     """
     Loads source sites from CSV file. 
-    If test_mode is True, only returns the first site.
+    If test_mode is True, returns URLs from test_urls.csv.
     If raw is True, returns the raw URL strings without processing.
     """
     try:
+        # Choose which file to load based on mode
+        file_path = 'data/test_urls.csv' if test_mode else 'data/search_sites.csv'
+        
+        # Create default test file if it doesn't exist
+        if test_mode and not os.path.exists(file_path):
+            import os
+            os.makedirs('data', exist_ok=True)
+            with open(file_path, 'w') as f:
+                f.write("https://www.wired.com/\n")
+        
+        # Load URLs from appropriate file
         sites = []
-        with open('data/search_sites.csv', 'r') as f:
+        with open(file_path, 'r') as f:
             for line in f:
                 if line.strip():
                     sites.append(line.strip())
 
         # If raw mode, return unfiltered list
-        if raw:
+        if raw and not test_mode:
             return sites
-
-        if test_mode:
-            # In test mode, only return Wired URL for faster testing
-            for site in sites:
-                if 'wired.com' in site:
-                    return [site]
-            # If wired.com not found, return first site
-            return [sites[0]] if sites else []
 
         return sites
     except Exception as e:
         print(f"Error loading source sites: {e}")
-        return []
+        # Return a default URL if nothing else works
+        return ["https://www.wired.com/"] if test_mode else []
 
 def extract_metadata(url: str, cutoff_time: datetime) -> Optional[Dict[str, str]]:
     """Extract and validate metadata first before getting full content."""

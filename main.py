@@ -240,49 +240,104 @@ def main():
             disabled=st.session_state.is_fetching,
             type="primary"
         )
-        
-        # URL Editor section
-        with st.sidebar.expander("Edit Source URLs", expanded=False):
-            # Initialize source_urls in session state if not present
-            if 'source_urls' not in st.session_state:
+
+        # Initialize URL management state
+        if 'show_url_editor' not in st.session_state:
+            st.session_state.show_url_editor = False
+        if 'edit_mode' not in st.session_state:
+            st.session_state.edit_mode = 'source'  # 'source' or 'test'
+
+        # URL Editor buttons in sidebar
+        col1, col2 = st.sidebar.columns(2)
+        with col1:
+            if st.button("Edit Source URLs"):
+                st.session_state.show_url_editor = True
+                st.session_state.edit_mode = 'source'
+                # Load source URLs
                 try:
                     from utils.content_extractor import load_source_sites
                     source_urls = load_source_sites(raw=True)
-                    st.session_state.source_urls = '\n'.join(source_urls)
+                    st.session_state.current_urls = '\n'.join(source_urls)
                 except Exception as e:
                     logger.error(f"Error loading source URLs: {str(e)}")
-                    st.session_state.source_urls = ""
-            
-            # Display editable text area with the URLs
-            st.text_area(
-                "Edit source URLs (one per line)",
-                value=st.session_state.source_urls,
-                height=300,
-                key="edited_urls"
-            )
-            
-            # Save button
-            if st.button("Save URLs"):
+                    st.session_state.current_urls = ""
+
+        with col2:
+            if st.button("Edit Test URLs"):
+                st.session_state.show_url_editor = True
+                st.session_state.edit_mode = 'test'
+                # Load test URLs
                 try:
-                    # Get edited URLs and split into list
-                    edited_urls = st.session_state.edited_urls.strip().split('\n')
-                    # Filter out empty lines
-                    edited_urls = [url.strip() for url in edited_urls if url.strip()]
-                    
-                    # Save to CSV file
-                    with open('data/search_sites.csv', 'w', newline='') as f:
-                        for url in edited_urls:
-                            f.write(f"{url}\n")
-                    
-                    # Update session state
-                    st.session_state.source_urls = st.session_state.edited_urls
-                    st.success("URLs saved successfully!")
-                    
-                    # Clear processed URLs to ensure new sites are scanned
-                    st.session_state.processed_urls = set()
+                    test_urls_file = 'data/test_urls.csv'
+                    if not os.path.exists(test_urls_file):
+                        with open(test_urls_file, 'w', newline='') as f:
+                            f.write("https://www.wired.com/\n")  # Default test URL
+
+                    test_urls = []
+                    with open(test_urls_file, 'r') as f:
+                        for line in f:
+                            if line.strip():
+                                test_urls.append(line.strip())
+
+                    st.session_state.current_urls = '\n'.join(test_urls)
                 except Exception as e:
-                    logger.error(f"Error saving URLs: {str(e)}")
-                    st.error(f"Error saving URLs: {str(e)}")
+                    logger.error(f"Error loading test URLs: {str(e)}")
+                    st.session_state.current_urls = "https://www.wired.com/"
+
+        # Display modal dialog for URL editing when enabled
+        if st.session_state.show_url_editor:
+            # Create a modal-like dialog with a container
+            with st.container():
+                st.markdown("### URL Editor")
+
+                # Show which mode we're editing
+                mode_title = "Source URLs" if st.session_state.edit_mode == 'source' else "Test Mode URLs"
+                st.subheader(f"Edit {mode_title}")
+
+                # Display editable text area with the URLs
+                edited_urls = st.text_area(
+                    f"Edit URLs (one per line)",
+                    value=st.session_state.current_urls,
+                    height=400,
+                    key="url_editor_area"
+                )
+
+                # Buttons for saving or canceling
+                col1, col2 = st.columns(2)
+                with col1:
+                    if st.button("Save Changes"):
+                        try:
+                            # Get edited URLs and split into list
+                            urls_list = edited_urls.strip().split('\n')
+                            # Filter out empty lines
+                            urls_list = [url.strip() for url in urls_list if url.strip()]
+
+                            # Determine which file to save to
+                            file_path = 'data/search_sites.csv' if st.session_state.edit_mode == 'source' else 'data/test_urls.csv'
+
+                            # Save to CSV file
+                            with open(file_path, 'w', newline='') as f:
+                                for url in urls_list:
+                                    f.write(f"{url}\n")
+
+                            st.success(f"{mode_title} saved successfully!")
+
+                            # Clear processed URLs to ensure new sites are scanned
+                            st.session_state.processed_urls = set()
+
+                            # Close the editor
+                            st.session_state.show_url_editor = False
+                            # Force page refresh for changes to take effect
+                            st.experimental_rerun()
+
+                        except Exception as e:
+                            logger.error(f"Error saving URLs: {str(e)}")
+                            st.error(f"Error saving URLs: {str(e)}")
+
+                with col2:
+                    if st.button("Cancel"):
+                        st.session_state.show_url_editor = False
+                        st.experimental_rerun()
 
         if fetch_button or st.session_state.is_fetching:
             st.session_state.is_fetching = True
