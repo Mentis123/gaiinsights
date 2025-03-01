@@ -1158,7 +1158,7 @@ def main():
 
                     # Prepare the article HTML parts separately
                     summary_html = f"<div class='article-summary'>{article.get('summary', '')}</div>" if show_summaries else ''
-                    relevance_html = f"<div class='article-relevance'><span style='color: #4CAF50; font-weight: 500;'>AI Relevance:</span> {ai_relevance}</div>" if show_relevance else ''
+                    relevance_html = f"<div class='article-relevance'><span style='color: #4CAF50; font-weight: 500;'>AI Relevance:</span> {ai_relevance}</div>" if st.session_state.show_relevance_state else ''
 
                     article_html = f"""
                     <div class="article-container">
