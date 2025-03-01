@@ -741,7 +741,7 @@ def main():
                     if 'status_display' in st.session_state:
                         del st.session_state.status_display
                     if 'current_url_display' in st.session_state:
-                        del st.session_state.current_url_display                    # Create placeholders for dynamic content
+                        del st.sessionstate.current_url_display                    # Create placeholders for dynamic content
                     info_container = st.container()
                     with info_container:
                         st.markdown("""
@@ -956,39 +956,53 @@ def main():
                         st.markdown(f"<div style='margin-bottom: 1rem; font-size: 0.9rem; color: #cccccc;'>Showing {len(filtered_articles)} of {len(st.session_state.articles)} articles</div>", unsafe_allow_html=True)
 
                         # Display articles in modern cards
-                        displayed_articles = filtered_articles #using the filtered articles
-                        with st.container():
-                            for article in displayed_articles:
-                                with st.container():
-                                    st.markdown(
-                                        f'''<div class="article-container">
-                                            <div class="article-title">
-                                                <a href="{article['url']}" target="_blank" style="color: #7D56F4; text-decoration: none;">
-                                                    {article['title']}
-                                                </a>
-                                            </div>
-                                            <div class="article-meta">
-                                                <span>📅 {article['date']}</span>
-                                                <span>🔗 {article.get('source', 'Unknown Source')}</span>
-                                            </div>''',
-                                        unsafe_allow_html=True
-                                    )
+                        displayed_articles = filtered_articles
+                        for article in displayed_articles:
+                            # Parse date if needed
+                            if isinstance(article['date'], str):
+                                try:
+                                    display_date = article['date']
+                                except:
+                                    display_date = article['date']
+                            else:
+                                display_date = article['date'].strftime('%Y-%m-%d')
 
-                                    if show_summaries:
-                                        st.markdown(
-                                            f'''<div class="article-summary">{article.get('summary', 'No summary available')}</div>''',
-                                            unsafe_allow_html=True
-                                        )
+                            # Get AI relevance content
+                            ai_relevance = article.get('ai_business_value', article.get('ai_validation', 'AI-related article found in scan'))
 
-                                    # Always render the relevance section with proper HTML formatting
-                                    st.markdown(
-                                        f'''<div class="article-relevance">
-                                            <strong>AI Business Value:</strong> {article.get('ai_business_value', 'AI relevance assessment not available')}
-                                        </div>''',
-                                        unsafe_allow_html=True
-                                    )
+                            # Start container div
+                            st.markdown(
+                                f'''<div class="article-container">
+                                    <div class="article-title">
+                                        <a href="{article['url']}" target="_blank" style="text-decoration: none; color: #7D56F4;">
+                                            {article['title']}
+                                        </a>
+                                    </div>
+                                    <div class="article-meta">
+                                        <span>📅 {display_date}</span>
+                                        <span style="margin-left: 10px;">🔍 Source: {article.get('source', 'Unknown')}</span>
+                                    </div>''',
+                                unsafe_allow_html=True
+                            )
 
-                                    st.markdown('</div>', unsafe_allow_html=True)
+                            # Conditionally show summary
+                            if show_summaries:
+                                st.markdown(
+                                    f'''<div class="article-summary">{article.get('summary', 'No summary available')}</div>''',
+                                    unsafe_allow_html=True
+                                )
+
+                            # Show relevance if enabled
+                            if show_relevance:
+                                st.markdown(
+                                    f'''<div class="article-relevance">
+                                        <span style="color: #4CAF50; font-weight: 500;">AI Relevance:</span> {ai_relevance}
+                                    </div>''',
+                                    unsafe_allow_html=True
+                                )
+
+                            # Close container div
+                            st.markdown('</div>', unsafe_allow_html=True)
 
                     else:
                         # No articles found message with helpful suggestions
@@ -1137,7 +1151,7 @@ def main():
                 st.markdown(f"<div style='margin-bottom: 1rem; font-size: 0.9rem; color: #cccccc;'>Showing {len(filtered_articles)} of {len(st.session_state.articles)} articles</div>", unsafe_allow_html=True)
 
                 # Display each article in a card with conditional summaries
-                displayed_articles = filtered_articles #using the filtered articles
+                displayed_articles = filtered_articles
                 for article in displayed_articles:
                     # Parse date if needed
                     if isinstance(article['date'], str):
@@ -1148,22 +1162,12 @@ def main():
                     else:
                         display_date = article['date'].strftime('%Y-%m-%d')
 
-                    # Create a function to generate properly escaped HTML
-                    def generate_article_html(article, show_summaries, show_relevance):
-                        # Get AI relevance content if available
-                        ai_relevance = article.get('ai_business_value', article.get('ai_validation', 'AI-related article found in scan'))
+                    # Get AI relevance content
+                    ai_relevance = article.get('ai_business_value', article.get('ai_validation', 'AI-related article found in scan'))
 
-                        # Prepare the article HTML parts separately
-                        summary_html = f"""<div class='article-summary'>{article.get('summary', '')}</div>""" if show_summaries else ''
-
-                        # Create the relevance HTML only if requested
-                        relevance_html = ''
-                        if show_relevance:
-                            relevance_html = f"""<div class='article-relevance'><span style='color: #4CAF50; font-weight: 500;'>AI Relevance:</span> {ai_relevance}</div>"""
-
-                        # Build the full HTML
-                        return f"""
-                        <div class="article-container">
+                    # Start container div
+                    st.markdown(
+                        f'''<div class="article-container">
                             <div class="article-title">
                                 <a href="{article['url']}" target="_blank" rel="noopener noreferrer" style="text-decoration: none; color: #7D56F4;">
                                     {article['title']}
@@ -1172,16 +1176,28 @@ def main():
                             <div class="article-meta">
                                 <span>📅 {display_date}</span>
                                 <span style="margin-left: 10px;">🔍 Source: {article.get('source', 'Unknown')}</span>
-                            </div>
-                            {summary_html}
-                            {relevance_html}
-                        </div>
-                        """
+                            </div>''',
+                        unsafe_allow_html=True
+                    )
 
-                    # Generate HTML using the function
-                    article_html = generate_article_html(article, show_summaries, show_relevance)
+                    # Conditionally show summary
+                    if show_summaries:
+                        st.markdown(
+                            f'''<div class="article-summary">{article.get('summary', 'No summary available')}</div>''',
+                            unsafe_allow_html=True
+                        )
 
-                    st.markdown(article_html, unsafe_allow_html=True)
+                    # Show relevance if enabled
+                    if show_relevance:
+                        st.markdown(
+                            f'''<div class="article-relevance">
+                                <span style="color: #4CAF50; font-weight: 500;">AI Relevance:</span> {ai_relevance}
+                            </div>''',
+                            unsafe_allow_html=True
+                        )
+
+                    # Close container div
+                    st.markdown('</div>', unsafe_allow_html=True)
 
             # Display welcome message for first-time users
             else:
