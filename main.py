@@ -169,6 +169,7 @@ def process_batch(sources, cutoff_time, db, seen_urls, status_placeholder):
             st.session_state.scan_status.insert(0, status_msg)
 
             # Find AI articles
+            from utils.content_extractor import find_ai_articles
             ai_articles = find_ai_articles(source, cutoff_time)
 
             if ai_articles:
@@ -669,6 +670,7 @@ def main():
                     """, unsafe_allow_html=True)
                     
                     # Fetch sources and setup
+                    from utils.content_extractor import load_source_sites
                     sources = load_source_sites(test_mode=st.session_state.test_mode)
                     from utils.db_manager import DBManager
                     db = DBManager()
