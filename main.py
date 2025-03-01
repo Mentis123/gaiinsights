@@ -38,7 +38,7 @@ if 'initialized' not in st.session_state:
         st.session_state.pdf_data = None  # Initialize PDF data
         st.session_state.csv_data = None  # Initialize CSV data
         st.session_state.show_url_editor = False  # URL editor visibility
-        st.session_state.edit_mode = 'source'  # Default edit mode
+        st.session_state.edit_mode = None  # Default to no edit mode
         st.session_state.current_urls = ""  # Current URLs being edited
         st.session_state.sidebar_collapsed = False  # Sidebar state
         st.session_state.dark_mode = True  # Theme state
@@ -502,24 +502,24 @@ def main():
             if 'test_urls_button_active' not in st.session_state:
                 st.session_state.test_urls_button_active = False
                 
+            # Set the correct button text based on the current state
+            sources_button_text = "📋 Close Editor" if st.session_state.show_url_editor and st.session_state.edit_mode == 'source' else "📋 Edit Sources"
+            test_button_text = "🧪 Close Editor" if st.session_state.show_url_editor and st.session_state.edit_mode == 'test' else "🧪 Edit Test URLs"
+            
             col1, col2 = st.columns(2)
             with col1:
-                # Toggle button for Edit Sources
-                button_style = "background-color: rgba(125, 86, 244, 0.8); color: white;" if st.session_state.sources_button_active else ""
-                button_text = "📋 Close Editor" if st.session_state.sources_button_active else "📋 Edit Sources"
-                
-                if st.button(button_text, use_container_width=True, key="edit_sources_button"):
-                    if st.session_state.sources_button_active:
+                # Toggle button for Edit Sources with immediate text change
+                if st.button(sources_button_text, use_container_width=True, key="edit_sources_button"):
+                    # Toggle the editor state
+                    if st.session_state.show_url_editor and st.session_state.edit_mode == 'source':
                         # Close the editor
                         st.session_state.show_url_editor = False
-                        st.session_state.sources_button_active = False
-                        st.session_state.test_urls_button_active = False
+                        st.session_state.edit_mode = None
+                        st.rerun()
                     else:
-                        # Open the editor
+                        # Open the editor in source mode
                         st.session_state.show_url_editor = True
                         st.session_state.edit_mode = 'source'
-                        st.session_state.sources_button_active = True
-                        st.session_state.test_urls_button_active = False
                         
                         # Load source URLs
                         try:
@@ -529,24 +529,22 @@ def main():
                         except Exception as e:
                             logger.error(f"Error loading source URLs: {str(e)}")
                             st.session_state.current_urls = ""
+                        
+                        st.rerun()
 
             with col2:
-                # Toggle button for Edit Test URLs
-                button_style = "background-color: rgba(125, 86, 244, 0.8); color: white;" if st.session_state.test_urls_button_active else ""
-                button_text = "🧪 Close Editor" if st.session_state.test_urls_button_active else "🧪 Edit Test URLs"
-                
-                if st.button(button_text, use_container_width=True, key="edit_test_urls_button"):
-                    if st.session_state.test_urls_button_active:
+                # Toggle button for Edit Test URLs with immediate text change
+                if st.button(test_button_text, use_container_width=True, key="edit_test_urls_button"):
+                    # Toggle the editor state
+                    if st.session_state.show_url_editor and st.session_state.edit_mode == 'test':
                         # Close the editor
                         st.session_state.show_url_editor = False
-                        st.session_state.test_urls_button_active = False
-                        st.session_state.sources_button_active = False
+                        st.session_state.edit_mode = None
+                        st.rerun()
                     else:
-                        # Open the editor
+                        # Open the editor in test mode
                         st.session_state.show_url_editor = True
                         st.session_state.edit_mode = 'test'
-                        st.session_state.test_urls_button_active = True
-                        st.session_state.sources_button_active = False
                         
                         # Load test URLs
                         try:
@@ -565,6 +563,8 @@ def main():
                         except Exception as e:
                             logger.error(f"Error loading test URLs: {str(e)}")
                             st.session_state.current_urls = "https://www.wired.com/"
+                        
+                        st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
             
             # Stats display when articles are available
