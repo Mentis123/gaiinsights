@@ -25,34 +25,34 @@ def generate_executive_relevance(article):
     summary = article.get('summary', '').lower()
     
     # Default relevance for enterprise context
-    default_relevance = "Potential business value through AI implementation"
+    default_relevance = "Strategic competitive advantage potential through targeted AI implementation"
     
-    # Industry-specific strategic relevance
+    # Industry-specific strategic relevance with business impact focus
     industries = {
-        'retail': "Strategic retail transformation opportunity through AI-enhanced customer experience",
-        'fashion': "Supply chain optimization and manufacturing innovation via AI technology",
-        'manufacturing': "Production efficiency and quality control improvements through AI integration",
-        'healthcare': "Operational transformation and care delivery enhancement through AI applications",
-        'finance': "Risk management and customer experience improvements via AI implementation",
-        'banking': "Regulatory compliance and service delivery optimization through AI technology",
-        'education': "Training effectiveness and skills development advancements via AI tools",
-        'media': "Content distribution optimization and global reach through AI-powered localization",
-        'language': "Cross-border communication enhancement through advanced language AI",
-        'customer': "Service quality and satisfaction improvements via AI-driven interaction",
-        'security': "Risk mitigation and threat detection capabilities through AI systems",
-        'supply chain': "Operational efficiency and resilience improvements through AI optimization"
+        'retail': "Retail margin enhancement and customer retention opportunity through AI-driven personalization",
+        'fashion': "Supply chain cost reduction and market responsiveness via AI-powered manufacturing innovation",
+        'manufacturing': "Production cost savings and quality improvement through AI quality control systems",
+        'healthcare': "Patient outcome improvement and operational cost reduction through AI-enabled care enhancement",
+        'finance': "Fraud prevention ROI and customer retention improvements via AI risk management systems",
+        'banking': "Compliance cost reduction and service delivery optimization through AI monitoring technology",
+        'education': "Training effectiveness metrics improvement and skills development acceleration via AI tools",
+        'media': "Revenue expansion and global market reach through AI-powered content localization",
+        'language': "International market entry facilitation through advanced language AI technologies",
+        'customer': "Customer satisfaction metrics improvement and support cost reduction via AI interaction",
+        'security': "Security breach cost avoidance and threat detection speed improvements through AI systems",
+        'supply chain': "Inventory cost reduction and supply chain resilience enhancement through AI optimization"
     }
     
-    # Technology-specific business implications
+    # Technology-specific business implications with competitive advantage focus
     technologies = {
-        'generative ai': "Content creation automation and scalability through generative AI",
-        'llm': "Communication efficiency and knowledge management through large language models",
-        'machine learning': "Data-driven decision making and predictive capabilities via machine learning",
-        'neural network': "Pattern recognition and anomaly detection through neural network technology",
-        'computer vision': "Visual data processing and monitoring efficiency via computer vision",
-        'natural language': "Customer interaction and documentation efficiency through NLP",
-        'automation': "Process optimization and resource allocation through AI automation",
-        'predictive': "Strategic planning and risk assessment through predictive analytics"
+        'generative ai': "Content production cost reduction and creative output scaling through generative AI",
+        'llm': "Knowledge worker productivity enhancement and communication efficiency through large language models",
+        'machine learning': "Decision latency reduction and prediction accuracy improvement via machine learning",
+        'neural network': "Error rate reduction and pattern recognition advantage through neural network technology",
+        'computer vision': "Visual inspection cost savings and quality control improvement via computer vision",
+        'natural language': "Customer support cost reduction and satisfaction improvement through advanced NLP",
+        'automation': "Operational expense reduction and resource optimization through AI-driven automation",
+        'predictive': "Strategic risk mitigation and market opportunity identification through predictive analytics"
     }
     
     # Combined text for comprehensive analysis
@@ -82,7 +82,7 @@ def clean_summary(summary_text):
     # Remove quotes that may have been added by LLMs
     summary_text = summary_text.replace('"', '').replace('"', '')
     
-    # Remove strange characters
+    # Remove strange characters but preserve meaningful punctuation
     summary_text = re.sub(r'[^\w\s.,;:!?-]', '', summary_text)
     
     # Normalize whitespace
@@ -94,10 +94,11 @@ def clean_summary(summary_text):
     if len(sentences) > 2:
         summary_text = ' '.join(sentences[:2])
     
-    # Apply strict length constraint (maximum 25 words for PDF reports)
+    # Apply strict length constraint (maximum 30 words for PDF reports)
+    # Increased slightly to better preserve meaning in business context
     words = summary_text.split()
-    if len(words) > 25:
-        summary_text = ' '.join(words[:25]) + '...'
+    if len(words) > 30:
+        summary_text = ' '.join(words[:30]) + '...'
     
     return summary_text
 

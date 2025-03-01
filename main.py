@@ -329,6 +329,18 @@ def main():
             font-size: 1rem;
             line-height: 1.6;
             color: #e0e0e0;
+            margin-bottom: 0.8rem;
+        }
+        
+        .article-relevance {
+            font-size: 0.95rem;
+            line-height: 1.5;
+            color: #d0d0d0;
+            background-color: rgba(76, 175, 80, 0.1);
+            padding: 0.6rem;
+            border-radius: 6px;
+            border-left: 3px solid #4CAF50;
+            margin-top: 0.6rem;
         }
 
         /* Buttons and Interactive Elements */
@@ -893,19 +905,37 @@ def main():
 
                         with filter_col3:
                             st.markdown("<br>", unsafe_allow_html=True)  # Add spacing for alignment
+                            # Initialize states if not already present
                             if "show_summaries_state" not in st.session_state:
                                 st.session_state.show_summaries_state = True
+                            if "show_relevance_state" not in st.session_state:
+                                st.session_state.show_relevance_state = True
 
-                            # Use the on_change parameter to update the state consistently
+                            # Define toggle functions
                             def toggle_summaries():
                                 st.session_state.show_summaries_state = not st.session_state.show_summaries_state
+                            
+                            def toggle_relevance():
+                                st.session_state.show_relevance_state = not st.session_state.show_relevance_state
 
-                            show_summaries = st.checkbox(
-                                "Show Summaries", 
-                                value=st.session_state.show_summaries_state,
-                                key="fetch_show_summaries",
-                                on_change=toggle_summaries
-                            )
+                            # Create two columns for the checkboxes
+                            toggle_col1, toggle_col2 = st.columns(2)
+                            
+                            with toggle_col1:
+                                show_summaries = st.checkbox(
+                                    "Show Summaries", 
+                                    value=st.session_state.show_summaries_state,
+                                    key="fetch_show_summaries",
+                                    on_change=toggle_summaries
+                                )
+                            
+                            with toggle_col2:
+                                show_relevance = st.checkbox(
+                                    "Show Relevance", 
+                                    value=st.session_state.show_relevance_state,
+                                    key="fetch_show_relevance",
+                                    on_change=toggle_relevance
+                                )
 
                         # Apply filters and sorting
                         filtered_articles = st.session_state.articles
@@ -934,6 +964,9 @@ def main():
                             else:
                                 display_date = article['date'].strftime('%Y-%m-%d')
 
+                            # Get AI relevance content if available
+                            ai_relevance = article.get('ai_business_value', article.get('ai_validation', 'AI-related article found in scan'))
+                            
                             # Create a beautiful card for each article
                             st.markdown(f"""
                             <div class="article-container">
@@ -947,6 +980,7 @@ def main():
                                     <span style="margin-left: 10px;">🔍 Source: {article.get('source', 'Unknown')}</span>
                                 </div>
                                 {f'<div class="article-summary">{article["summary"]}</div>' if show_summaries else ''}
+                                {f'<div class="article-relevance"><span style="color: #4CAF50; font-weight: 500;">AI Relevance:</span> {ai_relevance}</div>' if st.session_state.show_relevance_state else ''}
                             </div>
                             """, unsafe_allow_html=True)
                     else:
@@ -1081,8 +1115,13 @@ def main():
                     else:
                         display_date = article['date'].strftime('%Y-%m-%d')
 
-                    # Create a beautiful card for each article with conditional summary
+                    # Create a beautiful card for each article with conditional summary and relevance
                     summary_html = f'<div class="article-summary">{article["summary"]}</div>' if show_summaries else ''
+                    
+                    # Get AI relevance content if available
+                    ai_relevance = article.get('ai_business_value', article.get('ai_validation', 'AI-related article found in scan'))
+                    relevance_html = f'<div class="article-relevance"><span style="color: #4CAF50; font-weight: 500;">AI Relevance:</span> {ai_relevance}</div>' if st.session_state.show_relevance_state else ''
+                    
                     st.markdown(f"""
                     <div class="article-container">
                         <div class="article-title">
@@ -1095,6 +1134,7 @@ def main():
                             <span style="margin-left: 10px;">🔍 Source: {article.get('source', 'Unknown')}</span>
                         </div>
                         {summary_html}
+                        {relevance_html}
                     </div>
                     """, unsafe_allow_html=True)
 

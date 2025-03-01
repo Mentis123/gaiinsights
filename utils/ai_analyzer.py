@@ -194,7 +194,8 @@ def summarize_article(content):
         1. Keep summaries extremely concise (25-40 words maximum)
         2. Do NOT use brackets, parentheses, or metadata markers in your text
         3. Focus only on business implications, not technical details
-        4. AI relevance statements must be ONE clear sentence about strategic value
+        4. AI relevance statements must be ONE clear sentence about strategic business value (15-25 words)
+        5. Be specific about competitive advantage, operational efficiency, or strategic impacts
         """
 
         user_prompt = f"""
@@ -209,7 +210,7 @@ def summarize_article(content):
         4. sentiment_score: Rating from -5 (negative) to +5 (positive)
         5. relevance_score: How relevant to enterprise AI strategy (0-100)
         6. article_type: Classification (news, analysis, research, implementation)
-        7. ai_business_value: ONE clear sentence about strategic business value (15-25 words)
+        7. ai_business_value: ONE specific sentence about strategic business value and competitive advantage (15-25 words)
         """
 
         response = client.chat.completions.create(
