@@ -758,7 +758,7 @@ def main():
                         st.session_state.current_url_display = st.empty()
 
                         # Progress indicators
-                        progress_cols = stcolumns([3, 1])
+                        progress_cols = st.columns([3, 1])
                         with progress_cols[0]:
                             st.session_state.progress_bar = st.progress(0)
                         with progress_cols[1]:
