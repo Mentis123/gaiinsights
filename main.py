@@ -261,6 +261,65 @@ def main():
             margin: 0 auto;
         }
 
+        /* Article Cards */
+        .article-container {
+            border: 1px solid rgba(125, 86, 244, 0.3);
+            border-radius: 12px;
+            padding: 1.8rem;
+            margin-bottom: 1.5rem;
+            background-color: rgba(20, 20, 35, 0.7);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .article-container:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+            border-color: rgba(125, 86, 244, 0.5);
+            background-color: rgba(25, 25, 40, 0.8);
+        }
+
+        .article-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            line-height: 1.3;
+            border-bottom: 1px solid rgba(125, 86, 244, 0.1);
+            padding-bottom: 0.8rem;
+        }
+
+        .article-meta {
+            font-size: 0.9rem;
+            color: #bbbbbb;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0.5rem 0;
+        }
+
+        .article-summary {
+            font-size: 1rem;
+            line-height: 1.6;
+            color: #e0e0e0;
+            margin: 1rem 0;
+            padding: 1rem;
+            background-color: rgba(30, 30, 45, 0.5);
+            border-radius: 8px;
+            border-left: 3px solid rgba(125, 86, 244, 0.5);
+        }
+
+        .article-relevance {
+            font-size: 0.95rem;
+            line-height: 1.5;
+            color: #d0d0d0;
+            background-color: rgba(76, 175, 80, 0.1);
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 3px solid #4CAF50;
+            margin-top: 1rem;
+        }
+
         /* Header Styles */
         .main-header {
             font-size: 2.5rem;
@@ -292,56 +351,6 @@ def main():
             letter-spacing: 0.5px;
         }
 
-        /* Cards and Containers */
-        .article-container {
-            border: 1px solid rgba(125, 86, 244, 0.2);
-            border-radius: 8px;
-            padding: 1.5rem;
-            margin-bottom: 1.2rem;
-            background-color: rgba(20, 20, 35, 0.7);
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .article-container:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-            border-color: rgba(125, 86, 244, 0.4);
-        }
-
-        .article-title {
-            font-size: 1.4rem;
-            font-weight: 600;
-            margin-bottom: 0.7rem;
-            line-height: 1.3;
-        }
-
-        .article-meta {
-            font-size: 0.85rem;
-            color: #bbbbbb;
-            margin-bottom: 0.8rem;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .article-summary {
-            font-size: 1rem;
-            line-height: 1.6;
-            color: #e0e0e0;
-            margin-bottom: 0.8rem;
-        }
-
-        .article-relevance {
-            font-size: 0.95rem;
-            line-height: 1.5;
-            color: #d0d0d0;
-            background-color: rgba(76, 175, 80, 0.1);
-            padding: 0.6rem;
-            border-radius: 6px;
-            border-left: 3px solid #4CAF50;
-            margin-top: 0.6rem;
-        }
 
         /* Buttons and Interactive Elements */
         .custom-button {
