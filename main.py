@@ -918,15 +918,16 @@ def main():
                             def toggle_relevance():
                                 st.session_state.show_relevance_state = not st.session_state.show_relevance_state
 
-                            # Create two columns for the checkboxes
-                            toggle_col1, toggle_col2 = st.columns(2)
+                            # Create two columns for the checkboxes with more space
+                            toggle_col1, toggle_col2 = st.columns([1.2, 1.2])
 
                             with toggle_col1:
                                 show_summaries = st.checkbox(
                                     "Show Summaries", 
                                     value=st.session_state.show_summaries_state,
                                     key="fetch_show_summaries",
-                                    on_change=toggle_summaries
+                                    on_change=toggle_summaries,
+                                    label_visibility="visible"
                                 )
 
                             with toggle_col2:
@@ -934,7 +935,8 @@ def main():
                                     "Show Relevance", 
                                     value=st.session_state.show_relevance_state,
                                     key="fetch_show_relevance",
-                                    on_change=toggle_relevance
+                                    on_change=toggle_relevance,
+                                    label_visibility="visible"
                                 )
 
                         # Apply filters and sorting
@@ -964,12 +966,12 @@ def main():
                             else:
                                 display_date = article['date'].strftime('%Y-%m-%d')
 
-                            # Get AI relevance content if available
+                            # Get AI relevance content if available - prioritize ai_business_value
                             ai_relevance = article.get('ai_business_value', article.get('ai_validation', 'AI-related article found in scan'))
 
                             # Prepare the article HTML parts separately
                             summary_html = f"<div class='article-summary'>{article.get('summary', '')}</div>" if show_summaries else ''
-                            relevance_html = f"<div class='article-relevance'><span style='color: #4CAF50; font-weight: 500;'>AI Relevance:</span> {ai_relevance}</div>" if show_relevance else ''
+                            relevance_html = f"""<div class='article-relevance'><span style='color: #4CAF50; font-weight: 500;'>AI Relevance:</span> {ai_relevance}</div>""" if show_relevance else ''
 
                             article_html = f"""
                             <div class="article-container">
@@ -1095,10 +1097,8 @@ def main():
 
                     # Use a container for better alignment
                     with st.container():
-                        st.markdown('<div style="display: flex; justify-content: flex-end; gap: 20px;">', unsafe_allow_html=True)
-
                         # Create two columns for the checkboxes with better spacing
-                        toggle_col1, toggle_col2 = st.columns([1, 1])
+                        toggle_col1, toggle_col2 = st.columns([1.2, 1.2])
 
                         with toggle_col1:
                             show_summaries = st.checkbox(
@@ -1110,15 +1110,13 @@ def main():
                             )
 
                         with toggle_col2:
-                            # Using a container to prevent text wrapping issues
-                            with st.container():
-                                show_relevance = st.checkbox(
-                                    "Show Relevance", 
-                                    value=st.session_state.show_relevance_state,
-                                    key="prev_show_relevance",
-                                    on_change=toggle_relevance,
-                                    label_visibility="visible"
-                                )
+                            show_relevance = st.checkbox(
+                                "Show Relevance", 
+                                value=st.session_state.show_relevance_state,
+                                key="prev_show_relevance",
+                                on_change=toggle_relevance,
+                                label_visibility="visible"
+                            )
 
                         st.markdown('</div>', unsafe_allow_html=True)
 
@@ -1151,7 +1149,7 @@ def main():
 
                     # Create a beautiful card for each article with conditional summary and relevance
 
-                    # Get AI relevance content if available
+                    # Get AI relevance content if available - prioritize ai_business_value
                     ai_relevance = article.get('ai_business_value', article.get('ai_validation', 'AI-related article found in scan'))
 
                     # Initialize show_relevance checkbox state if not already present 
@@ -1160,7 +1158,7 @@ def main():
 
                     # Prepare the article HTML parts separately
                     summary_html = f"<div class='article-summary'>{article.get('summary', '')}</div>" if show_summaries else ''
-                    relevance_html = f"<div class='article-relevance'><span style='color: #4CAF50; font-weight: 500;'>AI Relevance:</span> {ai_relevance}</div>" if show_relevance else ''
+                    relevance_html = f"""<div class='article-relevance'><span style='color: #4CAF50; font-weight: 500;'>AI Relevance:</span> {ai_relevance}</div>""" if show_relevance else ''
 
                     article_html = f"""
                     <div class="article-container">

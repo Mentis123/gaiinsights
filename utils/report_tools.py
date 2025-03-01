@@ -1,4 +1,3 @@
-
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import landscape, letter
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
@@ -15,18 +14,18 @@ def generate_executive_relevance(article):
     # First try to use the AI-generated business value if available
     if 'ai_business_value' in article and article['ai_business_value'] and len(article['ai_business_value']) > 10:
         return article['ai_business_value']
-    
+
     # Next try to use the ai_validation field if it exists and is meaningful
     if 'ai_validation' in article and article['ai_validation'] and article['ai_validation'] != "AI-related article found in scan":
         return article['ai_validation']
-    
+
     # As a fallback, generate a relevance statement based on keywords
     title = article.get('title', '').lower()
     summary = article.get('summary', '').lower()
-    
+
     # Default relevance for enterprise executive context
     default_relevance = "C-suite leaders deploying this AI solution can gain significant competitive advantage and measurable ROI through strategic implementation"
-    
+
     # Industry-specific strategic relevance with executive-focused business impact
     industries = {
         'retail': "CEOs implementing this retail AI solution can achieve 15-20% higher customer retention and 12% margin improvement within 6-12 months",
@@ -42,7 +41,7 @@ def generate_executive_relevance(article):
         'security': "Security executives deploying this AI system report 60% faster threat detection and millions in breach cost avoidance",
         'supply chain': "Supply chain leaders implementing this AI optimization platform reduce inventory costs 22% while enhancing resilience"
     }
-    
+
     # Technology-specific business implications with C-suite advantage focus
     technologies = {
         'generative ai': "C-suite leaders deploying this generative AI solution report 40% content production cost reduction and 3x creative output scaling",
@@ -54,52 +53,52 @@ def generate_executive_relevance(article):
         'automation': "COOs implementing this AI-driven automation achieve 40% operational expense reduction and optimal resource allocation",
         'predictive': "Strategic leaders leverage this predictive analytics platform to identify market opportunities 6-12 months before competitors"
     }
-    
+
     # Combined text for comprehensive analysis
     text = title + " " + summary
-    
+
     # Check for industry-specific strategic relevance
     for industry, relevance in industries.items():
         if industry in text:
             return relevance
-    
+
     # Check for technology-specific business implications
     for tech, relevance in technologies.items():
         if tech in text:
             return relevance
-    
+
     return default_relevance
 
 def clean_summary(summary_text):
     """Clean and condense summary for executive-friendly format"""
     if not summary_text:
         return "This article discusses AI technology applications and implications."
-    
+
     # Remove metadata formatting
     summary_text = re.sub(r'\[(.*?)\]', '', summary_text)
     summary_text = re.sub(r'\([^)]*\)', '', summary_text)
-    
+
     # Remove quotes that may have been added by LLMs
     summary_text = summary_text.replace('"', '').replace('"', '')
-    
+
     # Remove strange characters but preserve meaningful punctuation
     summary_text = re.sub(r'[^\w\s.,;:!?-]', '', summary_text)
-    
+
     # Normalize whitespace
     summary_text = re.sub(r'\s+', ' ', summary_text).strip()
-    
+
     # Ensure extreme conciseness (max 2 sentences)
     sentences = re.split(r'(?<=[.!?])\s+', summary_text)
-    
+
     if len(sentences) > 2:
         summary_text = ' '.join(sentences[:2])
-    
+
     # Apply strict length constraint (maximum 30 words for PDF reports)
     # Increased slightly to better preserve meaning in business context
     words = summary_text.split()
     if len(words) > 30:
         summary_text = ' '.join(words[:30]) + '...'
-    
+
     return summary_text
 
 def get_timestamped_filename(prefix):
@@ -120,7 +119,7 @@ def generate_pdf_report(articles):
     )
 
     styles = getSampleStyleSheet()
-    
+
     # Enhanced styles for executive presentation
     title_style = ParagraphStyle(
         'TitleStyle',
@@ -131,7 +130,7 @@ def generate_pdf_report(articles):
         fontSize=9,
         leading=11
     )
-    
+
     normal_style = ParagraphStyle(
         'NormalStyle',
         parent=styles['Normal'],
@@ -139,7 +138,7 @@ def generate_pdf_report(articles):
         fontSize=8,
         leading=10
     )
-    
+
     relevance_style = ParagraphStyle(
         'RelevanceStyle',
         parent=styles['Normal'],
@@ -165,24 +164,26 @@ def generate_pdf_report(articles):
         url = unquote(url)
 
         # Format the title with the URL as a clickable link
-        title = Paragraph(f'<para><a href="{url}">{article["title"]}</a></para>', title_style)
-        
+        title = Paragraph(f'<para><a href="{url}" target="_blank">{article["title"]}</a></para>', title_style)
+
         # Format the date
         date_str = article['date']
         if hasattr(date_str, 'strftime'):
             date_str = date_str.strftime('%Y-%m-%d')
         date = Paragraph(date_str, normal_style)
-        
+
         # Clean up the summary text for better formatting
         summary_text = clean_summary(article.get('summary', 'No summary available'))
         summary = Paragraph(summary_text, normal_style)
-        
-        # Get the executive-relevant AI information with preference for ai_business_value
-        if 'ai_business_value' in article and article['ai_business_value'] and article['ai_business_value'] != "AI-related article found in scan":
+
+        # Always prioritize ai_business_value for executive relevance 
+        if 'ai_business_value' in article and article['ai_business_value'] and len(article['ai_business_value']) > 10:
             exec_relevance = article['ai_business_value']
+        elif 'ai_validation' in article and article['ai_validation'] and article['ai_validation'] != "AI-related article found in scan":
+            exec_relevance = article['ai_validation']
         else:
             exec_relevance = generate_executive_relevance(article)
-            
+
         relevance = Paragraph(exec_relevance, relevance_style)
 
         # Add the row to the table
@@ -202,20 +203,20 @@ def generate_pdf_report(articles):
         ('FONTSIZE', (0, 0), (-1, 0), 10),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
         ('TOPPADDING', (0, 0), (-1, 0), 8),
-        
+
         # Content row styling
         ('ALIGN', (0, 1), (-1, -1), 'LEFT'),
         ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
         ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
         ('TOPPADDING', (0, 1), (-1, -1), 6),
-        
+
         # Date column
         ('ALIGN', (1, 1), (1, -1), 'CENTER'),
-        
+
         # Grid and vertical alignment
         ('GRID', (0, 0), (-1, -1), 0.25, colors.grey),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        
+
         # Alternating row colors for better readability
         ('BACKGROUND', (0, 1), (-1, -1), colors.whitesmoke),
         ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.whitesmoke, colors.white]),
@@ -225,10 +226,10 @@ def generate_pdf_report(articles):
     current_date = datetime.now().strftime('%Y-%m-%d')
     title = Paragraph(f"Enterprise AI Intelligence Brief - {current_date}", styles['Title'])
     date_generated = Paragraph(f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M')}", styles['Normal'])
-    
+
     # Build the document
     doc.build([title, Spacer(1, 0.2*inch), date_generated, Spacer(1, 0.3*inch), table])
-    
+
     pdf_data = buffer.getvalue()
     buffer.close()
     return pdf_data
@@ -237,7 +238,7 @@ def generate_csv_report(articles):
     """Generate enhanced CSV report with all relevant fields"""
     output = BytesIO()
     writer = csv.writer(output)
-    
+
     # Add more fields to CSV for comprehensive data export
     writer.writerow([
         'Title', 
@@ -266,16 +267,18 @@ def generate_csv_report(articles):
         date_str = article['date']
         if hasattr(date_str, 'strftime'):
             date_str = date_str.strftime('%Y-%m-%d')
-            
+
         # Clean up summary
         summary = clean_summary(article.get('summary', 'No summary available'))
-        
-        # Get the executive-relevant AI information with preference for ai_business_value
-        if 'ai_business_value' in article and article['ai_business_value'] and article['ai_business_value'] != "AI-related article found in scan":
+
+        # Always prioritize ai_business_value for executive relevance
+        if 'ai_business_value' in article and article['ai_business_value'] and len(article['ai_business_value']) > 10:
             exec_relevance = article['ai_business_value']
+        elif 'ai_validation' in article and article['ai_validation'] and article['ai_validation'] != "AI-related article found in scan":
+            exec_relevance = article['ai_validation']
         else:
             exec_relevance = generate_executive_relevance(article)
-        
+
         # Get additional metadata
         relevance_score = article.get('relevance_score', 'N/A')
         sentiment_score = article.get('sentiment_score', 'N/A')
@@ -291,5 +294,5 @@ def generate_csv_report(articles):
             sentiment_score,
             article_type
         ])
-    
+
     return output.getvalue()
