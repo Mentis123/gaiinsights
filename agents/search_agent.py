@@ -219,6 +219,28 @@ class SearchAgent:
             
             print(f"Found {len(unique_articles)} unique potential articles")
             
+            # Add deep scanning for manually specified URLs that might have been missed
+            additional_urls_to_scan = [
+                "https://consumergoods.com/beware-doom-loop-early-generative-ai-supply-chain-developments-show-productivity-paradox-gartner",
+                "https://consumergoods.com/church-dwight-maps-out-ai-fueled-marketing-strategy",
+                "https://www.adweek.com/brand-marketing/meta-nestle-circana-ai-innovation-evolving-commerce/",
+                "https://ppc.land/broadsign-debuts-ai-tool-for-out-of-home-ad-creative-approvals/",
+                "https://ppc.land/grounding-with-bing-search-enhances-azure-ai-agent-service/"
+            ]
+            
+            # Enable deep scanning for articles (additional fallback)
+            deep_scanned_articles = []
+            for url in additional_urls_to_scan:
+                if url not in seen_urls:
+                    articles_from_deep_scan = deep_scan_for_ai_content(url, self.cutoff_time)
+                    deep_scanned_articles.extend(articles_from_deep_scan)
+                    for article in articles_from_deep_scan:
+                        seen_urls.add(article['url'])
+            
+            # Add deep-scanned articles to the pool
+            unique_articles.extend(deep_scanned_articles)
+            print(f"Added {len(deep_scanned_articles)} articles from deep scanning")
+            
             # Batch validation for better performance
             validated_articles = self._validate_articles_batch(unique_articles)
             

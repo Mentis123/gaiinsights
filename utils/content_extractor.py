@@ -329,8 +329,9 @@ def find_ai_articles(source_url, cutoff_time):
 
         soup = BeautifulSoup(response.text, 'html.parser')
 
-        # Updated AI patterns to include hyphenated forms
+        # Expanded AI patterns to include business-focused and application terms
         ai_patterns = [
+            # Core AI terms
             r'\b[Aa][Ii]\b',  # Standalone "AI"
             r'\b[Aa][Ii]-[a-zA-Z]+\b',  # AI-powered, AI-driven, etc.
             r'\b[a-zA-Z]+-[Aa][Ii]\b',  # gen-AI, etc.
@@ -341,7 +342,36 @@ def find_ai_articles(source_url, cutoff_time):
             r'\bgenerative ai\b',
             r'\bchatgpt\b',
             r'\blarge language model\b',
-            r'\bllm\b'
+            r'\bllm\b',
+            
+            # Business applications and solutions
+            r'\bintelligent automation\b',
+            r'\bintelligent solution\b',
+            r'\bautomated (analysis|insight|decision)\b',
+            r'\bcognitive (computing|technology|solution)\b',
+            r'\bdigital assistant\b',
+            r'\bvirtual assistant\b',
+            r'\bsmart (technology|solution|platform)\b',
+            r'\bintelligent (system|platform)\b',
+            r'\bautomation\b',
+            
+            # Product-specific terms
+            r'\bbing search\b',
+            r'\bazure ai\b',
+            r'\bopenai\b',
+            r'\bgoogle (gemini|bard)\b',
+            r'\bcircana\b',
+            r'\bbroadsign\b',
+            r'\bmeta ai\b',
+            r'\bnestle ai\b',
+            
+            # Industry applications
+            r'\bsupply chain (intelligence|optimization)\b',
+            r'\bretail (intelligence|analytics)\b',
+            r'\bcustomer insight\b',
+            r'\brecommendation (system|engine)\b',
+            r'\badvertising (optimization|intelligence)\b',
+            r'\bmarketing (intelligence|automation)\b'
         ]
 
         ai_regex = re.compile('|'.join(ai_patterns), re.IGNORECASE)
@@ -398,4 +428,58 @@ def find_ai_articles(source_url, cutoff_time):
 
     except Exception as e:
         logger.error(f"Error finding AI articles from {source_url}: {str(e)}")
+        return []
+
+def deep_scan_for_ai_content(url, cutoff_time):
+    """
+    Perform a deeper scan of article content rather than just relying on titles
+    to better identify AI-related content
+    """
+    try:
+        logger.info(f"Performing deep scan of: {url}")
+        # First extract content from the page
+        content = extract_full_content(url)
+        if not content:
+            logger.error(f"Could not extract content from {url}")
+            return []
+            
+        # Define expanded set of AI-related terms
+        ai_terms = [
+            'ai', 'artificial intelligence', 'machine learning', 'neural network',
+            'generative ai', 'gpt', 'llm', 'large language model', 'chatgpt',
+            'computer vision', 'automation', 'intelligent system', 'predictive',
+            'openai', 'azure ai', 'gemini', 'bard', 'claude', 'mistral',
+            'intelligent automation', 'cognitive computing', 'smart technology',
+            'virtual assistant', 'digital assistant', 'recommendation engine',
+            'marketing intelligence', 'customer insights', 'supply chain optimization',
+            'productivity paradox', 'ai fueled', 'ai strategy', 'ai innovation',
+            'broadsign', 'circana', 'meta ai', 'nestle ai', 'ad creative', 'ad approval',
+            'grounding', 'bing search', 'agent service'
+        ]
+        
+        # Check content for AI terms
+        content_lower = content.lower()
+        matched_terms = set()
+        for term in ai_terms:
+            if term.lower() in content_lower:
+                matched_terms.add(term)
+                
+        # If significant number of AI terms found in content, extract article
+        if len(matched_terms) >= 2:
+            metadata = extract_metadata(url, cutoff_time)
+            if metadata:
+                logger.info(f"Deep scan found AI article: {metadata.get('title', 'Unknown')} with terms: {', '.join(matched_terms)}")
+                return [{
+                    'title': metadata.get('title', 'Article from deep scan'),
+                    'url': url,
+                    'date': metadata.get('date', datetime.now(pytz.UTC).strftime('%Y-%m-%d')),
+                    'source': url.split('/')[2],
+                    'matched_terms': list(matched_terms),
+                    'deep_scan': True
+                }]
+        
+        return []
+        
+    except Exception as e:
+        logger.error(f"Error in deep scan for {url}: {str(e)}")
         return []

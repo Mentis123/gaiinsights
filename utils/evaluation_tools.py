@@ -106,12 +106,35 @@ def validate_ai_relevance(article_data):
         'ai assistant': 4,
         'ai algorithm': 4,
         'ai technology': 4,
-
+        'ai innovation': 4,
+        'ai strategy': 5,
+        'ai marketing': 5,
+        'ai fueled': 5,
+        'ai agent': 5,
+        'ai service': 4,
+        'intelligent automation': 4,
+        'supply chain ai': 5,
+        'retail ai': 5,
+        'grounding': 3,
+        'ad creative': 3,
+        'ad approval': 3,
+        
+        # Vendor/product specific (medium weight)
+        'azure ai': 6,
+        'bing search': 5,
+        'meta ai': 6,
+        'nestle ai': 6,
+        'circana': 5,
+        'broadsign': 4,
+        'church & dwight': 3,
+        
         # Generic terms (low weight)
         'algorithm': 2,
         'automation': 2,
         'data science': 3,
-        'predictive': 2
+        'predictive': 2,
+        'insight': 2,
+        'innovation': 2
     }
 
     # Calculate relevance score
@@ -139,8 +162,8 @@ def validate_ai_relevance(article_data):
     max_possible_score = 150  # Approximate max possible score
     normalized_score = min(100, int((score / max_possible_score) * 100))
 
-    # Set threshold for relevance
-    threshold = 40
+    # Lower threshold for relevance to capture more business-oriented AI content
+    threshold = 25  # Reduced from 40
     is_relevant = normalized_score >= threshold
 
     # Generate reason
