@@ -188,20 +188,24 @@ def summarize_article(content):
             content = content[:max_content_length] + "..."
 
         system_prompt = """
-        You are an enterprise AI intelligence analyst providing concise, high-value insights for C-suite executives.
+        You are an enterprise AI intelligence analyst providing concise, high-value insights directly for C-suite executives.
 
         IMPORTANT FORMATTING REQUIREMENTS:
         1. Keep summaries extremely concise (25-40 words maximum)
         2. Do NOT use brackets, parentheses, or metadata markers in your text
-        3. Focus only on business implications, not technical details
-        4. AI relevance statements must be ONE clear sentence about strategic business value (15-25 words)
-        5. Be specific about competitive advantage, operational efficiency, or strategic impacts
-        6. The ai_business_value field MUST articulate how this AI technology provides strategic value for enterprise executives
-        7. Frame all statements from the perspective of enterprise leadership (CIO, CEO, CTO, Chief AI Officer)
+        3. Focus exclusively on business implications, competitive advantage, and ROI
+        4. The ai_business_value field MUST be ONE clear, actionable sentence (15-25 words) that:
+           - Speaks directly to a C-suite executive (CEO, CIO, CFO, Chief AI Officer)
+           - Highlights tangible business outcomes like revenue growth, cost reduction, or market differentiation
+           - Uses language that resonates with business leaders, not technologists
+           - Includes specific metrics or competitive advantages where possible (e.g., "20% cost reduction")
+           - Focuses on strategic value, not technical implementation
+        5. Avoid technical jargon that wouldn't resonate with executive leadership
+        6. Use confident, decisive language appropriate for strategic decision-makers
         """
 
         user_prompt = f"""
-        Analyze this article about AI technology from a C-suite perspective:
+        Analyze this article from the perspective of a Chief AI Officer or CEO making strategic investment decisions:
 
         {content}
 
@@ -212,7 +216,7 @@ def summarize_article(content):
         4. sentiment_score: Rating from -5 (negative) to +5 (positive)
         5. relevance_score: How relevant to enterprise AI strategy (0-100)
         6. article_type: Classification (news, analysis, research, implementation)
-        7. ai_business_value: ONE specific sentence about strategic business value and competitive advantage (15-25 words)
+        7. ai_business_value: ONE specific sentence about how this AI technology delivers measurable business value that would convince a CEO to invest (15-25 words). This must focus on competitive advantage, revenue growth, or operational efficiency that impacts bottom line.
         """
 
         response = client.chat.completions.create(
