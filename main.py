@@ -744,7 +744,7 @@ def main():
 
                     # Reset any previous scan artifacts
                     if 'progress_bar' in st.session_state:
-                        del st.session_state.progress_bar
+                        del st.sessionstate.progress_bar
                     if 'progress_text' in st.session_state:
                         del st.session_state.progress_text
                     if 'status_display' in st.session_state:
@@ -979,39 +979,25 @@ def main():
                             # Get AI relevance content
                             ai_relevance = article.get('ai_business_value', article.get('ai_validation', 'AI-related article found in scan'))
 
-                            # Start container div
-                            st.markdown(
-                                f'''<div class="article-container">
-                                    <div class="article-title">
-                                        <a href="{article['url']}" target="_blank" style="text-decoration: none; color: #7D56F4;">
-                                            {article['title']}
-                                        </a>
-                                    </div>
-                                    <div class="article-meta">
-                                        <span>📅 {display_date}</span>
-                                        <span style="margin-left: 10px;">🔍 Source: {article.get('source', 'Unknown')}</span>
-                                    </div>''',
-                                unsafe_allow_html=True
-                            )
+                            # Build complete article HTML in one string
+                            article_html = f"""
+                            <div class="article-container">
+                                <div class="article-title">
+                                    <a href="{article['url']}" target="_blank" style="text-decoration: none; color: #7D56F4;">
+                                        {article['title']}
+                                    </a>
+                                </div>
+                                <div class="article-meta">
+                                    <span>📅 {display_date}</span>
+                                    <span style="margin-left: 10px;">🔍 Source: {article.get('source', 'Unknown')}</span>
+                                </div>
+                                {f'<div class="article-summary">{article.get("summary", "No summary available")}</div>' if show_summaries else ''}
+                                {f'<div class="article-relevance"><span style="color: #4CAF50; font-weight: 500;">AI Relevance:</span> {ai_relevance}</div>' if show_relevance else ''}
+                            </div>
+                            """
 
-                            # Conditionally show summary
-                            if show_summaries:
-                                st.markdown(
-                                    f'''<div class="article-summary">{article.get('summary', 'No summary available')}</div>''',
-                                    unsafe_allow_html=True
-                                )
-
-                            # Show relevance if enabled
-                            if show_relevance:
-                                st.markdown(
-                                    f'''<div class="article-relevance">
-                                        <span style="color: #4CAF50; font-weight: 500;">AI Relevance:</span> {ai_relevance}
-                                    </div>''',
-                                    unsafe_allow_html=True
-                                )
-
-                            # Close container div
-                            st.markdown('</div>', unsafe_allow_html=True)
+                            # Render the complete article in a single markdown call
+                            st.markdown(article_html, unsafe_allow_html=True)
 
                     else:
                         # No articles found message with helpful suggestions
