@@ -496,41 +496,75 @@ def main():
             st.markdown('<div class="sidebar-section">', unsafe_allow_html=True)
             st.markdown('<div class="sidebar-title">Source Management</div>', unsafe_allow_html=True)
             
+            # Initialize button states if not present
+            if 'sources_button_active' not in st.session_state:
+                st.session_state.sources_button_active = False
+            if 'test_urls_button_active' not in st.session_state:
+                st.session_state.test_urls_button_active = False
+                
             col1, col2 = st.columns(2)
             with col1:
-                if st.button("📋 Edit Sources", use_container_width=True):
-                    st.session_state.show_url_editor = True
-                    st.session_state.edit_mode = 'source'
-                    # Load source URLs
-                    try:
-                        from utils.content_extractor import load_source_sites
-                        source_urls = load_source_sites(raw=True)
-                        st.session_state.current_urls = '\n'.join(source_urls)
-                    except Exception as e:
-                        logger.error(f"Error loading source URLs: {str(e)}")
-                        st.session_state.current_urls = ""
+                # Toggle button for Edit Sources
+                button_style = "background-color: rgba(125, 86, 244, 0.8); color: white;" if st.session_state.sources_button_active else ""
+                button_text = "📋 Close Editor" if st.session_state.sources_button_active else "📋 Edit Sources"
+                
+                if st.button(button_text, use_container_width=True, key="edit_sources_button"):
+                    if st.session_state.sources_button_active:
+                        # Close the editor
+                        st.session_state.show_url_editor = False
+                        st.session_state.sources_button_active = False
+                        st.session_state.test_urls_button_active = False
+                    else:
+                        # Open the editor
+                        st.session_state.show_url_editor = True
+                        st.session_state.edit_mode = 'source'
+                        st.session_state.sources_button_active = True
+                        st.session_state.test_urls_button_active = False
+                        
+                        # Load source URLs
+                        try:
+                            from utils.content_extractor import load_source_sites
+                            source_urls = load_source_sites(raw=True)
+                            st.session_state.current_urls = '\n'.join(source_urls)
+                        except Exception as e:
+                            logger.error(f"Error loading source URLs: {str(e)}")
+                            st.session_state.current_urls = ""
 
             with col2:
-                if st.button("🧪 Edit Test URLs", use_container_width=True):
-                    st.session_state.show_url_editor = True
-                    st.session_state.edit_mode = 'test'
-                    # Load test URLs
-                    try:
-                        test_urls_file = 'data/test_urls.csv'
-                        if not os.path.exists(test_urls_file):
-                            with open(test_urls_file, 'w', newline='') as f:
-                                f.write("https://www.wired.com/\n")  # Default test URL
+                # Toggle button for Edit Test URLs
+                button_style = "background-color: rgba(125, 86, 244, 0.8); color: white;" if st.session_state.test_urls_button_active else ""
+                button_text = "🧪 Close Editor" if st.session_state.test_urls_button_active else "🧪 Edit Test URLs"
+                
+                if st.button(button_text, use_container_width=True, key="edit_test_urls_button"):
+                    if st.session_state.test_urls_button_active:
+                        # Close the editor
+                        st.session_state.show_url_editor = False
+                        st.session_state.test_urls_button_active = False
+                        st.session_state.sources_button_active = False
+                    else:
+                        # Open the editor
+                        st.session_state.show_url_editor = True
+                        st.session_state.edit_mode = 'test'
+                        st.session_state.test_urls_button_active = True
+                        st.session_state.sources_button_active = False
+                        
+                        # Load test URLs
+                        try:
+                            test_urls_file = 'data/test_urls.csv'
+                            if not os.path.exists(test_urls_file):
+                                with open(test_urls_file, 'w', newline='') as f:
+                                    f.write("https://www.wired.com/\n")  # Default test URL
 
-                        test_urls = []
-                        with open(test_urls_file, 'r') as f:
-                            for line in f:
-                                if line.strip():
-                                    test_urls.append(line.strip())
+                            test_urls = []
+                            with open(test_urls_file, 'r') as f:
+                                for line in f:
+                                    if line.strip():
+                                        test_urls.append(line.strip())
 
-                        st.session_state.current_urls = '\n'.join(test_urls)
-                    except Exception as e:
-                        logger.error(f"Error loading test URLs: {str(e)}")
-                        st.session_state.current_urls = "https://www.wired.com/"
+                            st.session_state.current_urls = '\n'.join(test_urls)
+                        except Exception as e:
+                            logger.error(f"Error loading test URLs: {str(e)}")
+                            st.session_state.current_urls = "https://www.wired.com/"
             st.markdown('</div>', unsafe_allow_html=True)
             
             # Stats display when articles are available
@@ -628,8 +662,10 @@ def main():
                             # Clear processed URLs to ensure new sites are scanned
                             st.session_state.processed_urls = set()
 
-                            # Close the editor
+                            # Close the editor and reset button states
                             st.session_state.show_url_editor = False
+                            st.session_state.sources_button_active = False
+                            st.session_state.test_urls_button_active = False
                             # Force page refresh for changes to take effect
                             st.rerun()
 
@@ -640,6 +676,8 @@ def main():
                 with col2:
                     if st.button("❌ Cancel", use_container_width=True):
                         st.session_state.show_url_editor = False
+                        st.session_state.sources_button_active = False
+                        st.session_state.test_urls_button_active = False
                         st.rerun()
                 
                 st.markdown('</div>', unsafe_allow_html=True)
