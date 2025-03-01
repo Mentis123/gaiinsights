@@ -744,10 +744,11 @@ def main():
                     if 'current_url_display' in st.session_state:
                         del st.session_state.current_url_display
 
-                    #                    # Create placeholders for dynamic                    content
+                    # Create placeholders for dynamic content
+                    info_container = st.container()
                     with info_container:
                         st.markdown("""
-                        <div style="text-align center; margin: 2rem 0;"><div style="font-size: 1.2rem; margin-bottom: 1rem; color: #7D56F4; font-weight: 500;">
+                        <div style="text-align: center; margin: 2rem 0;"><div style="font-size: 1.2rem; margin-bottom: 1rem; color: #7D56F4; font-weight: 500;">
                                 Fetching AI news from trusted sources...
                             </div>
                         </div>
@@ -1133,7 +1134,7 @@ def main():
                                 label_visibility="visible"
                             )
 
-                        st.markdown('</div>', unsafe_allow_html=True)
+                    st.markdown('</div>', unsafe_allow_html=True)
 
                 # Apply filters and sorting
                 filtered_articles = st.session_state.articles
