@@ -1,0 +1,53 @@
+# AI News Aggregation System Interface Description
+
+## Overall Layout
+- The interface is divided into two main sections:
+  - **Left Panel**: Configuration settings.
+  - **Right Panel**: Main content display.
+- A vertical divider separates the two sections.
+
+## Left Panel: Configuration
+- **Header**: 
+  - Text: "Configuration" (white text).
+- **Scan Settings**:
+  - Toggle switch: 
+    - Label: "Test Mode" with a small information icon (question mark).
+    - Default state: Off (gray circle on the left).
+  - Time Range:
+    - Numeric input: 
+      - Default value: "1".
+      - Increment ("+") and decrement ("-") buttons.
+    - Dropdown menu:
+      - Selected option: "Days" (unit of time).
+- **Actions**:
+  - Button: 
+    - Label: "Fetch New Articles".
+    - Icon: Magnifying glass (left of the text).
+    - Style: Purple background with white text.
+- **Source Management**:
+  - Two buttons:
+    - Left button: "Edit Source URLs" (light gray background, white text).
+    - Right button: "Edit Test URLs" (light gray background, white text).
+- **Additional Element**:
+  - A small back arrow (or close icon) in the top-left corner, suggesting the panel can be closed or collapsed.
+
+## Right Panel: Main Content
+- **Title**: 
+  - Text: "AI News Aggregation System".
+  - Style: Large, bold, purple text.
+- **Description**:
+  - Text: "Collect and analyze the latest AI news from around the web."
+  - Style: Smaller white text.
+- **Error Message**:
+  - Text: "An unexpected error occurred. Please refresh the page."
+  - Style: Brown-colored box with rounded edges.
+
+## Design Notes
+- **Color Scheme**:
+  - Background: Black (dark theme).
+  - Text: Primarily white.
+  - Headings and buttons: Purple.
+  - Error message: Brown.
+- **General Style**:
+  - The interface uses a modern, dark-themed design with purple accents for headings and buttons.
+  - Buttons and interactive elements have rounded corners and subtle icons.
