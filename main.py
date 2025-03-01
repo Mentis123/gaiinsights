@@ -848,20 +848,26 @@ def main():
                         export_col1, export_col2 = st.columns([1, 1])
                         with export_col1:
                             if st.session_state.pdf_data:
+                                # Generate timestamped filename for PDF
+                                from utils.report_tools import get_timestamped_filename
+                                pdf_filename = f"{get_timestamped_filename('ai_news_report')}.pdf"
                                 st.download_button(
                                     "📄 Download PDF Report",
                                     st.session_state.pdf_data,
-                                    "ai_news_report.pdf",
+                                    pdf_filename,
                                     "application/pdf",
                                     use_container_width=True
                                 )
 
                         with export_col2:
                             if st.session_state.csv_data:
+                                # Generate timestamped filename for CSV
+                                from utils.report_tools import get_timestamped_filename
+                                csv_filename = f"{get_timestamped_filename('ai_news_report')}.csv"
                                 st.download_button(
                                     "📊 Download CSV Report",
                                     st.session_state.csv_data,
-                                    "ai_news_report.csv",
+                                    csv_filename,
                                     "text/csv",
                                     use_container_width=True
                                 )
@@ -978,20 +984,26 @@ def main():
 
                     export_col1, export_col2 = st.columns([1, 1])
                     with export_col1:
+                        # Generate timestamped filename for PDF
+                        from utils.report_tools import get_timestamped_filename
+                        pdf_filename = f"{get_timestamped_filename('ai_news_report')}.pdf"
                         st.download_button(
                             "📄 Download PDF Report",
                             st.session_state.pdf_data,
-                            "ai_news_report.pdf",
+                            pdf_filename,
                             "application/pdf",
                             use_container_width=True
                         )
 
                     with export_col2:
                         if hasattr(st.session_state, 'csv_data') and st.session_state.csv_data:
+                            # Generate timestamped filename for CSV
+                            from utils.report_tools import get_timestamped_filename
+                            csv_filename = f"{get_timestamped_filename('ai_news_report')}.csv"
                             st.download_button(
                                 "📊 Download CSV Report",
                                 st.session_state.csv_data,
-                                "ai_news_report.csv",
+                                csv_filename,
                                 "text/csv",
                                 use_container_width=True
                             )

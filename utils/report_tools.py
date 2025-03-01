@@ -7,6 +7,89 @@ from reportlab.lib.units import inch
 import csv
 from urllib.parse import quote, unquote
 from io import BytesIO
+from datetime import datetime
+import re
+
+def generate_executive_relevance(article):
+    """Generate executive-focused AI relevance content based on article context"""
+    title = article.get('title', '').lower()
+    summary = article.get('summary', '').lower()
+    
+    # Default relevance if we can't determine anything specific
+    default_relevance = "AI implementation with potential enterprise value"
+    
+    # Look for industry-specific indicators
+    industries = {
+        'retail': "Strategic for retail digital transformation, customer experience enhancement through AI",
+        'fashion': "AI innovation in fashion industry supply chain and manufacturing processes",
+        'manufacturing': "AI-driven manufacturing optimization and quality control applications",
+        'healthcare': "Healthcare AI applications that could transform patient care and operations",
+        'finance': "Financial services AI implementation that may impact risk management or customer experience",
+        'banking': "Banking sector AI applications with regulatory and customer service implications",
+        'education': "Educational technology AI developments relevant to training and development",
+        'media': "Media industry AI applications that impact content distribution and localization",
+        'language': "Language AI technology with global communication implications for multinational enterprises",
+        'customer': "Customer-facing AI implementations that may impact service delivery",
+        'security': "Security-related AI applications relevant to enterprise risk management",
+        'supply chain': "Supply chain optimization through AI with operational efficiency implications"
+    }
+    
+    # Check for specific AI technologies
+    technologies = {
+        'generative ai': "Generative AI with potential for content creation and automation",
+        'llm': "Large Language Model deployment with enterprise communication applications",
+        'machine learning': "Machine learning implementation with data-driven decision making potential",
+        'neural network': "Neural network technology with pattern recognition capabilities",
+        'computer vision': "Computer vision applications for quality control and process monitoring",
+        'natural language': "Natural language processing for customer service and documentation",
+        'automation': "AI-driven process automation with efficiency implications",
+        'predictive': "Predictive analytics for business forecasting and planning"
+    }
+    
+    # Combined text for analysis
+    text = title + " " + summary
+    
+    # Check for industry relevance
+    for industry, relevance in industries.items():
+        if industry in text:
+            return relevance
+    
+    # Check for technology relevance
+    for tech, relevance in technologies.items():
+        if tech in text:
+            return relevance
+    
+    return default_relevance
+
+def clean_summary(summary_text):
+    """Clean summary text to remove strange characters and formatting issues"""
+    if not summary_text:
+        return "This article discusses AI technology applications."
+    
+    # Replace square brackets, parentheses and their contents when they look like metadata
+    summary_text = re.sub(r'\[(.*?)\]', '', summary_text)
+    summary_text = re.sub(r'\([^)]*\)', '', summary_text)
+    
+    # Remove quotes that may have been added by LLMs
+    summary_text = summary_text.replace('"', '').replace('"', '')
+    
+    # Remove strange characters
+    summary_text = re.sub(r'[^\w\s.,;:!?-]', '', summary_text)
+    
+    # Normalize whitespace
+    summary_text = re.sub(r'\s+', ' ', summary_text).strip()
+    
+    # Limit length to make it more concise (about 2-3 sentences)
+    words = summary_text.split()
+    if len(words) > 40:
+        summary_text = ' '.join(words[:40]) + '...'
+    
+    return summary_text
+
+def get_timestamped_filename(prefix):
+    """Generate a filename with timestamp"""
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M')
+    return f"{prefix}_{timestamp}"
 
 def generate_pdf_report(articles):
     """Generate a comprehensive PDF report with enhanced formatting"""
@@ -48,7 +131,7 @@ def generate_pdf_report(articles):
     )
 
     # Include AI Relevance in the report
-    table_data = [['Article Title', 'Date', 'Summary', 'AI Relevance']]
+    table_data = [['Article Title', 'Date', 'Summary', 'Executive AI Relevance']]
 
     for article in articles:
         # Clean and normalize the URL
@@ -71,31 +154,19 @@ def generate_pdf_report(articles):
             date_str = date_str.strftime('%Y-%m-%d')
         date = Paragraph(date_str, normal_style)
         
-        # Ensure summary is available and well-formatted
-        summary_text = article.get('summary', 'No summary available')
-        if not summary_text or summary_text == 'Summary not available due to processing error.':
-            summary_text = 'This article discusses AI technology and its applications.'
-        
-        # Clean up the summary text
-        summary_text = summary_text.replace('\n', ' ').strip()
+        # Clean up the summary text for better formatting
+        summary_text = clean_summary(article.get('summary', 'No summary available'))
         summary = Paragraph(summary_text, normal_style)
         
-        # Add AI relevance information
-        relevance_text = article.get('ai_validation', 'AI-related article found in scan')
-        
-        # Enhance relevance text with score if available
-        if 'relevance_score' in article:
-            score = article['relevance_score']
-            if isinstance(score, (int, float)):
-                relevance_text += f" (Score: {score}/100)"
-        
-        relevance = Paragraph(relevance_text, relevance_style)
+        # Generate executive-relevant AI information
+        exec_relevance = generate_executive_relevance(article)
+        relevance = Paragraph(exec_relevance, relevance_style)
 
         # Add the row to the table
         table_data.append([title, date, summary, relevance])
 
     # Adjust column widths for better layout
-    col_widths = [3*inch, 0.8*inch, 4.5*inch, 1.7*inch]
+    col_widths = [3*inch, 0.8*inch, 3.5*inch, 2.7*inch]
     table = Table(table_data, colWidths=col_widths)
 
     # Enhanced table styling
@@ -127,9 +198,10 @@ def generate_pdf_report(articles):
         ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.whitesmoke, colors.white]),
     ]))
 
-    # Add a title to the report
-    title = Paragraph("AI News Aggregation Report", styles['Title'])
-    date_generated = Paragraph(f"Generated on: {datetime.now().strftime('%Y-%m-%d')}", styles['Normal'])
+    # Add a title to the report with current date
+    current_date = datetime.now().strftime('%Y-%m-%d')
+    title = Paragraph(f"AI News Aggregation Report - {current_date}", styles['Title'])
+    date_generated = Paragraph(f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M')}", styles['Normal'])
     
     # Build the document
     doc.build([title, Spacer(1, 0.2*inch), date_generated, Spacer(1, 0.3*inch), table])
@@ -149,7 +221,7 @@ def generate_csv_report(articles):
         'URL', 
         'Date', 
         'Summary', 
-        'AI Relevance', 
+        'Executive AI Relevance', 
         'Relevance Score', 
         'Sentiment Score', 
         'Article Type'
@@ -172,13 +244,13 @@ def generate_csv_report(articles):
         if hasattr(date_str, 'strftime'):
             date_str = date_str.strftime('%Y-%m-%d')
             
-        # Ensure summary is available
-        summary = article.get('summary', 'No summary available')
-        if not summary or summary == 'Summary not available due to processing error.':
-            summary = 'This article discusses AI technology and its applications.'
-            
+        # Clean up summary
+        summary = clean_summary(article.get('summary', 'No summary available'))
+        
+        # Generate executive-relevant AI information
+        exec_relevance = generate_executive_relevance(article)
+        
         # Get additional metadata
-        relevance = article.get('ai_validation', 'AI-related article found in scan')
         relevance_score = article.get('relevance_score', 'N/A')
         sentiment_score = article.get('sentiment_score', 'N/A')
         article_type = article.get('article_type', 'N/A')
@@ -188,7 +260,7 @@ def generate_csv_report(articles):
             url,
             date_str,
             summary,
-            relevance,
+            exec_relevance,
             relevance_score,
             sentiment_score,
             article_type
