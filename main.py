@@ -172,7 +172,7 @@ def process_batch(sources, cutoff_time, db, seen_urls, status_placeholder):
                 </div>
                 """
                 st.session_state.current_url_display.markdown(url_display, unsafe_allow_html=True)
-            
+
             if source in st.session_state.processed_urls:
                 continue
 
@@ -260,7 +260,7 @@ def main():
             max-width: 1200px;
             margin: 0 auto;
         }
-        
+
         /* Header Styles */
         .main-header {
             font-size: 2.5rem;
@@ -272,7 +272,7 @@ def main():
             text-align: center;
             letter-spacing: -0.5px;
         }
-        
+
         .subheader {
             font-size: 1.2rem;
             color: #cccccc;
@@ -280,7 +280,7 @@ def main():
             text-align: center;
             font-weight: 300;
         }
-        
+
         /* Section Headers */
         .section-header {
             font-weight: 600;
@@ -291,7 +291,7 @@ def main():
             color: #7D56F4;
             letter-spacing: 0.5px;
         }
-        
+
         /* Cards and Containers */
         .article-container {
             border: 1px solid rgba(125, 86, 244, 0.2);
@@ -302,20 +302,20 @@ def main():
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             transition: transform 0.2s, box-shadow 0.2s;
         }
-        
+
         .article-container:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
             border-color: rgba(125, 86, 244, 0.4);
         }
-        
+
         .article-title {
             font-size: 1.4rem;
             font-weight: 600;
             margin-bottom: 0.7rem;
             line-height: 1.3;
         }
-        
+
         .article-meta {
             font-size: 0.85rem;
             color: #bbbbbb;
@@ -324,13 +324,13 @@ def main():
             align-items: center;
             gap: 8px;
         }
-        
+
         .article-summary {
             font-size: 1rem;
             line-height: 1.6;
             color: #e0e0e0;
         }
-        
+
         /* Buttons and Interactive Elements */
         .custom-button {
             border-radius: 6px;
@@ -338,7 +338,7 @@ def main():
             transition: all 0.2s;
             letter-spacing: 0.3px;
         }
-        
+
         /* Status Indicators */
         .status-container {
             background-color: rgba(20, 20, 35, 0.7);
@@ -349,13 +349,13 @@ def main():
             max-height: 200px;
             overflow-y: auto;
         }
-        
+
         .status-item {
             padding: 6px 0;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
             font-size: 0.9rem;
         }
-        
+
         /* URL Editor */
         .url-editor-container {
             background-color: rgba(20, 20, 35, 0.9);
@@ -365,7 +365,7 @@ def main():
             margin-top: 1rem;
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
         }
-        
+
         /* Sidebar Refinements */
         .sidebar-header {
             font-size: 1.3rem;
@@ -373,20 +373,20 @@ def main():
             margin-bottom: 1rem;
             color: #7D56F4;
         }
-        
+
         .sidebar-section {
             margin-bottom: 1.5rem;
             padding-bottom: 1rem;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
-        
+
         .sidebar-title {
             font-size: 1rem;
             font-weight: 500;
             margin-bottom: 0.5rem;
             color: #e0e0e0;
         }
-        
+
         /* Dashboard Cards */
         .dashboard-card {
             background-color: rgba(20, 20, 35, 0.7);
@@ -396,19 +396,19 @@ def main():
             margin-bottom: 1rem;
             text-align: center;
         }
-        
+
         .stat-number {
             font-size: 2rem;
             font-weight: 700;
             color: #7D56F4;
             margin-bottom: 0.3rem;
         }
-        
+
         .stat-label {
             font-size: 0.9rem;
             color: #cccccc;
         }
-        
+
         /* Error messages */
         .error-container {
             background-color: rgba(169, 48, 48, 0.2);
@@ -417,7 +417,7 @@ def main():
             padding: 1rem;
             margin: 1rem 0;
         }
-        
+
         /* Loading indicators */
         .loader-container {
             display: flex;
@@ -425,7 +425,7 @@ def main():
             align-items: center;
             padding: 2rem;
         }
-        
+
         /* Toggle button enhancements */
         .toggle-label {
             font-weight: 500;
@@ -433,7 +433,7 @@ def main():
             align-items: center;
             gap: 8px;
         }
-        
+
         /* Export section */
         .export-section {
             margin-top: 1.5rem;
@@ -442,33 +442,33 @@ def main():
             padding: 1.2rem;
             border: 1px solid rgba(125, 86, 244, 0.2);
         }
-        
+
         /* Hide default Streamlit elements */
         #MainMenu {visibility: hidden;}
         .stDeployButton {display:none;}
         footer {visibility: hidden;}
         header {visibility: hidden;}
-        
+
         /* Make elements more compact in the sidebar */
         .sidebar .stSelectbox, .sidebar .stNumberInput {
             margin-bottom: 0.5rem;
         }
-        
+
         /* Custom scrollbar for dark theme */
         ::-webkit-scrollbar {
             width: 8px;
             height: 8px;
         }
-        
+
         ::-webkit-scrollbar-track {
             background: rgba(20, 20, 35, 0.7);
         }
-        
+
         ::-webkit-scrollbar-thumb {
             background: rgba(125, 86, 244, 0.5);
             border-radius: 4px;
         }
-        
+
         ::-webkit-scrollbar-thumb:hover {
             background: rgba(125, 86, 244, 0.7);
         }
@@ -482,11 +482,11 @@ def main():
         # Redesigned sidebar with improved organization and visual hierarchy
         with st.sidebar:
             st.markdown('<div class="sidebar-header">Configuration</div>', unsafe_allow_html=True)
-            
+
             # Scan Settings with improved layout
             st.markdown('<div class="sidebar-section">', unsafe_allow_html=True)
             st.markdown('<div class="sidebar-title">Scan Settings</div>', unsafe_allow_html=True)
-            
+
             # Test mode toggle with custom styling
             test_mode_col1, test_mode_col2 = st.columns([4, 1])
             with test_mode_col1:
@@ -497,7 +497,7 @@ def main():
                 )
             with test_mode_col2:
                 st.markdown("ⓘ", help="Test mode uses a limited set of URLs for faster scanning and testing")
-                
+
             # Time Range with improved layout
             st.markdown('<div class="sidebar-title">Time Range</div>', unsafe_allow_html=True)
             col1, col2 = st.columns([1, 1])
@@ -506,11 +506,11 @@ def main():
             with col2:
                 time_unit = st.selectbox("Unit", ["Days", "Weeks"], index=0)
             st.markdown('</div>', unsafe_allow_html=True)
-            
+
             # Actions section with prominent button
             st.markdown('<div class="sidebar-section">', unsafe_allow_html=True)
             st.markdown('<div class="sidebar-title">Actions</div>', unsafe_allow_html=True)
-            
+
             fetch_button = st.button(
                 "🔍 Fetch New Articles" if not st.session_state.is_fetching else "⏳ Fetching...",
                 disabled=st.session_state.is_fetching,
@@ -518,16 +518,16 @@ def main():
                 use_container_width=True
             )
             st.markdown('</div>', unsafe_allow_html=True)
-            
+
             # URL management section with improved buttons
             st.markdown('<div class="sidebar-section">', unsafe_allow_html=True)
             st.markdown('<div class="sidebar-title">Source Management</div>', unsafe_allow_html=True)
-            
+
             col1, col2 = st.columns(2)
             with col1:
                 # Determine button text based on current state
                 sources_button_text = "📋 Close Editor" if st.session_state.show_url_editor and st.session_state.edit_mode == 'source' else "📋 Edit Sources"
-                
+
                 # Toggle button for Edit Sources
                 if st.button(sources_button_text, use_container_width=True, key="edit_sources_button"):
                     # Toggle the editor state
@@ -540,7 +540,7 @@ def main():
                         # Open the editor in source mode
                         st.session_state.show_url_editor = True
                         st.session_state.edit_mode = 'source'
-                        
+
                         # Load source URLs
                         try:
                             from utils.content_extractor import load_source_sites
@@ -549,13 +549,13 @@ def main():
                         except Exception as e:
                             logger.error(f"Error loading source URLs: {str(e)}")
                             st.session_state.current_urls = ""
-                        
+
                         st.rerun()
 
             with col2:
                 # Determine button text based on current state
                 test_button_text = "🧪 Close Editor" if st.session_state.show_url_editor and st.session_state.edit_mode == 'test' else "🧪 Edit Test URLs"
-                
+
                 # Toggle button for Edit Test URLs
                 if st.button(test_button_text, use_container_width=True, key="edit_test_urls_button"):
                     # Toggle the editor state
@@ -568,7 +568,7 @@ def main():
                         # Open the editor in test mode
                         st.session_state.show_url_editor = True
                         st.session_state.edit_mode = 'test'
-                        
+
                         # Load test URLs
                         try:
                             test_urls_file = 'data/test_urls.csv'
@@ -586,15 +586,15 @@ def main():
                         except Exception as e:
                             logger.error(f"Error loading test URLs: {str(e)}")
                             st.session_state.current_urls = "https://www.wired.com/"
-                        
+
                         st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
-            
+
             # Stats display when articles are available
             if hasattr(st.session_state, 'articles') and st.session_state.articles:
                 st.markdown('<div class="sidebar-section">', unsafe_allow_html=True)
                 st.markdown('<div class="sidebar-title">Statistics</div>', unsafe_allow_html=True)
-                
+
                 stats_col1, stats_col2 = st.columns(2)
                 with stats_col1:
                     st.markdown(f"""
@@ -603,7 +603,7 @@ def main():
                         <div class="stat-label">Articles Found</div>
                     </div>
                     """, unsafe_allow_html=True)
-                
+
                 with stats_col2:
                     sources_count = len(set([a.get('source', '') for a in st.session_state.articles]))
                     st.markdown(f"""
@@ -612,7 +612,7 @@ def main():
                         <div class="stat-label">Sources</div>
                     </div>
                     """, unsafe_allow_html=True)
-                
+
                 st.markdown('</div>', unsafe_allow_html=True)
 
         # Enhanced modal dialog for URL editing when enabled
@@ -620,24 +620,24 @@ def main():
             # Create a modern, card-like dialog with a container
             with st.container():
                 st.markdown('<div class="url-editor-container">', unsafe_allow_html=True)
-                
+
                 # Enhanced header with mode information
                 mode_title = "Source URLs" if st.session_state.edit_mode == 'source' else "Test Mode URLs"
                 mode_icon = "🌐" if st.session_state.edit_mode == 'source' else "🧪"
-                
+
                 st.markdown(f"""
                 <div style="display: flex; align-items: center; margin-bottom: 1rem;">
                     <h2 style="margin: 0; color: #7D56F4;">{mode_icon} Edit {mode_title}</h2>
                 </div>
                 """, unsafe_allow_html=True)
-                
+
                 # Help text explaining the purpose
                 help_text = (
                     "Add or remove websites where AI news will be searched." 
                     if st.session_state.edit_mode == 'source' 
                     else "Edit URLs used during test mode for faster development and testing."
                 )
-                
+
                 st.markdown(f"""
                 <div style="margin-bottom: 1rem; color: #cccccc; font-size: 0.9rem;">
                     {help_text} Enter one URL per line.
@@ -652,11 +652,11 @@ def main():
                     key="url_editor_area",
                     help="Enter one URL per line. Each URL should start with http:// or https://"
                 )
-                
+
                 # URL validation
                 urls_list = edited_urls.strip().split('\n')
                 valid_urls = [url.strip() for url in urls_list if url.strip()]
-                
+
                 # Show URL count
                 st.markdown(f"""
                 <div style="margin-top: 0.5rem; color: #cccccc; font-size: 0.9rem; text-align: right;">
@@ -702,7 +702,7 @@ def main():
                         st.session_state.sources_button_active = False
                         st.session_state.test_urls_button_active = False
                         st.rerun()
-                
+
                 st.markdown('</div>', unsafe_allow_html=True)
 
         # Main content area with refined design
@@ -714,13 +714,13 @@ def main():
                     for status in st.session_state.scan_status[:50]:  # Show just the last 50 messages
                         st.markdown(f'<div class="status-item">{status}</div>', unsafe_allow_html=True)
                     st.markdown('</div>', unsafe_allow_html=True)
-            
+
             # Fetch process with enhanced visuals
             if fetch_button or st.session_state.is_fetching:
                 st.session_state.is_fetching = True
                 try:
                     start_time = datetime.now()
-                    
+
                     # Reset any previous scan artifacts
                     if 'progress_bar' in st.session_state:
                         del st.session_state.progress_bar
@@ -730,7 +730,7 @@ def main():
                         del st.session_state.status_display
                     if 'current_url_display' in st.session_state:
                         del st.session_state.current_url_display
-                    
+
                     # Create placeholders for dynamic content
                     info_container = st.container()
                     with info_container:
@@ -741,20 +741,20 @@ def main():
                             </div>
                         </div>
                         """, unsafe_allow_html=True)
-                        
+
                         # Create a placeholder for displaying the current URL being processed
                         st.session_state.current_url_display = st.empty()
-                        
+
                         # Progress indicators
                         progress_cols = st.columns([3, 1])
                         with progress_cols[0]:
                             st.session_state.progress_bar = st.progress(0)
                         with progress_cols[1]:
                             st.session_state.progress_text = st.empty()
-                        
+
                         # Status display
                         st.session_state.status_display = st.empty()
-                    
+
                     # Fetch sources and setup
                     from utils.content_extractor import load_source_sites
                     sources = load_source_sites(test_mode=st.session_state.test_mode)
@@ -762,7 +762,7 @@ def main():
                     db = DBManager()
 
                     seen_urls = set()  # Reset seen URLs each time
-                    
+
                     status_placeholder = st.session_state.status_display
 
                     batch_size = 5
@@ -808,7 +808,7 @@ def main():
                     # Clear the current URL display when fetching completes
                     if 'current_url_display' in st.session_state:
                         st.session_state.current_url_display.empty()
-                        
+
                     # Reset fetching state
                     st.session_state.is_fetching = False
 
@@ -844,7 +844,7 @@ def main():
                         # Enhanced export section with attractive design
                         st.markdown('<div class="export-section">', unsafe_allow_html=True)
                         st.markdown('<h3 style="margin-top: 0; font-size: 1.3rem; color: #7D56F4; margin-bottom: 1rem;">Export Reports</h3>', unsafe_allow_html=True)
-                        
+
                         export_col1, export_col2 = st.columns([1, 1])
                         with export_col1:
                             if st.session_state.pdf_data:
@@ -869,7 +869,7 @@ def main():
 
                         # Then show articles with elegant cards
                         st.markdown('<h2 class="section-header">AI News Articles</h2>', unsafe_allow_html=True)
-                        
+
                         # Display filters and sorting options
                         filter_col1, filter_col2, filter_col3 = st.columns([2, 2, 1])
                         with filter_col1:
@@ -880,20 +880,20 @@ def main():
                                 ["All Sources"] + sources,
                                 index=0
                             )
-                            
+
                         with filter_col2:
                             sort_options = ["Most Recent", "Oldest First", "Alphabetical (A-Z)"]
                             sort_by = st.selectbox("Sort Articles", sort_options, index=0)
-                        
+
                         with filter_col3:
                             st.markdown("<br>", unsafe_allow_html=True)  # Add spacing for alignment
                             show_summaries = st.checkbox("Show Summaries", value=True)
-                        
+
                         # Apply filters and sorting
                         filtered_articles = st.session_state.articles
                         if selected_source != "All Sources":
                             filtered_articles = [a for a in filtered_articles if a.get('source', 'Unknown') == selected_source]
-                        
+
                         # Apply sorting
                         if sort_by == "Most Recent":
                             filtered_articles = sorted(filtered_articles, key=lambda x: x.get('date', ''), reverse=True)
@@ -901,10 +901,10 @@ def main():
                             filtered_articles = sorted(filtered_articles, key=lambda x: x.get('date', ''))
                         elif sort_by == "Alphabetical (A-Z)":
                             filtered_articles = sorted(filtered_articles, key=lambda x: x.get('title', '').lower())
-                        
+
                         # Show filtered count
                         st.markdown(f"<div style='margin-bottom: 1rem; font-size: 0.9rem; color: #cccccc;'>Showing {len(filtered_articles)} of {len(st.session_state.articles)} articles</div>", unsafe_allow_html=True)
-                        
+
                         # Display articles in modern cards
                         for article in filtered_articles:
                             # Parse date if needed
@@ -915,7 +915,7 @@ def main():
                                     display_date = article['date']
                             else:
                                 display_date = article['date'].strftime('%Y-%m-%d')
-                            
+
                             # Create a beautiful card for each article
                             st.markdown(f"""
                             <div class="article-container">
@@ -950,7 +950,7 @@ def main():
                     error_message = str(e)
                     logger.error(f"Error in main process: {error_message}")
                     traceback_details = traceback.format_exc()
-                    
+
                     # Enhanced error display
                     st.markdown(f"""
                     <div class="error-container">
@@ -963,19 +963,19 @@ def main():
                         </div>
                     </div>
                     """, unsafe_allow_html=True)
-                    
+
                     with st.expander("Show detailed error information"):
                         st.code(traceback_details, language="python")
-            
+
             # Display previously fetched articles if available
             elif hasattr(st.session_state, 'articles') and st.session_state.articles:
                 st.markdown('<h2 class="section-header">AI News Articles</h2>', unsafe_allow_html=True)
-                
+
                 # Show export options if reports are available
                 if hasattr(st.session_state, 'pdf_data') and st.session_state.pdf_data:
                     st.markdown('<div class="export-section">', unsafe_allow_html=True)
                     st.markdown('<h3 style="margin-top: 0; font-size: 1.3rem; color: #7D56F4; margin-bottom: 1rem;">Export Reports</h3>', unsafe_allow_html=True)
-                    
+
                     export_col1, export_col2 = st.columns([1, 1])
                     with export_col1:
                         st.download_button(
@@ -996,9 +996,46 @@ def main():
                                 use_container_width=True
                             )
                     st.markdown('</div>', unsafe_allow_html=True)
-                
-                # Display each article in a card
-                for article in st.session_state.articles:
+
+                # Always show filter controls for previously fetched articles
+                # Get unique sources for filtering
+                sources = list(set([a.get('source', 'Unknown') for a in st.session_state.articles]))
+                filter_col1, filter_col2, filter_col3 = st.columns([2, 2, 1])
+
+                with filter_col1:
+                    selected_source = st.selectbox(
+                        "Filter by Source",
+                        ["All Sources"] + sources,
+                        index=0,
+                        key="prev_source_filter"
+                    )
+
+                with filter_col2:
+                    sort_options = ["Most Recent", "Oldest First", "Alphabetical (A-Z)"]
+                    sort_by = st.selectbox("Sort Articles", sort_options, index=0, key="prev_sort_by")
+
+                with filter_col3:
+                    st.markdown("<br>", unsafe_allow_html=True)  # Add spacing for alignment
+                    show_summaries = st.checkbox("Show Summaries", value=True, key="prev_show_summaries")
+
+                # Apply filters and sorting
+                filtered_articles = st.session_state.articles
+                if selected_source != "All Sources":
+                    filtered_articles = [a for a in filtered_articles if a.get('source', 'Unknown') == selected_source]
+
+                # Apply sorting
+                if sort_by == "Most Recent":
+                    filtered_articles = sorted(filtered_articles, key=lambda x: x.get('date', ''), reverse=True)
+                elif sort_by == "Oldest First":
+                    filtered_articles = sorted(filtered_articles, key=lambda x: x.get('date', ''))
+                elif sort_by == "Alphabetical (A-Z)":
+                    filtered_articles = sorted(filtered_articles, key=lambda x: x.get('title', '').lower())
+
+                # Show filtered count
+                st.markdown(f"<div style='margin-bottom: 1rem; font-size: 0.9rem; color: #cccccc;'>Showing {len(filtered_articles)} of {len(st.session_state.articles)} articles</div>", unsafe_allow_html=True)
+
+                # Display each article in a card with conditional summaries
+                for article in filtered_articles:
                     # Parse date if needed
                     if isinstance(article['date'], str):
                         try:
@@ -1007,8 +1044,9 @@ def main():
                             display_date = article['date']
                     else:
                         display_date = article['date'].strftime('%Y-%m-%d')
-                    
-                    # Create a beautiful card for each article
+
+                    # Create a beautiful card for each article with conditional summary
+                    summary_html = f'<div class="article-summary">{article["summary"]}</div>' if show_summaries else ''
                     st.markdown(f"""
                     <div class="article-container">
                         <div class="article-title">
@@ -1020,10 +1058,10 @@ def main():
                             <span>📅 {display_date}</span>
                             <span style="margin-left: 10px;">🔍 Source: {article.get('source', 'Unknown')}</span>
                         </div>
-                        <div class="article-summary">{article["summary"]}</div>
+                        {summary_html}
                     </div>
                     """, unsafe_allow_html=True)
-            
+
             # Display welcome message for first-time users
             else:
                 st.markdown("""
@@ -1037,7 +1075,7 @@ def main():
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
-                
+
                 # Show quick tips expander
                 with st.expander("Quick Tips"):
                     st.markdown("""
