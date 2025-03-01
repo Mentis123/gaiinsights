@@ -893,7 +893,7 @@ def main():
 
                         with filter_col3:
                             st.markdown("<br>", unsafe_allow_html=True)  # Add spacing for alignment
-                            show_summaries = st.checkbox("Show Summaries", value=True, key="fetch_show_summaries")
+                            show_summaries = st.checkbox("Show Summaries", value=True, key="show_summaries_initial_view")
 
                         # Apply filters and sorting
                         filtered_articles = st.session_state.articles
@@ -1028,7 +1028,7 @@ def main():
 
                 with filter_col3:
                     st.markdown("<br>", unsafe_allow_html=True)  # Add spacing for alignment
-                    show_summaries = st.checkbox("Show Summaries", value=True, key="prev_show_summaries")
+                    show_summaries = st.checkbox("Show Summaries", value=True, key="show_summaries_previous_view")
 
                 # Apply filters and sorting
                 filtered_articles = st.session_state.articles
