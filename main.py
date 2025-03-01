@@ -1002,41 +1002,33 @@ def main():
 
                     ai_relevance = article.get('ai_business_value', article.get('ai_validation', 'AI-related article found in scan'))
 
-                    # Start container div
-                    st.markdown(
-                        f'''<div class="article-container">
-                            <div class="article-header">
-                                <div class="article-title">
-                                    <a href="{article['url']}" target="_blank" rel="noopener noreferrer" style="text-decoration: none; color: #7D56F4;">
-                                        {article['title']}
-                                    </a>
+                    # Create a single container with all content
+                    article_html = f"""
+                    <div class="article-container">
+                        <div class="article-header">
+                            <div class="article-title">
+                                <a href="{article['url']}" target="_blank" style="text-decoration: none; color: #7D56F4;">
+                                    {article['title']}
+                                </a>
+                            </div>
+                            <div class="article-meta">
+                                <span>📅 {display_date}</span>
+                                <span style="margin-left: 10px;">🔍 Source: {article.get('source', 'Unknown')}</span>
+                            </div>
+                        </div>
+                        <div class="article-content">
+                            <div class="article-details">
+                                <div class="article-summary" style="display: {'block' if show_summaries else 'none'};">
+                                    {article.get('summary', 'No summary available')}
                                 </div>
-                                <div class="article-meta">
-                                    <span>📅 {display_date}</span>
-                                    <span>🔍 Source: {article.get('source', 'Unknown')}</span>
+                                <div class="article-relevance" style="display: {'block' if show_relevance else 'none'};">
+                                    <span style="color: #4CAF50; font-weight: 500;">AI Relevance:</span> {ai_relevance}
                                 </div>
-                            </div>''',
-                        unsafe_allow_html=True
-                    )
-
-                    # Conditionally show summary
-                    if show_summaries:
-                        st.markdown(
-                            f'''<div class="article-summary">{article.get('summary', 'No summary available')}</div>''',
-                            unsafe_allow_html=True
-                        )
-
-                    # Show relevance if enabled
-                    if show_relevance:
-                        st.markdown(
-                            f'''<div class="article-relevance">
-                                <span style="color: #4CAF50; font-weight: 500;">AI Relevance:</span> {ai_relevance}
-                            </div>''',
-                            unsafe_allow_html=True
-                        )
-
-                    # Close container div
-                    st.markdown('</div>', unsafe_allow_html=True)
+                            </div>
+                        </div>
+                    </div>
+                    """
+                    st.markdown(article_html, unsafe_allow_html=True)
 
             # Display welcome message for first-time users
             else:
