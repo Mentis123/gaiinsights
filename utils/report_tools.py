@@ -8,6 +8,7 @@ from urllib.parse import quote, unquote
 from io import BytesIO
 from datetime import datetime
 import re
+import random
 
 def generate_executive_relevance(article):
     """Generate enterprise executive-focused AI relevance assessment"""
@@ -19,55 +20,110 @@ def generate_executive_relevance(article):
     if 'ai_validation' in article and article['ai_validation'] and article['ai_validation'] != "AI-related article found in scan":
         return article['ai_validation']
 
-    # As a fallback, generate a relevance statement based on keywords
+    # Combined text for comprehensive analysis
     title = article.get('title', '').lower()
     summary = article.get('summary', '').lower()
+    text = title + " " + summary
 
-    # Default relevance for enterprise executive context
-    default_relevance = "Enterprise executives should evaluate how this AI application can be adapted within their organization to improve operational efficiency and enhance employee capabilities"
+    # Dynamic opening phrases based on content analysis
+    opening_phrases = {
+        'strategy': [
+            "Consider implementing",
+            "Explore opportunities with",
+            "Evaluate the potential of",
+            "Capitalize on",
+            "Integrate"
+        ],
+        'innovation': [
+            "Stay competitive by leveraging",
+            "Transform operations through",
+            "Accelerate growth with",
+            "Pioneer new solutions using",
+            "Maximize efficiency through"
+        ],
+        'risk': [
+            "Mitigate risks by implementing",
+            "Strengthen security with",
+            "Protect assets using",
+            "Enhance compliance through",
+            "Safeguard operations with"
+        ],
+        'customer': [
+            "Enhance customer experience using",
+            "Drive engagement through",
+            "Personalize services with",
+            "Improve satisfaction using",
+            "Revolutionize interactions via"
+        ],
+        'efficiency': [
+            "Optimize processes with",
+            "Streamline operations using",
+            "Boost productivity through",
+            "Reduce costs by implementing",
+            "Scale operations with"
+        ]
+    }
+
+    # Content-based phrase selection
+    phrase_category = 'strategy'  # default
+    if any(word in text for word in ['innovate', 'transform', 'future', 'breakthrough']):
+        phrase_category = 'innovation'
+    elif any(word in text for word in ['risk', 'security', 'protect', 'compliance']):
+        phrase_category = 'risk'
+    elif any(word in text for word in ['customer', 'user', 'experience', 'service']):
+        phrase_category = 'customer'
+    elif any(word in text for word in ['efficiency', 'optimize', 'streamline', 'productivity']):
+        phrase_category = 'efficiency'
+
+    opening = random.choice(opening_phrases[phrase_category])
 
     # Industry-specific strategic relevance with enterprise adoption focus
     industries = {
-        'retail': "Retail organizations should consider similar AI applications to enhance customer personalization and streamline inventory management processes",
-        'fashion': "Fashion industry leaders can apply these AI approaches to improve demand forecasting and create more responsive supply chain operations",
-        'manufacturing': "Manufacturing executives should evaluate how these AI quality systems could reduce defects and optimize production workflows",
-        'healthcare': "Healthcare organizations can adopt comparable AI solutions to improve clinical workflows and enhance patient care coordination",
-        'finance': "Financial services teams should explore implementing similar AI tools to strengthen risk assessment and automate compliance monitoring",
-        'banking': "Banking leaders can leverage this type of AI to enhance fraud detection capabilities and deliver personalized customer experiences",
-        'education': "Education institutions should consider these AI applications to develop personalized learning experiences and administrative efficiencies",
-        'media': "Media organizations can implement similar AI solutions to optimize content creation workflows and audience targeting capabilities",
-        'language': "Organizations with global operations should adopt these language AI technologies to improve cross-border collaboration",
-        'customer': "Customer service teams can implement this AI approach to enhance support operations and provide more personalized interactions",
-        'security': "Security operations can benefit from similar AI implementations to strengthen threat detection and automate incident response",
-        'supply chain': "Supply chain leaders should consider these AI capabilities to improve forecasting accuracy and create more resilient operations"
+        'retail': "these retail-focused AI solutions to enhance customer personalization and streamline inventory management",
+        'fashion': "AI-driven trend analysis to improve demand forecasting and create responsive supply chains",
+        'manufacturing': "smart manufacturing systems to reduce defects and optimize production workflows",
+        'healthcare': "healthcare-specific AI solutions to improve clinical workflows and enhance patient care",
+        'finance': "financial AI tools to strengthen risk assessment and automate compliance monitoring",
+        'banking': "banking-focused AI to enhance fraud detection and deliver personalized experiences",
+        'education': "educational AI applications to develop personalized learning experiences",
+        'media': "media-optimized AI to enhance content creation and audience targeting",
+        'language': "language AI technologies to improve global collaboration",
+        'customer': "AI-powered customer service solutions to enhance support operations",
+        'security': "AI security systems to strengthen threat detection and automate responses",
+        'supply chain': "supply chain AI to improve forecasting accuracy and operational resilience"
     }
 
-    # Technology-specific business implications with organization adoption focus
+    # Technology-specific business implications
     technologies = {
-        'generative ai': "Enterprise teams should evaluate how this generative AI approach could enhance content creation processes and knowledge work productivity",
-        'llm': "Organizations can implement similar large language model applications to augment knowledge workers and streamline information access",
-        'machine learning': "Operational teams should consider how these machine learning capabilities could improve decision-making processes and forecasting accuracy",
-        'neural network': "Quality control operations can benefit from implementing similar neural network solutions to enhance pattern recognition capabilities",
-        'computer vision': "Organizations should explore how computer vision technologies like this could automate inspection processes and enhance quality control",
-        'natural language': "Customer service departments can adopt comparable NLP solutions to improve response efficiency and maintain consistent service quality",
-        'automation': "Operational leaders should evaluate how this AI-driven automation could streamline workflows and reduce manual processing requirements",
-        'predictive': "Organizations can implement similar predictive analytics approaches to improve planning accuracy and enhance resource allocation decisions"
+        'generative ai': "generative AI capabilities to enhance content creation and knowledge work",
+        'llm': "large language model applications to augment knowledge workers and streamline information access",
+        'machine learning': "machine learning solutions to improve decision-making and forecasting accuracy",
+        'neural network': "neural network technologies to enhance pattern recognition and quality control",
+        'computer vision': "computer vision systems to automate inspection and enhance quality assurance",
+        'natural language': "natural language processing to improve response efficiency and service quality",
+        'automation': "intelligent automation to streamline workflows and reduce manual processing",
+        'predictive': "predictive analytics to improve planning accuracy and resource allocation"
     }
 
-    # Combined text for comprehensive analysis
-    text = title + " " + summary
-
-    # Check for industry-specific strategic relevance
+    # Check for industry-specific relevance
     for industry, relevance in industries.items():
         if industry in text:
-            return relevance
+            return f"{opening} {relevance}."
 
-    # Check for technology-specific business implications
+    # Check for technology-specific implications
     for tech, relevance in technologies.items():
         if tech in text:
-            return relevance
+            return f"{opening} {relevance}."
 
-    return default_relevance
+    # Default response with varied phrasing
+    default_relevances = [
+        f"{opening} AI solutions to drive operational efficiency and enhance competitive positioning.",
+        f"{opening} artificial intelligence to transform business processes and create strategic advantages.",
+        f"{opening} AI capabilities to improve decision-making and accelerate innovation.",
+        f"{opening} intelligent solutions to optimize operations and drive business growth."
+    ]
+
+    return random.choice(default_relevances)
 
 def clean_summary(summary_text):
     """Clean and condense summary for executive-friendly format"""

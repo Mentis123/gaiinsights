@@ -744,8 +744,7 @@ def main():
                     if 'current_url_display' in st.session_state:
                         del st.session_state.current_url_display
 
-                    #                    # Create placeholders for dynamic content
-                    info_container = st.container()
+                    #                    # Create placeholders for dynamic                    content
                     with info_container:
                         st.markdown("""
                         <div style="text-align center; margin: 2rem 0;"><div style="font-size: 1.2rem; margin-bottom: 1rem; color: #7D56F4; font-weight: 500;">
