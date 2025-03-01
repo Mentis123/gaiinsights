@@ -177,8 +177,12 @@ def generate_pdf_report(articles):
         summary_text = clean_summary(article.get('summary', 'No summary available'))
         summary = Paragraph(summary_text, normal_style)
         
-        # Generate executive-relevant AI information
-        exec_relevance = generate_executive_relevance(article)
+        # Get the executive-relevant AI information with preference for ai_business_value
+        if 'ai_business_value' in article and article['ai_business_value'] and article['ai_business_value'] != "AI-related article found in scan":
+            exec_relevance = article['ai_business_value']
+        else:
+            exec_relevance = generate_executive_relevance(article)
+            
         relevance = Paragraph(exec_relevance, relevance_style)
 
         # Add the row to the table
@@ -266,8 +270,11 @@ def generate_csv_report(articles):
         # Clean up summary
         summary = clean_summary(article.get('summary', 'No summary available'))
         
-        # Generate executive-relevant AI information
-        exec_relevance = generate_executive_relevance(article)
+        # Get the executive-relevant AI information with preference for ai_business_value
+        if 'ai_business_value' in article and article['ai_business_value'] and article['ai_business_value'] != "AI-related article found in scan":
+            exec_relevance = article['ai_business_value']
+        else:
+            exec_relevance = generate_executive_relevance(article)
         
         # Get additional metadata
         relevance_score = article.get('relevance_score', 'N/A')

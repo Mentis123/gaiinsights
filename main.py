@@ -971,7 +971,7 @@ def main():
                             st.markdown(f"""
                             <div class="article-container">
                                 <div class="article-title">
-                                    <a href="{article['url']}" target="_blank" style="text-decoration: none; color: #7D56F4;">
+                                    <a href="{article['url']}" target="_blank" rel="noopener noreferrer" style="text-decoration: none; color: #7D56F4;">
                                         {article['title']}
                                     </a>
                                 </div>
@@ -979,8 +979,8 @@ def main():
                                     <span>📅 {display_date}</span>
                                     <span style="margin-left: 10px;">🔍 Source: {article.get('source', 'Unknown')}</span>
                                 </div>
-                                {f'<div class="article-summary">{article["summary"]}</div>' if show_summaries else ''}
-                                {f'<div class="article-relevance"><span style="color: #4CAF50; font-weight: 500;">AI Relevance:</span> {ai_relevance}</div>' if show_relevance else ''}
+                                {"<div class='article-summary'>" + article["summary"] + "</div>" if show_summaries else ''}
+                                {"<div class='article-relevance'><span style='color: #4CAF50; font-weight: 500;'>AI Relevance:</span> " + ai_relevance + "</div>" if show_relevance else ''}
                             </div>
                             """, unsafe_allow_html=True)
                     else:
@@ -1088,24 +1088,32 @@ def main():
                     def toggle_relevance():
                         st.session_state.show_relevance_state = not st.session_state.show_relevance_state
 
-                    # Create two columns for the checkboxes
-                    toggle_col1, toggle_col2 = st.columns(2)
-                    
-                    with toggle_col1:
-                        show_summaries = st.checkbox(
-                            "Show Summaries", 
-                            value=st.session_state.show_summaries_state,
-                            key="prev_show_summaries",
-                            on_change=toggle_summaries
-                        )
-                    
-                    with toggle_col2:
-                        show_relevance = st.checkbox(
-                            "Show Relevance", 
-                            value=st.session_state.show_relevance_state,
-                            key="prev_show_relevance",
-                            on_change=toggle_relevance
-                        )
+                    # Use a container for better alignment
+                    with st.container():
+                        st.markdown('<div style="display: flex; justify-content: flex-end; gap: 20px;">', unsafe_allow_html=True)
+                        
+                        # Create two columns for the checkboxes with better spacing
+                        toggle_col1, toggle_col2 = st.columns([1, 1])
+                        
+                        with toggle_col1:
+                            show_summaries = st.checkbox(
+                                "Show Summaries", 
+                                value=st.session_state.show_summaries_state,
+                                key="prev_show_summaries",
+                                on_change=toggle_summaries,
+                                label_visibility="visible"
+                            )
+                        
+                        with toggle_col2:
+                            show_relevance = st.checkbox(
+                                "Show Relevance", 
+                                value=st.session_state.show_relevance_state,
+                                key="prev_show_relevance",
+                                on_change=toggle_relevance,
+                                label_visibility="visible"
+                            )
+                        
+                        st.markdown('</div>', unsafe_allow_html=True)
 
                 # Apply filters and sorting
                 filtered_articles = st.session_state.articles
@@ -1135,7 +1143,6 @@ def main():
                         display_date = article['date'].strftime('%Y-%m-%d')
 
                     # Create a beautiful card for each article with conditional summary and relevance
-                    summary_html = f'<div class="article-summary">{article["summary"]}</div>' if show_summaries else ''
                     
                     # Get AI relevance content if available
                     ai_relevance = article.get('ai_business_value', article.get('ai_validation', 'AI-related article found in scan'))
@@ -1144,12 +1151,10 @@ def main():
                     if "show_relevance_state" not in st.session_state:
                         st.session_state.show_relevance_state = True
                         
-                    relevance_html = f'<div class="article-relevance"><span style="color: #4CAF50; font-weight: 500;">AI Relevance:</span> {ai_relevance}</div>' if st.session_state.show_relevance_state else ''
-                    
                     st.markdown(f"""
                     <div class="article-container">
                         <div class="article-title">
-                            <a href="{article['url']}" target="_blank" style="text-decoration: none; color: #7D56F4;">
+                            <a href="{article['url']}" target="_blank" rel="noopener noreferrer" style="text-decoration: none; color: #7D56F4;">
                                 {article['title']}
                             </a>
                         </div>
@@ -1157,8 +1162,8 @@ def main():
                             <span>📅 {display_date}</span>
                             <span style="margin-left: 10px;">🔍 Source: {article.get('source', 'Unknown')}</span>
                         </div>
-                        {summary_html}
-                        {relevance_html}
+                        {"<div class='article-summary'>" + article["summary"] + "</div>" if show_summaries else ''}
+                        {"<div class='article-relevance'><span style='color: #4CAF50; font-weight: 500;'>AI Relevance:</span> " + ai_relevance + "</div>" if show_relevance else ''}
                     </div>
                     """, unsafe_allow_html=True)
 

@@ -188,7 +188,7 @@ def summarize_article(content):
             content = content[:max_content_length] + "..."
 
         system_prompt = """
-        You are an enterprise AI intelligence analyst providing concise, high-value insights for executives.
+        You are an enterprise AI intelligence analyst providing concise, high-value insights for C-suite executives.
 
         IMPORTANT FORMATTING REQUIREMENTS:
         1. Keep summaries extremely concise (25-40 words maximum)
@@ -196,6 +196,8 @@ def summarize_article(content):
         3. Focus only on business implications, not technical details
         4. AI relevance statements must be ONE clear sentence about strategic business value (15-25 words)
         5. Be specific about competitive advantage, operational efficiency, or strategic impacts
+        6. The ai_business_value field MUST articulate how this AI technology provides strategic value for enterprise executives
+        7. Frame all statements from the perspective of enterprise leadership (CIO, CEO, CTO, Chief AI Officer)
         """
 
         user_prompt = f"""
@@ -247,15 +249,15 @@ def summarize_article(content):
             # Ensure we have the new ai_business_value field for consistency
             if 'ai_business_value' not in result or not result['ai_business_value']:
                 if relevance > 85:
-                    result['ai_business_value'] = "Strategic AI implementation with significant business impact potential"
+                    result['ai_business_value'] = "Enterprise executives should prioritize implementation for immediate competitive advantage and operational cost reduction"
                 elif relevance > 70:
-                    result['ai_business_value'] = "Notable AI application with measurable operational implications"
+                    result['ai_business_value'] = "Leadership teams can leverage this AI solution to drive measurable efficiency improvements and market differentiation"
                 elif relevance > 50:
-                    result['ai_business_value'] = "Relevant AI development with potential business applications"
+                    result['ai_business_value'] = "C-suite consideration warranted for strategic deployment to enhance business outcomes and customer experience"
                 elif relevance > 30:
-                    result['ai_business_value'] = "Emerging AI technology with future business considerations"
+                    result['ai_business_value'] = "Executive teams should monitor this emerging AI capability for potential future competitive implications"
                 else:
-                    result['ai_business_value'] = "AI-related development with indirect business relevance"
+                    result['ai_business_value'] = "Limited immediate executive attention needed, but worth tracking in quarterly technology reviews"
 
             # Also maintain backward compatibility with ai_validation field
             result['ai_validation'] = result.get('ai_business_value', "AI-related article found in scan")
