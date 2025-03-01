@@ -1,10 +1,109 @@
 import os
-from openai import OpenAI
 import json
+import logging
+import random
+from datetime import datetime
 from typing import Dict, Any, Optional, List
-import re
+from openai import OpenAI
 
-client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+logger = logging.getLogger(__name__)
+
+def summarize_article(content):
+    """Summarize article content and extract key information with enhanced executive focus"""
+    if not content or len(content) < 100:
+        logger.warning("Content too short for summarization")
+        return None
+
+    try:
+        client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+
+        # Clean content - remove extra whitespace and normalize
+        content = ' '.join(content.split())
+
+        # Truncate content if too long to avoid token limits
+        max_content_length = 15000
+        if len(content) > max_content_length:
+            content = content[:max_content_length] + "..."
+
+        system_prompt = """
+        You are an enterprise AI intelligence analyst providing tailored, high-value insights for C-suite executives.
+
+        CRITICAL REQUIREMENTS:
+        1. Generate UNIQUE insights for each article - avoid repetitive language or themes
+        2. Focus on specific business outcomes relevant to the article's context
+        3. The ai_business_value must be ONE actionable insight that:
+           - Maps directly to executive priorities (revenue, market share, innovation, risk)
+           - Provides a specific, measurable business outcome
+           - Varies based on industry context and technology maturity
+           - Uses diverse, executive-appropriate language
+           - NEVER starts with generic phrases like "Adopt", "Leverage", "Implement"
+
+        FORMAT EXAMPLES:
+        ✓ "Real-time AI analytics could reduce supply chain disruptions by 35% while increasing inventory accuracy to 99.9%"
+        ✓ "Integration of this computer vision technology could cut quality control costs by 40% and reduce defect rates to under 0.1%"
+        ✓ "Deploying similar NLP capabilities across customer service could increase resolution rates by 45% while reducing response times by 60%"
+
+        AVOID:
+        × Generic recommendations about "improving efficiency"
+        × Repetitive language about "competitive advantage"
+        × Technical implementation details
+        × Starting every insight with the same words
+        """
+
+        user_prompt = f"""
+        Analyze this article from a C-suite executive's perspective, focusing on concrete business value:
+
+        {content}
+
+        Generate a JSON response with:
+        1. summary: A concise executive summary (25-40 words)
+        2. key_points: 2-3 key strategic takeaways
+        3. ai_business_value: ONE specific insight about measurable business impact (15-25 words)
+
+        The ai_business_value must be unique to this article and focus on quantifiable outcomes.
+        """
+
+        response = client.chat.completions.create(
+            model="o3-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            response_format={"type": "json_object"}
+        )
+
+        result = json.loads(response.choices[0].message.content)
+
+        # Add variety to business value statements
+        if result and 'ai_business_value' in result:
+            value = result['ai_business_value']
+
+            # Remove common generic starts
+            common_starts = ["Adopt", "Leverage", "Implement", "Consider", "Use"]
+            for start in common_starts:
+                if value.lower().startswith(start.lower()):
+                    value = value[len(start):].strip()
+                    # Add varied business-focused starter phrases
+                    starters = [
+                        f"This {value}",
+                        f"Strategic implementation of {value}",
+                        f"Organizations utilizing {value}",
+                        f"Enterprise deployment of {value}",
+                        f"Integration of {value}"
+                    ]
+                    value = random.choice(starters)
+
+            result['ai_business_value'] = value
+
+        return result
+
+    except Exception as e:
+        logger.error(f"Error in article summarization: {str(e)}")
+        return {
+            'summary': "Error processing content",
+            'key_points': ["Article contains AI-related content"],
+            'ai_business_value': "This AI development warrants evaluation for potential business value and competitive advantages"
+        }
 
 def split_into_chunks(content: str, max_chunk_size: int = 100000) -> List[str]:
     """Split content into larger chunks based on paragraphs and sentences."""
@@ -55,315 +154,6 @@ def split_into_chunks(content: str, max_chunk_size: int = 100000) -> List[str]:
 
     return chunks
 
-def _process_chunk(chunk: str) -> Optional[Dict[str, Any]]:
-    """Process a single chunk of content with increased token limit."""
-    try:
-        prompt = (
-            "Analyze this text section for AI/artificial intelligence relevance and respond with ONLY valid JSON. " +
-            "Consider business applications, implementations, and strategic uses of AI. Be inclusive of AI-related content:\n\n" + 
-            chunk + "\n\n" +
-            "Required format: {\"summary\": \"Brief summary highlighting AI aspects\", \"key_points\": [\"Main AI-related points\"], \"ai_relevance\": \"AI relevance and implementation details\"}"
-        )
-
-        response = client.chat.completions.create(
-            model="o3-mini",
-            messages=[
-                {"role": "system", "content": "You must respond with valid JSON only. No other text."},
-                {"role": "user", "content": prompt}
-            ],
-            max_completion_tokens=2000,  # Increased for larger summaries
-            response_format={"type": "json_object"}
-        )
-
-        content = response.choices[0].message.content.strip()
-        return json.loads(content)
-
-    except Exception as e:
-        print(f"Error processing chunk: {str(e)}")
-        return None
-
-def _combine_summaries(summaries: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """Combine chunk summaries with increased token limits."""
-    if not summaries:
-        return None
-
-    if len(summaries) == 1:
-        return summaries[0]
-
-    try:
-        # Create a more comprehensive combined text
-        combined_text = " ".join(s["summary"] for s in summaries if s and "summary" in s)
-        key_points = list({point for s in summaries if s and "key_points" in s for point in s["key_points"]})[:10]  # Increased from 5
-        relevance = "; ".join(set(s.get("ai_relevance", "") for s in summaries if s))[:2000]  # Increased from 500
-
-        prompt = (
-            "Combine these summaries into a single JSON with this exact format:\n"
-            '{"summary": "comprehensive combined summary", "key_points": ["point1", "point2"], "ai_relevance": "relevance"}\n\n'
-            f"Text: {combined_text[:50000]}\nPoints: {', '.join(key_points)}\nAI Relevance: {relevance}"  # Increased text limit
-        )
-
-        response = client.chat.completions.create(
-            model="o3-mini",
-            messages=[
-                {"role": "system", "content": "You must respond with valid JSON only. No other text."},
-                {"role": "user", "content": prompt}
-            ],
-            max_completion_tokens=2000,  # Increased for larger summaries
-            response_format={"type": "json_object"}
-        )
-
-        content = response.choices[0].message.content.strip()
-        return json.loads(content)
-
-    except Exception as e:
-        print(f"Error combining summaries: {str(e)}")
-        # Fallback to simple combination with increased limits
-        return {
-            "summary": combined_text[:5000] if 'combined_text' in locals() else "Error processing content",  # Increased from 1000
-            "key_points": key_points[:10] if 'key_points' in locals() else ["Error processing points"],  # Increased from 5
-            "ai_relevance": relevance[:1000] if 'relevance' in locals() else "Unknown AI relevance"  # Increased from 300
-        }
-
-def summarize_article(content: str) -> Optional[Dict[str, Any]]:
-    """Summarize an article using GPT-4O-mini with larger chunks."""
-    try:
-        # Clean content before chunking
-        content = re.sub(r'\s+', ' ', content.strip())
-        chunks = split_into_chunks(content)
-
-        if not chunks:
-            return None
-
-        # Process chunks with improved logging
-        chunk_summaries = []
-        for i, chunk in enumerate(chunks):
-            chunk_tokens = len(chunk) // 3  # Updated token estimation ratio
-            print(f"Processing chunk {i+1}/{len(chunks)} (~{chunk_tokens} tokens)")
-
-            if chunk_tokens > 120000:  # Safety margin below 128k limit
-                print(f"Chunk {i+1} too large ({chunk_tokens} tokens), skipping")
-                continue
-
-            summary = _process_chunk(chunk)
-            if summary:
-                chunk_summaries.append(summary)
-
-        if not chunk_summaries:
-            return {"summary": "Content too large to process", "key_points": [], "ai_relevance": "Unknown"}
-
-        return _combine_summaries(chunk_summaries)
-
-    except Exception as e:
-        print(f"Error summarizing article: {str(e)}")
-        return None
-import os
-import json
-import logging
-from datetime import datetime
-from openai import OpenAI
-
-logger = logging.getLogger(__name__)
-
-def summarize_article(content):
-    """Summarize article content and extract key information using a multi-tiered approach"""
-    if not content or len(content) < 100:
-        logger.warning("Content too short for summarization")
-        return None
-
-    # Track attempts for fallback methods
-    result = None
-    methods_tried = []
-
-    # Method 1: Use OpenAI API for comprehensive analysis
-    try:
-        methods_tried.append("openai_comprehensive")
-        client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
-
-        # Clean content - remove extra whitespace and normalize
-        content = ' '.join(content.split())
-
-        # Truncate content if too long to avoid token limits
-        max_content_length = 15000
-        if len(content) > max_content_length:
-            content = content[:max_content_length] + "..."
-
-        system_prompt = """
-        You are an enterprise AI intelligence analyst providing concise, high-value insights directly for C-suite executives.
-
-        IMPORTANT FORMATTING REQUIREMENTS:
-        1. Keep summaries extremely concise (25-40 words maximum)
-        2. Do NOT use brackets, parentheses, or metadata markers in your text
-        3. Focus exclusively on business implications, competitive advantage, and practical use cases
-        4. The ai_business_value field MUST be ONE clear, actionable sentence (15-25 words) that:
-           - Speaks directly to a C-suite executive about their organization's GenAI adoption strategy
-           - Highlights how this information relates to their internal AI implementation plans
-           - Focuses on practical organizational use cases, not investment opportunities
-           - Creates variety beyond just operational efficiency (consider innovation, customer experience, 
-             risk reduction, employee capabilities, market expansion, product development, etc.)
-           - Provides specific insights on how to apply similar AI approaches in their organization
-        5. Avoid technical jargon that wouldn't resonate with executive leadership
-        6. Use confident, decisive language appropriate for strategic decision-makers
-        """
-
-        user_prompt = f"""
-        Analyze this article from the perspective of a Chief AI Officer or CEO making strategic investment decisions:
-
-        {content}
-
-        Provide ONLY a JSON response with:
-        1. summary: An extremely concise 1-2 sentence executive summary (25-40 words maximum)
-        2. key_points: 2-3 key strategic takeaways for enterprise leadership
-        3. entities: Key companies or technologies mentioned
-        4. sentiment_score: Rating from -5 (negative) to +5 (positive)
-        5. relevance_score: How relevant to enterprise AI strategy (0-100)
-        6. article_type: Classification (news, analysis, research, implementation)
-        7. ai_business_value: ONE specific sentence about how this AI technology delivers measurable business value that would convince a CEO to invest (15-25 words). This must focus on competitive advantage, revenue growth, or operational efficiency that impacts bottom line.
-        """
-
-        response = client.chat.completions.create(
-            model="o3-mini",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            response_format={"type": "json_object"}
-        )
-
-        result = json.loads(response.choices[0].message.content)
-
-        # Verify we got a valid summary
-        if result and 'summary' in result and len(result['summary']) > 20:
-            logger.info("Successfully generated summary using OpenAI comprehensive method")
-
-            # Ensure all expected fields exist
-            for key in ['summary', 'key_points', 'entities', 'sentiment_score', 'relevance_score', 'article_type', 'ai_business_value']:
-                if key not in result:
-                    if key in ['key_points', 'entities'] and not result.get(key):
-                        result[key] = []
-                    else:
-                        result[key] = "Not available"
-
-            # Format summary to ensure it's properly displayed
-            if result['summary'].startswith('"') and result['summary'].endswith('"'):
-                result['summary'] = result['summary'][1:-1]
-
-
-            # Add enterprise-focused AI relevance statement based on score
-            relevance = result.get('relevance_score', 50)
-
-            # Ensure we have the new ai_business_value field for consistency
-            if 'ai_business_value' not in result or not result['ai_business_value']:
-                if relevance > 85:
-                    result['ai_business_value'] = "Enterprise leaders should incorporate this AI approach in their current digital transformation roadmap to enhance operational efficiency across departments"
-                elif relevance > 70:
-                    result['ai_business_value'] = "This AI application demonstrates a practical use case that could be adapted for your organization's customer service and process automation needs"
-                elif relevance > 50:
-                    result['ai_business_value'] = "Consider exploring how this AI capability could address existing workflow challenges in your organization's daily operations"
-                elif relevance > 30:
-                    result['ai_business_value'] = "Organizations should evaluate similar GenAI implementations to identify potential internal applications that align with business objectives"
-                else:
-                    result['ai_business_value'] = "Monitor this AI development for potential organizational adoption as the technology matures and use cases become more defined"
-
-            # Also maintain backward compatibility with ai_validation field
-            result['ai_validation'] = result.get('ai_business_value', "AI-related article found in scan")
-
-            return result
-    except Exception as e:
-        logger.error(f"Error in comprehensive summarization: {str(e)}")
-        # Continue to fallback methods
-
-    # Method 2: Try a simpler extraction approach with fewer tokens
-    if not result or 'summary' not in result or len(result.get('summary', '')) < 20:
-        try:
-            methods_tried.append("openai_focused")
-            client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
-
-            # Extract just intro paragraphs to reduce token count
-            intro_content = ' '.join(content.split()[:500])
-
-            prompt = f"""
-            Extract from this article intro for enterprise leadership:
-
-            {intro_content}
-
-            Respond with ONLY a JSON object containing:
-            1. summary: A concise 2-sentence strategic summary
-            2. ai_relevance: Business implications of this AI technology
-            """
-
-            response = client.chat.completions.create(
-                model="o3-mini",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.3,
-                response_format={"type": "json_object"}
-            )
-
-            focused_result = json.loads(response.choices[0].message.content)
-
-            if focused_result and 'summary' in focused_result and len(focused_result['summary']) > 10:
-                logger.info("Generated summary using focused extraction method")
-
-                # Create a standardized result structure
-                result = {
-                    'summary': focused_result['summary'],
-                    'key_points': [],
-                    'entities': [],
-                    'sentiment_score': 0,
-                    'relevance_score': 50,
-                    'article_type': "news",
-                    'tech_maturity': "unknown",
-                    'ai_business_value': focused_result.get('ai_relevance', "AI-related article found in scan")
-                }
-
-                return result
-        except Exception as e:
-            logger.error(f"Error in focused summarization: {str(e)}")
-            # Continue to fallback methods
-
-    # Method 3: Algorithmic fallback - extract intro sentences
-    if not result or 'summary' not in result or len(result.get('summary', '')) < 10:
-        try:
-            methods_tried.append("algorithmic")
-
-            # Simple extractive summary - get first 2-3 sentences
-            sentences = content.split('.')
-            extractive_summary = '. '.join(sentences[:3]) + '.'
-
-            # Clean up the summary
-            extractive_summary = extractive_summary.replace('\n', ' ').strip()
-            extractive_summary = ' '.join(extractive_summary.split())
-
-            if len(extractive_summary) > 20:
-                logger.info("Generated summary using algorithmic extraction method")
-
-                result = {
-                    'summary': extractive_summary,
-                    'key_points': [],
-                    'entities': [],
-                    'sentiment_score': 0,
-                    'relevance_score': 50,
-                    'article_type': "news",
-                    'tech_maturity': "unknown",
-                    'ai_business_value': "AI-related article found in scan"
-                }
-
-                return result
-        except Exception as e:
-            logger.error(f"Error in algorithmic summarization: {str(e)}")
-
-    # Final fallback - if all methods failed
-    logger.warning(f"All summarization methods failed: {', '.join(methods_tried)}")
-    return {
-        'summary': "This article discusses AI technology and its applications. The exact content could not be summarized automatically.",
-        'key_points': ["Article contains AI-related content"],
-        'entities': [],
-        'sentiment_score': 0,
-        'relevance_score': 50,
-        'article_type': "unknown",
-        'tech_maturity': "unknown",
-        'ai_business_value': "AI-related article found in scan"
-    }
-
 def analyze_sentiment_trends(articles):
     """Analyze sentiment trends across multiple articles"""
     if not articles:
@@ -386,39 +176,9 @@ def analyze_sentiment_trends(articles):
             'very_positive': len([s for s in sentiment_scores if s >= 4])
         }
 
-        # Calculate sentiment over time if dates available
-        time_series = []
-        for article in articles:
-            if 'sentiment_score' in article and ('published_date' in article or 'date' in article):
-                date_str = article.get('published_date') or article.get('date')
-                if isinstance(date_str, str):
-                    try:
-                        date = datetime.strptime(date_str, '%Y-%m-%d')
-                        time_series.append((date, article['sentiment_score']))
-                    except ValueError:
-                        continue
-
-        # Sort by date
-        time_series.sort(key=lambda x: x[0])
-
-        # Group by date
-        daily_sentiment = {}
-        for date, score in time_series:
-            date_str = date.strftime('%Y-%m-%d')
-            if date_str not in daily_sentiment:
-                daily_sentiment[date_str] = []
-            daily_sentiment[date_str].append(score)
-
-        # Calculate average sentiment per day
-        sentiment_trend = [
-            {'date': date, 'sentiment': sum(scores)/len(scores)}
-            for date, scores in daily_sentiment.items()
-        ]
-
         return {
             'average_sentiment': avg_sentiment,
-            'distribution': sentiment_distribution,
-            'trend': sentiment_trend
+            'distribution': sentiment_distribution
         }
 
     except Exception as e:
@@ -486,3 +246,6 @@ def generate_trend_insights(articles):
             'emerging_topics': [],
             'sentiment_trajectory': "unknown"
         }
+
+import re
+from typing import Dict, Any, Optional, List
