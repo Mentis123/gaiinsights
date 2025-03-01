@@ -198,7 +198,8 @@ def summarize_article(content):
            - Speaks directly to a C-suite executive about their organization's GenAI adoption strategy
            - Highlights how this information relates to their internal AI implementation plans
            - Focuses on practical organizational use cases, not investment opportunities
-           - Connects to enterprise digital transformation priorities and operational improvements
+           - Creates variety beyond just operational efficiency (consider innovation, customer experience, 
+             risk reduction, employee capabilities, market expansion, product development, etc.)
            - Provides specific insights on how to apply similar AI approaches in their organization
         5. Avoid technical jargon that wouldn't resonate with executive leadership
         6. Use confident, decisive language appropriate for strategic decision-makers

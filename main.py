@@ -748,7 +748,7 @@ def main():
                     info_container = st.container()
                     with info_container:
                         st.markdown("""
-                        <div style="text-align: center; margin: 2rem 0;"><div style="font-size: 1.2rem; margin-bottom: 1rem; color: #7D56F4; font-weight: 500;">
+                        <div style="text-align center; margin: 2rem 0;"><div style="font-size: 1.2rem; margin-bottom: 1rem; color: #7D56F4; font-weight: 500;">
                                 Fetching AI news from trusted sources...
                             </div>
                         </div>
@@ -971,6 +971,7 @@ def main():
 
                             # Prepare the article HTML parts separately
                             summary_html = f"<div class='article-summary'>{article.get('summary', '')}</div>" if show_summaries else ''
+                            # Always create proper HTML for relevance, just don't include it when not requested
                             relevance_html = f"<div class='article-relevance'><span style='color: #4CAF50; font-weight: 500;'>AI Relevance:</span> {ai_relevance}</div>" if show_relevance else ''
 
                             article_html = f"""
