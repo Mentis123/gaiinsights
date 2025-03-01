@@ -752,7 +752,7 @@ def main():
                                 Fetching AI news from trusted sources...
                             </div>
                         </div>
-                        """, unsafe_allow_html=True)
+                        """,unsafe_allow_html=True)
 
                         # Create a placeholder for displaying the current URL being processed
                         st.session_state.current_url_display = st.empty()
@@ -821,8 +821,11 @@ def main():
                     if 'current_url_display' in st.session_state:
                         st.session_state.current_url_display.empty()
 
-                    # Reset fetching state
+                    # Reset session state
                     st.session_state.is_fetching = False
+
+                    # Force garbage collection to free up memory
+                    gc.collect()
 
                     # Show completion message and stats
                     end_time = datetime.now()
