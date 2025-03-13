@@ -432,7 +432,7 @@ def main():
                 time_unit = st.selectbox("Unit", ["Days", "Weeks"], index=0)
             st.markdown('</div>', unsafe_allow_html=True)
 
-            # Actions section with prominent button
+            # Actions section with prominent buttons
             st.markdown('<div class="sidebar-section">', unsafe_allow_html=True)
             st.markdown('<div class="sidebar-title">Actions</div>', unsafe_allow_html=True)
 
@@ -442,6 +442,18 @@ def main():
                 type="primary",
                 use_container_width=True
             )
+            
+            gai_button = st.button(
+                "📰 Today's News" if not st.session_state.is_fetching_gai else "⏳ Loading...",
+                disabled=st.session_state.is_fetching_gai,
+                type="primary",
+                use_container_width=True,
+                key="gai_button"
+            )
+            
+            if gai_button:
+                fetch_gai_insights()
+                
             st.markdown('</div>', unsafe_allow_html=True)
 
             # URL management section with improved buttons
@@ -1105,14 +1117,10 @@ def main():
                     - **Reports**: After fetching, download reports in PDF or CSV format
                     """)
 
-            # GaiInsights button and display
-            st.markdown('<div class="sidebar-section">', unsafe_allow_html=True)
-            st.markdown('<div class="sidebar-title">GaiInsights</div>', unsafe_allow_html=True)
-            if st.button("Today's News", use_container_width=True, key="gai_button",
-                        disabled=st.session_state.is_fetching_gai):
-                fetch_gai_insights()
-
+            # GaiInsights articles display
             if st.session_state.show_gai_insights:
+                st.markdown('<div class="gai-section">', unsafe_allow_html=True)
+                st.markdown('<div class="section-header">GaiInsights Today\'s News</div>', unsafe_allow_html=True)
                 st.markdown('<div class="article-list">', unsafe_allow_html=True)
                 for article in st.session_state.gai_articles:
                     article_html = f"""
@@ -1135,7 +1143,7 @@ def main():
                     """
                     st.markdown(article_html, unsafe_allow_html=True)
                 st.markdown('</div>', unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
+                st.markdown('</div>', unsafe_allow_html=True)
 
     except Exception as e:
         st.error("An unexpected error occurred. Please refresh the page.")
