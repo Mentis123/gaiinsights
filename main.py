@@ -291,26 +291,90 @@ def fetch_gai_insights():
         
         soup = BeautifulSoup(response.content, "html.parser")
         
-        # Find article containers - adjust selectors based on the actual site structure
-        article_elements = soup.find_all("div", class_="col-md-4")
+        # Debug the HTML structure - find all div elements with any class to understand structure
+        all_divs = soup.find_all("div", class_=True)
+        div_classes = set()
+        for div in all_divs:
+            if div.get('class'):
+                div_classes.add(' '.join(div.get('class')))
         
+        st.session_state.scan_status.insert(0, f"[{datetime.now().strftime('%H:%M:%S')}] Found {len(div_classes)} different div classes")
+        
+        # Try multiple selectors that might contain articles on modern websites
+        selectors = [
+            # Common article container classes
+            {"tag": "div", "attrs": {"class_": "col-md-4"}},
+            {"tag": "div", "attrs": {"class_": "card"}},
+            {"tag": "div", "attrs": {"class_": "article"}},
+            {"tag": "div", "attrs": {"class_": "post"}},
+            {"tag": "article", "attrs": {}},
+            # More generic containers that might have articles
+            {"tag": "div", "attrs": {"class_": "grid"}},
+            {"tag": "div", "attrs": {"class_": "row"}},
+            {"tag": "div", "attrs": {"class_": "container"}},
+            # Fallback to any div with an h2/h3 and link inside
+            {"tag": "div", "attrs": {}}
+        ]
+        
+        # Try each selector until we find articles
+        article_elements = []
+        for selector in selectors:
+            tag = selector["tag"]
+            attrs = selector["attrs"]
+            
+            elements = soup.find_all(tag, **attrs)
+            st.session_state.scan_status.insert(0, f"[{datetime.now().strftime('%H:%M:%S')}] Trying selector {tag} {attrs}: found {len(elements)} elements")
+            
+            # If using generic selectors, filter to only those containing headers and links
+            if tag == "div" and not attrs:
+                elements = [el for el in elements if el.find(['h2', 'h3', 'h4']) and el.find('a', href=True)]
+            
+            if elements:
+                article_elements = elements
+                st.session_state.scan_status.insert(0, f"[{datetime.now().strftime('%H:%M:%S')}] Using selector {tag} {attrs}")
+                break
+        
+        # If still no elements, try a more aggressive approach - find all blocks with links and headers
         if not article_elements:
-            # Try alternative selectors if the first one doesn't work
-            article_elements = soup.find_all("article") or soup.find_all("div", class_="post")
+            st.session_state.scan_status.insert(0, f"[{datetime.now().strftime('%H:%M:%S')}] Using fallback article detection")
+            
+            # Find all headers
+            headers = soup.find_all(['h1', 'h2', 'h3', 'h4'])
+            for header in headers:
+                # Look for a nearby link
+                link = header.find('a', href=True) or header.find_next('a', href=True)
+                if link and link.get('href'):
+                    # Create a synthetic article element
+                    article_elements.append({
+                        'header': header,
+                        'link': link
+                    })
         
         st.session_state.scan_status.insert(0, f"[{datetime.now().strftime('%H:%M:%S')}] Found {len(article_elements)} article elements")
         
         articles = []
         for index, element in enumerate(article_elements):
             try:
-                # Find title, could be in various elements
-                title_element = element.find("h3") or element.find("h2") or element.find("h4")
-                
-                # Find summary
-                summary_element = element.find("p") or element.find("div", class_="excerpt")
-                
-                # Find link
-                link_element = element.find("a", href=True)
+                # Handle both normal elements and our synthetic dict elements
+                if isinstance(element, dict):  # Our synthetic elements
+                    title_element = element['header']
+                    link_element = element['link']
+                    
+                    # Try to find a paragraph near the header for summary
+                    summary_element = title_element.find_next('p')
+                else:  # Normal BeautifulSoup elements
+                    # Find title, could be in various elements
+                    title_element = element.find("h3") or element.find("h2") or element.find("h4") or element.find("h1")
+                    
+                    # Find summary
+                    summary_element = element.find("p") or element.find("div", class_="excerpt")
+                    
+                    # Find link - either directly in title or somewhere inside the element
+                    link_element = None
+                    if title_element and title_element.find('a', href=True):
+                        link_element = title_element.find('a', href=True)
+                    else:
+                        link_element = element.find("a", href=True)
                 
                 if title_element and link_element:
                     title = title_element.text.strip()
@@ -322,7 +386,8 @@ def fetch_gai_insights():
                         article_url = f"https://www.gaiinsights.com{article_url}"
                     
                     # Extract date if available
-                    date_element = element.find("time") or element.find("span", class_="date")
+                    date_element = element.find("time") if not isinstance(element, dict) else None
+                    date_element = date_element or element.find("span", class_="date") if not isinstance(element, dict) else None
                     date = date_element.text.strip() if date_element else datetime.now().strftime('%Y-%m-%d')
                     
                     articles.append({
@@ -335,6 +400,7 @@ def fetch_gai_insights():
                     st.session_state.scan_status.insert(0, f"[{datetime.now().strftime('%H:%M:%S')}] Added article: {title}")
             except Exception as e:
                 logger.error(f"Error processing article element {index}: {str(e)}")
+                st.session_state.scan_status.insert(0, f"[{datetime.now().strftime('%H:%M:%S')}] Error: {str(e)}")
                 continue
         
         # If successfully found articles, process them with AI
