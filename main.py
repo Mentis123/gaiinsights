@@ -284,120 +284,148 @@ def fetch_gai_insights():
     try:
         url = "https://www.gaiinsights.com/articles"
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Referer': 'https://www.gaiinsights.com/'
         }
         response = requests.get(url, headers=headers)
         response.raise_for_status()
         
         soup = BeautifulSoup(response.content, "html.parser")
+        st.session_state.scan_status.insert(0, f"[{datetime.now().strftime('%H:%M:%S')}] Successfully fetched the GaiInsights page")
         
-        # Debug the HTML structure - find all div elements with any class to understand structure
-        all_divs = soup.find_all("div", class_=True)
-        div_classes = set()
-        for div in all_divs:
-            if div.get('class'):
-                div_classes.add(' '.join(div.get('class')))
+        # Find any article elements with direct HTML inspection
+        # First approach: Find the main table or article container
+        main_container = soup.find('main') or soup.find('div', class_='main-content') or soup.find('div', id='content')
         
-        st.session_state.scan_status.insert(0, f"[{datetime.now().strftime('%H:%M:%S')}] Found {len(div_classes)} different div classes")
+        # List to store all potential article containers
+        article_containers = []
         
-        # Try multiple selectors that might contain articles on modern websites
-        selectors = [
-            # Common article container classes
-            {"tag": "div", "attrs": {"class_": "col-md-4"}},
-            {"tag": "div", "attrs": {"class_": "card"}},
-            {"tag": "div", "attrs": {"class_": "article"}},
-            {"tag": "div", "attrs": {"class_": "post"}},
-            {"tag": "article", "attrs": {}},
-            # More generic containers that might have articles
-            {"tag": "div", "attrs": {"class_": "grid"}},
-            {"tag": "div", "attrs": {"class_": "row"}},
-            {"tag": "div", "attrs": {"class_": "container"}},
-            # Fallback to any div with an h2/h3 and link inside
-            {"tag": "div", "attrs": {}}
-        ]
+        # If we found a main container
+        if main_container:
+            st.session_state.scan_status.insert(0, f"[{datetime.now().strftime('%H:%M:%S')}] Found main content container")
+            # Look for elements that might be news articles
+            article_containers = main_container.find_all(['article', 'div'], class_=lambda c: c and any(term in str(c).lower() for term in ['article', 'post', 'card', 'news', 'item']))
         
-        # Try each selector until we find articles
-        article_elements = []
-        for selector in selectors:
-            tag = selector["tag"]
-            attrs = selector["attrs"]
+        # If still no containers, try broader search
+        if not article_containers:
+            st.session_state.scan_status.insert(0, f"[{datetime.now().strftime('%H:%M:%S')}] Using broader article search")
+            # Look for table rows (common in news listings)
+            article_containers = soup.find_all('tr')
             
-            elements = soup.find_all(tag, **attrs)
-            st.session_state.scan_status.insert(0, f"[{datetime.now().strftime('%H:%M:%S')}] Trying selector {tag} {attrs}: found {len(elements)} elements")
-            
-            # If using generic selectors, filter to only those containing headers and links
-            if tag == "div" and not attrs:
-                elements = [el for el in elements if el.find(['h2', 'h3', 'h4']) and el.find('a', href=True)]
-            
-            if elements:
-                article_elements = elements
-                st.session_state.scan_status.insert(0, f"[{datetime.now().strftime('%H:%M:%S')}] Using selector {tag} {attrs}")
-                break
+            # If still empty, look for any div that contains both a link and header
+            if not article_containers:
+                all_divs = soup.find_all('div')
+                article_containers = [div for div in all_divs if div.find('a') and div.find(['h1', 'h2', 'h3', 'h4', 'h5'])]
         
-        # If still no elements, try a more aggressive approach - find all blocks with links and headers
-        if not article_elements:
-            st.session_state.scan_status.insert(0, f"[{datetime.now().strftime('%H:%M:%S')}] Using fallback article detection")
-            
-            # Find all headers
-            headers = soup.find_all(['h1', 'h2', 'h3', 'h4'])
-            for header in headers:
-                # Look for a nearby link
-                link = header.find('a', href=True) or header.find_next('a', href=True)
-                if link and link.get('href'):
-                    # Create a synthetic article element
-                    article_elements.append({
-                        'header': header,
-                        'link': link
-                    })
+        # If we found potential containers
+        st.session_state.scan_status.insert(0, f"[{datetime.now().strftime('%H:%M:%S')}] Found {len(article_containers)} potential article containers")
         
-        st.session_state.scan_status.insert(0, f"[{datetime.now().strftime('%H:%M:%S')}] Found {len(article_elements)} article elements")
+        # If still no article containers found, try to parse the entire page for links with titles
+        if not article_containers:
+            st.session_state.scan_status.insert(0, f"[{datetime.now().strftime('%H:%M:%S')}] Using link-based article extraction")
+            
+            # Find all links in the document
+            all_links = soup.find_all('a', href=True)
+            
+            # For each link, see if it has a title-like element nearby
+            for link in all_links:
+                # Check if it has text and is not too short
+                if link.text and len(link.text.strip()) > 10:
+                    # Check if it's a meaningful link (not just navigation)
+                    href = link['href']
+                    if '/article' in href or '/post' in href or '/news' in href or '/blog' in href:
+                        article_containers.append(link)
+        
+        # Final fallback - just get all links that might be articles
+        if not article_containers:
+            st.session_state.scan_status.insert(0, f"[{datetime.now().strftime('%H:%M:%S')}] Final fallback: extracting all links as articles")
+            
+            # Find all links that point to what might be article pages
+            article_links = soup.find_all('a', href=lambda href: href and (
+                '.html' in href or 
+                any(term in href for term in ['/article', '/post', '/news', '/blog', '/story'])
+            ))
+            article_containers = article_links
+        
+        st.session_state.scan_status.insert(0, f"[{datetime.now().strftime('%H:%M:%S')}] Found {len(article_containers)} potential articles")
         
         articles = []
-        for index, element in enumerate(article_elements):
+        seen_urls = set()  # Track URLs to avoid duplicates
+        seen_titles = set()  # Track titles to avoid duplicates
+        
+        for index, element in enumerate(article_containers):
             try:
-                # Handle both normal elements and our synthetic dict elements
-                if isinstance(element, dict):  # Our synthetic elements
-                    title_element = element['header']
-                    link_element = element['link']
+                # Extract title and URL based on element type
+                title = None
+                article_url = None
+                summary = None
+                
+                # If element is a link directly
+                if element.name == 'a' and element.has_attr('href'):
+                    title = element.text.strip()
+                    article_url = element['href']
+                    # Try to find a summary nearby
+                    summary_element = element.find_next('p')
+                    if summary_element:
+                        summary = summary_element.text.strip()
+                
+                # If element is a container that might have title and link separately
+                else:
+                    # Find title - check for headers first
+                    title_element = element.find(['h1', 'h2', 'h3', 'h4', 'h5'])
+                    if title_element:
+                        title = title_element.text.strip()
                     
-                    # Try to find a paragraph near the header for summary
-                    summary_element = title_element.find_next('p')
-                else:  # Normal BeautifulSoup elements
-                    # Find title, could be in various elements
-                    title_element = element.find("h3") or element.find("h2") or element.find("h4") or element.find("h1")
+                    # Find link
+                    link_element = element.find('a', href=True)
+                    if link_element:
+                        article_url = link_element['href']
+                        
+                        # If no title was found in header, use link text
+                        if not title and link_element.text.strip():
+                            title = link_element.text.strip()
                     
                     # Find summary
-                    summary_element = element.find("p") or element.find("div", class_="excerpt")
-                    
-                    # Find link - either directly in title or somewhere inside the element
-                    link_element = None
-                    if title_element and title_element.find('a', href=True):
-                        link_element = title_element.find('a', href=True)
-                    else:
-                        link_element = element.find("a", href=True)
+                    summary_element = element.find('p') or element.find('div', class_=lambda c: c and ('excerpt' in str(c).lower() or 'summary' in str(c).lower()))
+                    if summary_element:
+                        summary = summary_element.text.strip()
                 
-                if title_element and link_element:
-                    title = title_element.text.strip()
-                    summary = summary_element.text.strip() if summary_element else "Click to read full article"
-                    article_url = link_element["href"]
+                # Validate we have minimum required data
+                if title and article_url:
+                    # Clean up title
+                    title = title.replace('\n', ' ').strip()
+                    if len(title) > 100:
+                        title = title[:97] + '...'
                     
                     # Make URL absolute if relative
                     if not article_url.startswith('http'):
-                        article_url = f"https://www.gaiinsights.com{article_url}"
+                        if article_url.startswith('/'):
+                            article_url = f"https://www.gaiinsights.com{article_url}"
+                        else:
+                            article_url = f"https://www.gaiinsights.com/{article_url}"
                     
                     # Extract date if available
-                    date_element = element.find("time") if not isinstance(element, dict) else None
-                    date_element = date_element or element.find("span", class_="date") if not isinstance(element, dict) else None
+                    date_element = element.find('time') or element.find(['span', 'div'], class_=lambda c: c and any(term in str(c).lower() for term in ['date', 'time', 'published']))
                     date = date_element.text.strip() if date_element else datetime.now().strftime('%Y-%m-%d')
                     
-                    articles.append({
-                        "title": title,
-                        "summary": summary,
-                        "url": article_url,
-                        "date": date
-                    })
+                    # Use default summary if none found
+                    if not summary:
+                        summary = "Click to read the full article"
                     
-                    st.session_state.scan_status.insert(0, f"[{datetime.now().strftime('%H:%M:%S')}] Added article: {title}")
+                    # Check for duplicates
+                    if article_url not in seen_urls and title not in seen_titles:
+                        articles.append({
+                            "title": title,
+                            "summary": summary,
+                            "url": article_url,
+                            "date": date
+                        })
+                        seen_urls.add(article_url)
+                        seen_titles.add(title)
+                        
+                        st.session_state.scan_status.insert(0, f"[{datetime.now().strftime('%H:%M:%S')}] Added article: {title}")
             except Exception as e:
                 logger.error(f"Error processing article element {index}: {str(e)}")
                 st.session_state.scan_status.insert(0, f"[{datetime.now().strftime('%H:%M:%S')}] Error: {str(e)}")
@@ -1303,8 +1331,8 @@ def main():
                     sort_by = st.selectbox("Sort Articles", sort_options, index=0, key="gai_sort_by")
                 
                 with filter_col2:
-                    # Toggle for showing summaries/business value
-                    show_business_value = st.checkbox("Show Business Value", value=True, key="gai_show_business")
+                    # Empty column to maintain layout
+                    pass
                 
                 # Apply sorting
                 sorted_articles = st.session_state.gai_articles.copy()
@@ -1337,12 +1365,6 @@ def main():
                                 <div class="article-summary">
                                     {article.get('summary', 'No summary available')}
                                 </div>
-                                {f'''
-                                <div class="article-relevance" style="display: {'block' if show_business_value else 'none'};">
-                                    <span style="color: #4CAF50; font-weight: 500;">AI Relevance:</span> 
-                                    {article.get('ai_business_value', 'No business value assessment available')}
-                                </div>
-                                ''' if 'ai_business_value' in article else ''}
                             </div>
                         </div>
                     </div>
