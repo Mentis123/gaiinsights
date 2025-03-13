@@ -17,6 +17,8 @@ from urllib.parse import quote
 import logging
 import gc
 import sys
+import requests
+from bs4 import BeautifulSoup
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -44,6 +46,9 @@ if 'initialized' not in st.session_state:
         st.session_state.dark_mode = True  # Theme state
         st.session_state.initialized = True
         st.session_state.last_update = datetime.now()
+        st.session_state.is_fetching_gai = False  # For GaiInsights fetching
+        st.session_state.show_gai_insights = False  # Show GaiInsights articles
+        st.session_state.gai_articles = []  # Store GaiInsights articles
         logger.info("Session state initialized successfully")
     except Exception as e:
         logger.error(f"Error initializing session state: {str(e)}")
@@ -163,7 +168,7 @@ def process_batch(sources, cutoff_time, db, seen_urls, status_placeholder, total
             # Update progress counter for this source and recalculate percentage
             st.session_state.processed_source_count += 1
             progress_percentage = st.session_state.processed_source_count / total_sources
-            
+
             # Update progress bar and text with precise percentage
             if 'progress_bar' in st.session_state:
                 st.session_state.progress_bar.progress(progress_percentage)
@@ -172,7 +177,7 @@ def process_batch(sources, cutoff_time, db, seen_urls, status_placeholder, total
                     f"<div style='text-align: center; font-weight: 500;'>{int(progress_percentage*100)}%</div>", 
                     unsafe_allow_html=True
                 )
-            
+
             # Display the current URL being processed to provide real-time feedback
             if 'current_url_display' in st.session_state:
                 url_display = f"""
@@ -268,6 +273,40 @@ def process_batch(sources, cutoff_time, db, seen_urls, status_placeholder, total
             continue
 
     return batch_articles
+
+def fetch_gai_insights():
+    st.session_state.is_fetching_gai = True
+    try:
+        url = "https://www.gaiinsights.com/articles"
+        response = requests.get(url)
+        response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
+        soup = BeautifulSoup(response.content, "html.parser")
+
+        articles = []
+        article_elements = soup.find_all("div", class_="col-md-4") # Adjust selector as needed
+
+        for element in article_elements:
+            title_element = element.find("h3")
+            summary_element = element.find("p")
+            link_element = element.find("a", href=True)
+
+            if title_element and summary_element and link_element:
+                title = title_element.text.strip()
+                summary = summary_element.text.strip()
+                url = link_element["href"]
+                date = "N/A" #Extract date if possible from the HTML
+                articles.append({"title": title, "summary": summary, "url": url, "date": date})
+
+        st.session_state.gai_articles = articles
+        st.session_state.show_gai_insights = True
+        st.session_state.is_fetching_gai = False
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error fetching GaiInsights articles: {e}")
+        st.session_state.is_fetching_gai = False
+    except Exception as e:
+        st.error(f"An unexpected error occurred while processing GaiInsights data: {e}")
+        st.session_state.is_fetching_gai = False
+
 
 def main():
     try:
@@ -646,11 +685,11 @@ def main():
 
                     seen_urls = set()  # Reset seen URLs each time
                     status_placeholder = st.session_state.status_display
-                    
+
                     # Store total sources count for progress tracking
                     total_sources = len(sources)
                     st.session_state.processed_source_count = 0
-                    
+
                     # Calculate cutoff time based on selected unit
                     if time_unit == "Weeks":
                         days_to_subtract = time_value * 7
@@ -1065,6 +1104,38 @@ def main():
                     - **Source Management**: Customize which websites are scanned
                     - **Reports**: After fetching, download reports in PDF or CSV format
                     """)
+
+            # GaiInsights button and display
+            st.markdown('<div class="sidebar-section">', unsafe_allow_html=True)
+            st.markdown('<div class="sidebar-title">GaiInsights</div>', unsafe_allow_html=True)
+            if st.button("Today's News", use_container_width=True, key="gai_button",
+                        disabled=st.session_state.is_fetching_gai):
+                fetch_gai_insights()
+
+            if st.session_state.show_gai_insights:
+                st.markdown('<div class="article-list">', unsafe_allow_html=True)
+                for article in st.session_state.gai_articles:
+                    article_html = f"""
+                    <div class="article-container">
+                        <div class="article-header">
+                            <div class="article-title">
+                                <a href="{article['url']}" target="_blank" style="text-decoration: none; color: #7D56F4;">
+                                    {article['title']}
+                                </a>
+                            </div>
+                        </div>
+                        <div class="article-content">
+                            <div class="article-details">
+                                <div class="article-summary">
+                                    {article.get('summary', 'No summary available')}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    """
+                    st.markdown(article_html, unsafe_allow_html=True)
+                st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
 
     except Exception as e:
         st.error("An unexpected error occurred. Please refresh the page.")
