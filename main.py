@@ -49,6 +49,8 @@ if 'initialized' not in st.session_state:
         st.session_state.is_fetching_gai = False  # For GaiInsights fetching
         st.session_state.show_gai_insights = False  # Show GaiInsights articles
         st.session_state.gai_articles = []  # Store GaiInsights articles
+        st.session_state.gai_pdf_data = None  # Store GaiInsights PDF report
+        st.session_state.gai_csv_data = None  # Store GaiInsights CSV report
         logger.info("Session state initialized successfully")
     except Exception as e:
         logger.error(f"Error initializing session state: {str(e)}")
@@ -276,36 +278,104 @@ def process_batch(sources, cutoff_time, db, seen_urls, status_placeholder, total
 
 def fetch_gai_insights():
     st.session_state.is_fetching_gai = True
+    st.session_state.gai_articles = []  # Reset articles list
+    st.session_state.scan_status.insert(0, f"[{datetime.now().strftime('%H:%M:%S')}] Fetching GaiInsights articles...")
+    
     try:
         url = "https://www.gaiinsights.com/articles"
-        response = requests.get(url)
-        response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        
         soup = BeautifulSoup(response.content, "html.parser")
-
+        
+        # Find article containers - adjust selectors based on the actual site structure
+        article_elements = soup.find_all("div", class_="col-md-4")
+        
+        if not article_elements:
+            # Try alternative selectors if the first one doesn't work
+            article_elements = soup.find_all("article") or soup.find_all("div", class_="post")
+        
+        st.session_state.scan_status.insert(0, f"[{datetime.now().strftime('%H:%M:%S')}] Found {len(article_elements)} article elements")
+        
         articles = []
-        article_elements = soup.find_all("div", class_="col-md-4") # Adjust selector as needed
-
-        for element in article_elements:
-            title_element = element.find("h3")
-            summary_element = element.find("p")
-            link_element = element.find("a", href=True)
-
-            if title_element and summary_element and link_element:
-                title = title_element.text.strip()
-                summary = summary_element.text.strip()
-                url = link_element["href"]
-                date = "N/A" #Extract date if possible from the HTML
-                articles.append({"title": title, "summary": summary, "url": url, "date": date})
-
+        for index, element in enumerate(article_elements):
+            try:
+                # Find title, could be in various elements
+                title_element = element.find("h3") or element.find("h2") or element.find("h4")
+                
+                # Find summary
+                summary_element = element.find("p") or element.find("div", class_="excerpt")
+                
+                # Find link
+                link_element = element.find("a", href=True)
+                
+                if title_element and link_element:
+                    title = title_element.text.strip()
+                    summary = summary_element.text.strip() if summary_element else "Click to read full article"
+                    article_url = link_element["href"]
+                    
+                    # Make URL absolute if relative
+                    if not article_url.startswith('http'):
+                        article_url = f"https://www.gaiinsights.com{article_url}"
+                    
+                    # Extract date if available
+                    date_element = element.find("time") or element.find("span", class_="date")
+                    date = date_element.text.strip() if date_element else datetime.now().strftime('%Y-%m-%d')
+                    
+                    articles.append({
+                        "title": title,
+                        "summary": summary,
+                        "url": article_url,
+                        "date": date
+                    })
+                    
+                    st.session_state.scan_status.insert(0, f"[{datetime.now().strftime('%H:%M:%S')}] Added article: {title}")
+            except Exception as e:
+                logger.error(f"Error processing article element {index}: {str(e)}")
+                continue
+        
+        # If successfully found articles, process them with AI
+        if articles:
+            for i, article in enumerate(articles):
+                try:
+                    st.session_state.scan_status.insert(0, f"[{datetime.now().strftime('%H:%M:%S')}] Processing article {i+1}/{len(articles)}: {article['title']}")
+                    
+                    # Get full content if available
+                    try:
+                        content = extract_full_content(article['url'])
+                        if content:
+                            analysis = summarize_article(content)
+                            if analysis:
+                                article['summary'] = analysis.get('summary', article['summary'])
+                                article['ai_business_value'] = analysis.get('ai_business_value', 'No business value assessment available')
+                    except Exception as content_error:
+                        logger.error(f"Error extracting content for {article['title']}: {str(content_error)}")
+                        # Continue with existing summary if content extraction fails
+                except Exception as e:
+                    logger.error(f"Error analyzing article {article['title']}: {str(e)}")
+            
+            # Generate reports for download
+            try:
+                st.session_state.gai_pdf_data = generate_pdf_report(articles)
+                st.session_state.gai_csv_data = generate_csv_report(articles)
+                st.session_state.scan_status.insert(0, f"[{datetime.now().strftime('%H:%M:%S')}] Reports generated successfully")
+            except Exception as report_error:
+                logger.error(f"Error generating reports: {str(report_error)}")
+                st.session_state.scan_status.insert(0, f"[{datetime.now().strftime('%H:%M:%S')}] Failed to generate reports: {str(report_error)}")
+        
         st.session_state.gai_articles = articles
         st.session_state.show_gai_insights = True
-        st.session_state.is_fetching_gai = False
     except requests.exceptions.RequestException as e:
         st.error(f"Error fetching GaiInsights articles: {e}")
-        st.session_state.is_fetching_gai = False
+        st.session_state.scan_status.insert(0, f"[{datetime.now().strftime('%H:%M:%S')}] Network error: {str(e)}")
     except Exception as e:
         st.error(f"An unexpected error occurred while processing GaiInsights data: {e}")
-        st.session_state.is_fetching_gai = False
+        st.session_state.scan_status.insert(0, f"[{datetime.now().strftime('%H:%M:%S')}] Error: {str(e)}")
+    
+    st.session_state.is_fetching_gai = False
 
 
 def main():
@@ -444,7 +514,7 @@ def main():
             )
             
             gai_button = st.button(
-                "📰 Today's News" if not st.session_state.is_fetching_gai else "⏳ Loading...",
+                "📰 Today's News" if not st.session_state.is_fetching_gai else "⏳ Loading GaiInsights...",
                 disabled=st.session_state.is_fetching_gai,
                 type="primary",
                 use_container_width=True,
@@ -452,7 +522,9 @@ def main():
             )
             
             if gai_button:
-                fetch_gai_insights()
+                with st.spinner("Fetching GaiInsights articles..."):
+                    fetch_gai_insights()
+                st.rerun()  # Force UI refresh after fetching
                 
             st.markdown('</div>', unsafe_allow_html=True)
 
@@ -1117,12 +1189,70 @@ def main():
                     - **Reports**: After fetching, download reports in PDF or CSV format
                     """)
 
-            # GaiInsights articles display
-            if st.session_state.show_gai_insights:
-                st.markdown('<div class="gai-section">', unsafe_allow_html=True)
-                st.markdown('<div class="section-header">GaiInsights Today\'s News</div>', unsafe_allow_html=True)
-                st.markdown('<div class="article-list">', unsafe_allow_html=True)
-                for article in st.session_state.gai_articles:
+            # GaiInsights articles display - only shown when there are results
+            if st.session_state.show_gai_insights and 'gai_articles' in st.session_state and st.session_state.gai_articles:
+                st.markdown("""
+                <div style="text-align: center; margin-top: 2rem; margin-bottom: 1.5rem;">
+                    <h2 style="color: #7D56F4; font-weight: 600; font-size: 1.8rem;">GaiInsights Today's News</h2>
+                    <p style="color: #cccccc; font-size: 1rem;">Latest curated AI news from GaiInsights.com</p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Display export options for reports
+                if hasattr(st.session_state, 'gai_pdf_data') and st.session_state.gai_pdf_data:
+                    st.markdown('<div class="export-section">', unsafe_allow_html=True)
+                    st.markdown('<h3 style="margin-top: 0; font-size: 1.3rem; color: #7D56F4; margin-bottom: 1rem;">Export GaiInsights Reports</h3>', unsafe_allow_html=True)
+
+                    export_col1, export_col2 = st.columns([1, 1])
+                    with export_col1:
+                        # Generate timestamped filename for PDF
+                        from utils.report_tools import get_timestamped_filename
+                        pdf_filename = f"{get_timestamped_filename('gai_news_report')}.pdf"
+                        st.download_button(
+                            "📄 Download PDF Report",
+                            st.session_state.gai_pdf_data,
+                            pdf_filename,
+                            "application/pdf",
+                            use_container_width=True
+                        )
+
+                    with export_col2:
+                        if hasattr(st.session_state, 'gai_csv_data') and st.session_state.gai_csv_data:
+                            # Generate timestamped filename for CSV
+                            from utils.report_tools import get_timestamped_filename
+                            csv_filename = f"{get_timestamped_filename('gai_news_report')}.csv"
+                            st.download_button(
+                                "📊 Download CSV Report",
+                                st.session_state.gai_csv_data,
+                                csv_filename,
+                                "text/csv",
+                                use_container_width=True
+                            )
+                    st.markdown('</div>', unsafe_allow_html=True)
+                
+                # Display filters
+                filter_col1, filter_col2 = st.columns([1, 1])
+                with filter_col1:
+                    sort_options = ["Most Recent", "Oldest First", "Alphabetical (A-Z)"]
+                    sort_by = st.selectbox("Sort Articles", sort_options, index=0, key="gai_sort_by")
+                
+                with filter_col2:
+                    # Toggle for showing summaries/business value
+                    show_business_value = st.checkbox("Show Business Value", value=True, key="gai_show_business")
+                
+                # Apply sorting
+                sorted_articles = st.session_state.gai_articles.copy()
+                if sort_by == "Most Recent":
+                    sorted_articles = sorted(sorted_articles, key=lambda x: x.get('date', ''), reverse=True)
+                elif sort_by == "Oldest First":
+                    sorted_articles = sorted(sorted_articles, key=lambda x: x.get('date', ''))
+                elif sort_by == "Alphabetical (A-Z)":
+                    sorted_articles = sorted(sorted_articles, key=lambda x: x.get('title', '').lower())
+                
+                # Display articles
+                st.markdown(f"<div style='margin-bottom: 1rem; font-size: 0.9rem; color: #cccccc;'>Displaying {len(sorted_articles)} articles from GaiInsights</div>", unsafe_allow_html=True)
+                
+                for article in sorted_articles:
                     article_html = f"""
                     <div class="article-container">
                         <div class="article-header">
@@ -1131,19 +1261,27 @@ def main():
                                     {article['title']}
                                 </a>
                             </div>
+                            <div class="article-meta">
+                                <span>📅 {article.get('date', 'N/A')}</span>
+                                <span style="margin-left: 10px;">🔍 Source: GaiInsights</span>
+                            </div>
                         </div>
                         <div class="article-content">
                             <div class="article-details">
                                 <div class="article-summary">
                                     {article.get('summary', 'No summary available')}
                                 </div>
+                                {f'''
+                                <div class="article-relevance" style="display: {'block' if show_business_value else 'none'};">
+                                    <span style="color: #4CAF50; font-weight: 500;">AI Relevance:</span> 
+                                    {article.get('ai_business_value', 'No business value assessment available')}
+                                </div>
+                                ''' if 'ai_business_value' in article else ''}
                             </div>
                         </div>
                     </div>
                     """
                     st.markdown(article_html, unsafe_allow_html=True)
-                st.markdown('</div>', unsafe_allow_html=True)
-                st.markdown('</div>', unsafe_allow_html=True)
 
     except Exception as e:
         st.error("An unexpected error occurred. Please refresh the page.")
