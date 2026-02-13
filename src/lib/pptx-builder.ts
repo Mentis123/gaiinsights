@@ -1,328 +1,101 @@
-import PptxGenJS from "pptxgenjs";
-import { BRAND } from "./brand";
+import Automizer, { modify } from "pptx-automizer";
+import * as fs from "fs";
+import * as path from "path";
+
+// Source slide mapping: layout name -> slide number (1-based) in gai-source.pptx
+// Slide 1: TITLE (layout 0) - opening/closing
+// Slide 2: OBJECT (layout 2) - standard content with bullets
+// Slide 3: Divider Slide A (layout 5) - section breaks
+// Slide 4: 1_Comparison (layout 8) - two-column
+// Slide 5: MAIN_POINT (layout 21) - big statement
+// Slide 6: TITLE_AND_BODY (layout 20) - title + body variant
+const LAYOUT_MAP: Record<string, number> = {
+  title: 1,
+  content: 2,
+  divider: 3,
+  divider_a: 3,
+  comparison: 4,
+  comparison_2: 4,
+  statement: 5,
+  main_point: 5,
+  title_body: 6,
+};
+
+// Shape name mapping: source slide number -> { placeholder index -> shape name }
+const SHAPE_MAP: Record<number, Record<string, string>> = {
+  1: { "0": "Title 1", "1": "Subtitle 2" },
+  2: { "0": "Title 1", "1": "Text Placeholder 2" },
+  3: { "0": "Title 1" },
+  4: { "0": "Title 1", "1": "Text Placeholder 2", "2": "Text Placeholder 3" },
+  5: { "0": "Title 1" },
+  6: { "0": "Title 1", "1": "Text Placeholder 2" },
+};
+
+// Tag names used in the source template placeholders
+const TAG_MAP: Record<number, Record<string, string>> = {
+  1: { "0": "TITLE", "1": "SUBTITLE" },
+  2: { "0": "TITLE", "1": "BODY" },
+  3: { "0": "TITLE" },
+  4: { "0": "TITLE", "1": "LEFT", "2": "RIGHT" },
+  5: { "0": "TITLE" },
+  6: { "0": "TITLE", "1": "BODY" },
+};
 
 interface SlideData {
   layout: string;
-  placeholders: {
-    title?: string;
-    subtitle?: string;
-    body?: string;
-    left?: string;
-    right?: string;
-  };
+  placeholders: Record<string, string>;
   notes?: string;
 }
 
 interface PresentationContent {
   metadata: {
     title: string;
-    subtitle?: string;
     author?: string;
     date?: string;
   };
   slides: SlideData[];
 }
 
-function addBrandBar(slide: PptxGenJS.Slide) {
-  // Bottom accent bar
-  slide.addShape("rect", {
-    x: 0,
-    y: 7.1,
-    w: 13.33,
-    h: 0.08,
-    fill: { color: BRAND.colors.cyan.replace("#", "") },
-  });
-}
+export async function buildPresentation(
+  content: PresentationContent
+): Promise<Buffer> {
+  // Read the source template
+  const templatePath = path.join(process.cwd(), "public", "gai-source.pptx");
+  const templateBuffer = fs.readFileSync(templatePath);
 
-function addSlideNumber(slide: PptxGenJS.Slide, num: number) {
-  slide.addText(String(num), {
-    x: 12.5,
-    y: 7.0,
-    w: 0.5,
-    h: 0.4,
-    fontSize: 10,
-    color: "999999",
-    align: "right",
-  });
-}
-
-export function buildPresentation(content: PresentationContent): PptxGenJS {
-  const pptx = new PptxGenJS();
-
-  pptx.layout = "LAYOUT_WIDE";
-  pptx.author = content.metadata.author || "GAI Insights";
-  pptx.title = content.metadata.title;
-
-  // Define master slides
-  pptx.defineSlideMaster({
-    title: "GAI_TITLE",
-    background: { color: BRAND.colors.navy.replace("#", "") },
-    objects: [
-      {
-        rect: {
-          x: 0,
-          y: 7.1,
-          w: 13.33,
-          h: 0.4,
-          fill: { color: BRAND.colors.cyan.replace("#", "") },
-        },
-      },
-    ],
+  const automizer = new Automizer({
+    removeExistingSlides: true,
+    compression: 0,
+    verbosity: 0,
   });
 
-  pptx.defineSlideMaster({
-    title: "GAI_CONTENT",
-    background: { color: "FFFFFF" },
-    objects: [
-      {
-        rect: {
-          x: 0,
-          y: 0,
-          w: 13.33,
-          h: 0.06,
-          fill: { color: BRAND.colors.navy.replace("#", "") },
-        },
-      },
-      {
-        rect: {
-          x: 0,
-          y: 7.1,
-          w: 13.33,
-          h: 0.06,
-          fill: { color: BRAND.colors.cyan.replace("#", "") },
-        },
-      },
-    ],
-  });
+  const pres = automizer
+    .loadRoot(templateBuffer)
+    .load(templateBuffer, "source");
 
-  pptx.defineSlideMaster({
-    title: "GAI_DIVIDER",
-    background: { color: BRAND.colors.deepPurple.replace("#", "") },
-    objects: [
-      {
-        rect: {
-          x: 0,
-          y: 7.1,
-          w: 13.33,
-          h: 0.4,
-          fill: { color: BRAND.colors.magenta.replace("#", "") },
-        },
-      },
-    ],
-  });
+  // Add slides from source template
+  for (const slideData of content.slides) {
+    const slideNum = LAYOUT_MAP[slideData.layout] || LAYOUT_MAP.content;
+    const shapeMap = SHAPE_MAP[slideNum];
+    const tagMap = TAG_MAP[slideNum];
 
-  pptx.defineSlideMaster({
-    title: "GAI_STATEMENT",
-    background: { color: BRAND.colors.navy.replace("#", "") },
-    objects: [
-      {
-        rect: {
-          x: 1,
-          y: 3.2,
-          w: 11.33,
-          h: 0.02,
-          fill: { color: BRAND.colors.cyan.replace("#", "") },
-        },
-      },
-    ],
-  });
-
-  content.slides.forEach((slideData, index) => {
-    let slide: PptxGenJS.Slide;
-
-    switch (slideData.layout) {
-      case "title": {
-        slide = pptx.addSlide({ masterName: "GAI_TITLE" });
-        slide.addText(slideData.placeholders.title || "", {
-          x: 1,
-          y: 2.0,
-          w: 11.33,
-          h: 1.5,
-          fontSize: 40,
-          fontFace: BRAND.fonts.heading,
-          color: "FFFFFF",
-          bold: true,
-          align: "left",
-          valign: "bottom",
-        });
-        if (slideData.placeholders.subtitle) {
-          slide.addText(slideData.placeholders.subtitle, {
-            x: 1,
-            y: 3.8,
-            w: 11.33,
-            h: 0.8,
-            fontSize: 20,
-            fontFace: BRAND.fonts.body,
-            color: BRAND.colors.cyan.replace("#", ""),
-            align: "left",
-          });
+    pres.addSlide("source", slideNum, (slide) => {
+      for (const [idx, text] of Object.entries(slideData.placeholders)) {
+        const shapeName = shapeMap?.[idx];
+        const tag = tagMap?.[idx];
+        if (shapeName && tag && text) {
+          slide.modifyElement(shapeName, [
+            modify.replaceText([
+              { replace: `{{${tag}}}`, by: { text } },
+            ]),
+          ]);
         }
-        break;
       }
+    });
+  }
 
-      case "divider": {
-        slide = pptx.addSlide({ masterName: "GAI_DIVIDER" });
-        slide.addText(slideData.placeholders.title || "", {
-          x: 1,
-          y: 2.5,
-          w: 11.33,
-          h: 2,
-          fontSize: 36,
-          fontFace: BRAND.fonts.heading,
-          color: "FFFFFF",
-          bold: true,
-          align: "left",
-          valign: "middle",
-        });
-        break;
-      }
-
-      case "content": {
-        slide = pptx.addSlide({ masterName: "GAI_CONTENT" });
-        slide.addText(slideData.placeholders.title || "", {
-          x: 0.8,
-          y: 0.3,
-          w: 11.73,
-          h: 0.8,
-          fontSize: 28,
-          fontFace: BRAND.fonts.heading,
-          color: BRAND.colors.navy.replace("#", ""),
-          bold: true,
-        });
-        if (slideData.placeholders.body) {
-          const bullets = slideData.placeholders.body
-            .split("\n")
-            .filter((b) => b.trim())
-            .map((text) => ({
-              text,
-              options: {
-                fontSize: 18,
-                fontFace: BRAND.fonts.body,
-                color: "333333",
-                bullet: { code: "2022" as const },
-                paraSpaceAfter: 8,
-              },
-            }));
-          slide.addText(bullets, {
-            x: 0.8,
-            y: 1.4,
-            w: 11.73,
-            h: 5.2,
-            valign: "top",
-          });
-        }
-        addSlideNumber(slide, index + 1);
-        break;
-      }
-
-      case "comparison": {
-        slide = pptx.addSlide({ masterName: "GAI_CONTENT" });
-        slide.addText(slideData.placeholders.title || "", {
-          x: 0.8,
-          y: 0.3,
-          w: 11.73,
-          h: 0.8,
-          fontSize: 28,
-          fontFace: BRAND.fonts.heading,
-          color: BRAND.colors.navy.replace("#", ""),
-          bold: true,
-        });
-        // Divider line between columns
-        slide.addShape("rect", {
-          x: 6.6,
-          y: 1.5,
-          w: 0.02,
-          h: 5.0,
-          fill: { color: BRAND.colors.cyan.replace("#", "") },
-        });
-        // Left column
-        if (slideData.placeholders.left) {
-          const leftBullets = slideData.placeholders.left
-            .split("\n")
-            .filter((b) => b.trim())
-            .map((text) => ({
-              text,
-              options: {
-                fontSize: 16,
-                fontFace: BRAND.fonts.body,
-                color: "333333",
-                bullet: { code: "2022" as const },
-                paraSpaceAfter: 6,
-              },
-            }));
-          slide.addText(leftBullets, {
-            x: 0.8,
-            y: 1.4,
-            w: 5.5,
-            h: 5.2,
-            valign: "top",
-          });
-        }
-        // Right column
-        if (slideData.placeholders.right) {
-          const rightBullets = slideData.placeholders.right
-            .split("\n")
-            .filter((b) => b.trim())
-            .map((text) => ({
-              text,
-              options: {
-                fontSize: 16,
-                fontFace: BRAND.fonts.body,
-                color: "333333",
-                bullet: { code: "2022" as const },
-                paraSpaceAfter: 6,
-              },
-            }));
-          slide.addText(rightBullets, {
-            x: 7.0,
-            y: 1.4,
-            w: 5.5,
-            h: 5.2,
-            valign: "top",
-          });
-        }
-        addSlideNumber(slide, index + 1);
-        break;
-      }
-
-      case "statement": {
-        slide = pptx.addSlide({ masterName: "GAI_STATEMENT" });
-        slide.addText(slideData.placeholders.title || "", {
-          x: 1,
-          y: 1.5,
-          w: 11.33,
-          h: 2.5,
-          fontSize: 32,
-          fontFace: BRAND.fonts.heading,
-          color: "FFFFFF",
-          bold: true,
-          align: "center",
-          valign: "bottom",
-        });
-        break;
-      }
-
-      default: {
-        slide = pptx.addSlide({ masterName: "GAI_CONTENT" });
-        slide.addText(slideData.placeholders.title || "", {
-          x: 0.8,
-          y: 0.3,
-          w: 11.73,
-          h: 0.8,
-          fontSize: 28,
-          fontFace: BRAND.fonts.heading,
-          color: BRAND.colors.navy.replace("#", ""),
-          bold: true,
-        });
-        addSlideNumber(slide, index + 1);
-      }
-    }
-
-    // Speaker notes
-    if (slideData.notes) {
-      slide.addNotes(slideData.notes);
-    }
-  });
-
-  return pptx;
+  // Output as buffer
+  const jszip = await pres.getJSZip();
+  const buffer = await jszip.generateAsync({ type: "nodebuffer" });
+  return buffer as Buffer;
 }
