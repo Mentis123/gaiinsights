@@ -40,19 +40,26 @@ export default function Home() {
     }
   };
 
+  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const [downloadName, setDownloadName] = useState("");
+
   const handleGenerate = async () => {
     if (!brief.trim()) return;
 
     setGenerating(true);
     setError("");
+    setDownloadUrl(null);
     setStatus("Generating slides with Claude Sonnet 4.5...");
 
     try {
+      console.log("[DeckBuilder] Starting generation...");
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ brief, slideCount }),
       });
+
+      console.log("[DeckBuilder] Response status:", res.status);
 
       if (!res.ok) {
         let errorMsg = "Generation failed";
@@ -68,21 +75,36 @@ export default function Home() {
       setStatus("Building your deck...");
 
       const blob = await res.blob();
+      console.log("[DeckBuilder] Blob received:", blob.size, "bytes, type:", blob.type);
+
+      if (blob.size === 0) {
+        throw new Error("Received empty file from server");
+      }
+
       const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
       const disposition = res.headers.get("Content-Disposition");
       const filename =
         disposition?.match(/filename="(.+)"/)?.[1] || "presentation.pptx";
+
+      // Try automatic download
+      const a = document.createElement("a");
+      a.href = url;
       a.download = filename;
+      a.style.display = "none";
       document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
 
-      setStatus("Done! Your deck has been downloaded.");
-      setTimeout(() => setStatus(""), 5000);
+      // Keep the URL alive for manual download button
+      setTimeout(() => {
+        document.body.removeChild(a);
+      }, 100);
+
+      setDownloadUrl(url);
+      setDownloadName(filename);
+      setStatus(`Done! "${filename}" has been downloaded.`);
+      console.log("[DeckBuilder] Download triggered:", filename);
     } catch (err) {
+      console.error("[DeckBuilder] Error:", err);
       const message =
         err instanceof Error ? err.message : "Something went wrong";
       setError(message);
@@ -211,10 +233,59 @@ export default function Home() {
           <h2 className="heading-display text-2xl md:text-3xl mb-2">
             What are we building?
           </h2>
-          <p className="text-muted mb-8 text-sm">
+          <p className="text-muted mb-6 text-sm">
             Describe your presentation. Include audience, key messages, and any
             specific data points.
           </p>
+
+          {/* Status - always visible at top */}
+          {status && (
+            <div className="status-bar fade-in mb-6">
+              {generating ? (
+                <div className="progress-dots">
+                  <span />
+                  <span />
+                  <span />
+                </div>
+              ) : (
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#0AACDC"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                  <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
+              )}
+              <span className="status-text">{status}</span>
+              {downloadUrl && (
+                <a
+                  href={downloadUrl}
+                  download={downloadName}
+                  className="btn-primary"
+                  style={{ marginLeft: "auto", padding: "8px 20px", fontSize: "13px" }}
+                >
+                  <span>Download Again</span>
+                </a>
+              )}
+            </div>
+          )}
+
+          {error && (
+            <div className="error-bar fade-in mb-6" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D200F5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              {error}
+            </div>
+          )}
 
           <textarea
             className="brief-input w-full mb-8"
@@ -278,44 +349,7 @@ export default function Home() {
             </button>
           </div>
 
-          {/* Status */}
-          {status && (
-            <div className="status-bar fade-in">
-              {generating ? (
-                <div className="progress-dots">
-                  <span />
-                  <span />
-                  <span />
-                </div>
-              ) : (
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#0AACDC"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                  <polyline points="22 4 12 14.01 9 11.01" />
-                </svg>
-              )}
-              <span className="status-text">{status}</span>
-            </div>
-          )}
-
-          {error && (
-            <div className="error-bar fade-in" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D200F5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
-              </svg>
-              {error}
-            </div>
-          )}
+          {/* Status and errors are shown above the textarea */}
         </div>
 
         {/* Info cards */}
