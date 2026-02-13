@@ -1,7 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
-import { SLIDE_SYSTEM_PROMPT } from "@/lib/brand";
-import { buildPresentation } from "@/lib/pptx-builder";
 
 export const maxDuration = 60;
 
@@ -27,7 +24,13 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    // Dynamic imports to avoid module-level loading issues on Vercel
+    const Anthropic = (await import("@anthropic-ai/sdk")).default;
+    const { buildPresentation } = await import("@/lib/pptx-builder");
+
     const client = new Anthropic({ apiKey });
+
+    const { SLIDE_SYSTEM_PROMPT } = await import("@/lib/brand");
 
     const userPrompt = `Create a ${slideCount || "10-15"} slide presentation based on this brief:\n\n${brief}\n\nReturn ONLY the JSON object. No markdown formatting, no code blocks, just raw JSON.`;
 
