@@ -1,14 +1,8 @@
-import Automizer, { modify } from "pptx-automizer";
+import Automizer from "pptx-automizer";
 import * as fs from "fs";
 import * as path from "path";
 
 // Source slide mapping: layout name -> slide number (1-based) in gai-source.pptx
-// Slide 1: TITLE (layout 0) - opening/closing
-// Slide 2: OBJECT (layout 2) - standard content with bullets
-// Slide 3: Divider Slide A (layout 5) - section breaks
-// Slide 4: 1_Comparison (layout 8) - two-column
-// Slide 5: MAIN_POINT (layout 21) - big statement
-// Slide 6: TITLE_AND_BODY (layout 20) - title + body variant
 const LAYOUT_MAP: Record<string, number> = {
   title: 1,
   content: 2,
@@ -21,17 +15,7 @@ const LAYOUT_MAP: Record<string, number> = {
   title_body: 6,
 };
 
-// Shape name mapping: source slide number -> { placeholder index -> shape name }
-const SHAPE_MAP: Record<number, Record<string, string>> = {
-  1: { "0": "Title 1", "1": "Subtitle 2" },
-  2: { "0": "Title 1", "1": "Text Placeholder 2" },
-  3: { "0": "Title 1" },
-  4: { "0": "Title 1", "1": "Text Placeholder 2", "2": "Text Placeholder 3" },
-  5: { "0": "Title 1" },
-  6: { "0": "Title 1", "1": "Text Placeholder 2" },
-};
-
-// Tag names used in the source template placeholders
+// Tag names per source slide: { placeholder index -> tag to replace }
 const TAG_MAP: Record<number, Record<string, string>> = {
   1: { "0": "TITLE", "1": "SUBTITLE" },
   2: { "0": "TITLE", "1": "BODY" },
@@ -56,10 +40,18 @@ interface PresentationContent {
   slides: SlideData[];
 }
 
+function escapeXml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
 export async function buildPresentation(
   content: PresentationContent
 ): Promise<Buffer> {
-  // Read the source template
   const templatePath = path.join(process.cwd(), "public", "gai-source.pptx");
   const templateBuffer = fs.readFileSync(templatePath);
 
@@ -73,29 +65,69 @@ export async function buildPresentation(
     .loadRoot(templateBuffer)
     .load(templateBuffer, "source");
 
-  // Add slides from source template
+  // Step 1: Copy slides from source (no text modification via automizer)
+  const slideReplacements: Array<Record<string, string>> = [];
+
   for (const slideData of content.slides) {
     const slideNum = LAYOUT_MAP[slideData.layout] || LAYOUT_MAP.content;
-    const shapeMap = SHAPE_MAP[slideNum];
-    const tagMap = TAG_MAP[slideNum];
+    pres.addSlide("source", slideNum);
 
-    pres.addSlide("source", slideNum, (slide) => {
-      for (const [idx, text] of Object.entries(slideData.placeholders)) {
-        const shapeName = shapeMap?.[idx];
-        const tag = tagMap?.[idx];
-        if (shapeName && tag && text) {
-          slide.modifyElement(shapeName, [
-            modify.replaceText([
-              { replace: `{{${tag}}}`, by: { text } },
-            ]),
-          ]);
-        }
+    // Build the tag->text replacement map for this slide
+    const tagMap = TAG_MAP[slideNum];
+    const replacements: Record<string, string> = {};
+    for (const [idx, text] of Object.entries(slideData.placeholders)) {
+      const tag = tagMap?.[idx];
+      if (tag && text) {
+        replacements[`{{${tag}}}`] = text;
       }
-    });
+    }
+    slideReplacements.push(replacements);
   }
 
-  // Output as buffer
+  // Step 2: Get JSZip instance (slides are copied but text unchanged)
   const jszip = await pres.getJSZip();
+
+  // Step 3: Find all slide XML files and apply text replacements
+  const slideFiles: string[] = [];
+  jszip.folder("ppt/slides")?.forEach((relativePath) => {
+    if (relativePath.match(/^slide\d+\.xml$/)) {
+      slideFiles.push(`ppt/slides/${relativePath}`);
+    }
+  });
+
+  // Sort by slide number
+  slideFiles.sort((a, b) => {
+    const numA = parseInt(a.match(/slide(\d+)/)?.[1] || "0");
+    const numB = parseInt(b.match(/slide(\d+)/)?.[1] || "0");
+    return numA - numB;
+  });
+
+  console.log(
+    `[PPTX] Found ${slideFiles.length} slides, applying ${slideReplacements.length} replacement sets`
+  );
+
+  // Apply replacements to each slide
+  for (let i = 0; i < Math.min(slideFiles.length, slideReplacements.length); i++) {
+    const slidePath = slideFiles[i];
+    const replacements = slideReplacements[i];
+
+    const file = jszip.file(slidePath);
+    if (!file) continue;
+
+    let xml = await file.async("text");
+
+    // Replace each tag in the XML
+    for (const [tag, text] of Object.entries(replacements)) {
+      const escapedText = escapeXml(text);
+      // Handle newlines: replace \n with XML line breaks
+      // In OOXML, we need </a:t></a:r></a:p><a:p><a:r><a:t> for new paragraphs
+      // But simpler: just replace within the <a:t> element
+      xml = xml.replace(tag, escapedText);
+    }
+
+    jszip.file(slidePath, xml);
+  }
+
   const buffer = await jszip.generateAsync({ type: "nodebuffer" });
   return buffer as Buffer;
 }

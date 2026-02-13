@@ -1,8 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 type AppState = "loading" | "login" | "builder";
+
+const PROGRESS_STAGES = [
+  "Sending brief to Claude Sonnet 4.5...",
+  "Claude is architecting your slides...",
+  "Structuring content and speaker notes...",
+  "Building branded slide layouts...",
+  "Rendering your presentation...",
+];
 
 export default function Home() {
   const [state, setState] = useState<AppState>("loading");
@@ -13,6 +21,35 @@ export default function Home() {
   const [generating, setGenerating] = useState(false);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
+  const [elapsed, setElapsed] = useState(0);
+  const [progressStage, setProgressStage] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Elapsed timer and progress stages during generation
+  useEffect(() => {
+    if (generating) {
+      setElapsed(0);
+      setProgressStage(0);
+      timerRef.current = setInterval(() => {
+        setElapsed((prev) => prev + 1);
+      }, 1000);
+
+      // Cycle through progress stages
+      const stageTimers = [8, 18, 28, 38].map((delay, i) =>
+        setTimeout(() => setProgressStage(i + 1), delay * 1000)
+      );
+
+      return () => {
+        if (timerRef.current) clearInterval(timerRef.current);
+        stageTimers.forEach(clearTimeout);
+      };
+    } else {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    }
+  }, [generating]);
 
   useEffect(() => {
     if (document.cookie.includes("gai_auth")) {
@@ -238,30 +275,63 @@ export default function Home() {
             specific data points.
           </p>
 
-          {/* Status - always visible at top */}
-          {status && (
-            <div className="status-bar fade-in mb-6">
-              {generating ? (
-                <div className="progress-dots">
-                  <span />
-                  <span />
-                  <span />
+          {/* Generating overlay - prominent and unmissable */}
+          {generating && (
+            <div className="generating-overlay fade-in mb-6">
+              <div className="generating-overlay-inner">
+                <div className="generating-spinner-ring">
+                  <svg viewBox="0 0 50 50" width="48" height="48">
+                    <circle
+                      cx="25" cy="25" r="20"
+                      fill="none"
+                      stroke="rgba(10, 172, 220, 0.2)"
+                      strokeWidth="3"
+                    />
+                    <circle
+                      cx="25" cy="25" r="20"
+                      fill="none"
+                      stroke="#0AACDC"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeDasharray="80 126"
+                      className="generating-ring-spin"
+                    />
+                  </svg>
                 </div>
-              ) : (
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="#0AACDC"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                  <polyline points="22 4 12 14.01 9 11.01" />
-                </svg>
-              )}
+                <div className="generating-text-block">
+                  <p className="generating-stage-text">
+                    {PROGRESS_STAGES[progressStage]}
+                  </p>
+                  <p className="generating-elapsed">
+                    {elapsed}s elapsed
+                  </p>
+                </div>
+              </div>
+              <div className="generating-progress-bar">
+                <div
+                  className="generating-progress-fill"
+                  style={{ animationDuration: "50s" }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Done / Download status */}
+          {!generating && status && (
+            <div className="status-bar fade-in mb-6">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#0AACDC"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                <polyline points="22 4 12 14.01 9 11.01" />
+              </svg>
               <span className="status-text">{status}</span>
               {downloadUrl && (
                 <a

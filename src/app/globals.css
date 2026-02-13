@@ -795,6 +795,83 @@ textarea.brief-input:disabled {
   }
 }
 
+/* Generating overlay - prominent progress indicator */
+.generating-overlay {
+  background: rgba(0, 29, 88, 0.6);
+  border: 1px solid rgba(10, 172, 220, 0.3);
+  border-radius: 16px;
+  padding: 24px 28px;
+  backdrop-filter: blur(8px);
+}
+
+.generating-overlay-inner {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.generating-spinner-ring {
+  flex-shrink: 0;
+}
+
+.generating-ring-spin {
+  animation: ringSpin 1.4s linear infinite;
+  transform-origin: center;
+}
+
+@keyframes ringSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.generating-text-block {
+  flex: 1;
+  min-width: 0;
+}
+
+.generating-stage-text {
+  color: #fff;
+  font-family: "Outfit", sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.generating-elapsed {
+  color: rgba(255, 255, 255, 0.4);
+  font-family: "Outfit", sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  margin: 4px 0 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.generating-progress-bar {
+  margin-top: 16px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.generating-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #0AACDC, #9B69FF, #D200F5);
+  border-radius: 2px;
+  animation: progressGrow linear forwards;
+  width: 0%;
+}
+
+@keyframes progressGrow {
+  0% { width: 0%; }
+  20% { width: 25%; }
+  50% { width: 55%; }
+  80% { width: 80%; }
+  95% { width: 92%; }
+  100% { width: 96%; }
+}
+
 /* Success flash */
 .success-flash {
   animation: successPop 0.6s cubic-bezier(0.16, 1, 0.3, 1);
