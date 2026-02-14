@@ -283,77 +283,74 @@ export default function Home() {
             specific data points.
           </p>
 
-          {/* Generating overlay - inline styles to guarantee visibility */}
+          {/* Generating overlay - fully self-contained, no external CSS deps */}
           {generating && (
-            <div style={{
-              background: "rgba(0, 29, 88, 0.6)",
-              border: "1px solid rgba(10, 172, 220, 0.3)",
-              borderRadius: "16px",
-              padding: "24px 28px",
-              backdropFilter: "blur(8px)",
-              WebkitBackdropFilter: "blur(8px)",
-              marginBottom: "24px",
-              animation: "fadeIn 0.3s ease forwards",
-            }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
-                <div style={{ flexShrink: 0 }}>
-                  <svg viewBox="0 0 50 50" width="48" height="48">
-                    <circle
-                      cx="25" cy="25" r="20"
-                      fill="none"
-                      stroke="rgba(10, 172, 220, 0.2)"
-                      strokeWidth="3"
-                    />
-                    <circle
-                      cx="25" cy="25" r="20"
-                      fill="none"
-                      stroke="#0AACDC"
-                      strokeWidth="3"
-                      strokeLinecap="round"
-                      strokeDasharray="80 126"
-                      style={{ animation: "spin 1.4s linear infinite", transformOrigin: "center" }}
-                    />
-                  </svg>
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{
-                    color: "#fff",
-                    fontFamily: "Outfit, sans-serif",
-                    fontSize: "15px",
-                    fontWeight: 500,
-                    lineHeight: 1.4,
-                    margin: 0,
-                  }}>
-                    {PROGRESS_STAGES[progressStage]}
-                  </p>
-                  <p style={{
-                    color: "rgba(255, 255, 255, 0.4)",
-                    fontFamily: "Outfit, sans-serif",
-                    fontSize: "13px",
-                    fontWeight: 400,
-                    margin: "4px 0 0",
-                    fontVariantNumeric: "tabular-nums",
-                  }}>
-                    {elapsed}s elapsed
-                  </p>
-                </div>
-              </div>
+            <>
+              <style dangerouslySetInnerHTML={{ __html: `
+                @keyframes gai-spin { to { transform: rotate(360deg); } }
+                @keyframes gai-pulse { 0%,100% { opacity: 0.6; } 50% { opacity: 1; } }
+                @keyframes gai-progress { 0% { width: 0%; } 20% { width: 25%; } 50% { width: 55%; } 80% { width: 80%; } 100% { width: 96%; } }
+              `}} />
               <div style={{
-                marginTop: "16px",
-                height: "3px",
-                background: "rgba(255, 255, 255, 0.08)",
-                borderRadius: "2px",
-                overflow: "hidden",
+                background: "rgba(0, 29, 88, 0.8)",
+                border: "2px solid rgba(10, 172, 220, 0.5)",
+                borderRadius: "16px",
+                padding: "28px",
+                marginBottom: "24px",
+                opacity: 1,
+                visibility: "visible",
+                display: "block",
+                position: "relative",
+                zIndex: 10,
               }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
+                  <div style={{
+                    width: "48px",
+                    height: "48px",
+                    borderRadius: "50%",
+                    border: "3px solid rgba(10, 172, 220, 0.2)",
+                    borderTopColor: "#0AACDC",
+                    animation: "gai-spin 1s linear infinite",
+                    flexShrink: 0,
+                  }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{
+                      color: "#ffffff",
+                      fontSize: "16px",
+                      fontWeight: 600,
+                      lineHeight: 1.4,
+                      margin: 0,
+                      animation: "gai-pulse 2s ease-in-out infinite",
+                    }}>
+                      {PROGRESS_STAGES[progressStage]}
+                    </p>
+                    <p style={{
+                      color: "rgba(10, 172, 220, 0.8)",
+                      fontSize: "13px",
+                      fontWeight: 400,
+                      margin: "6px 0 0",
+                      fontVariantNumeric: "tabular-nums",
+                    }}>
+                      {elapsed}s elapsed
+                    </p>
+                  </div>
+                </div>
                 <div style={{
-                  height: "100%",
-                  background: "linear-gradient(90deg, #0AACDC, #9B69FF, #D200F5)",
+                  marginTop: "16px",
+                  height: "4px",
+                  background: "rgba(255, 255, 255, 0.1)",
                   borderRadius: "2px",
-                  animation: "progressGrow 50s linear forwards",
-                  width: "0%",
-                }} />
+                  overflow: "hidden",
+                }}>
+                  <div style={{
+                    height: "100%",
+                    background: "linear-gradient(90deg, #0AACDC, #9B69FF, #D200F5)",
+                    borderRadius: "2px",
+                    animation: "gai-progress 50s linear forwards",
+                  }} />
+                </div>
               </div>
-            </div>
+            </>
           )}
 
           {/* Done / Download status */}
@@ -455,7 +452,15 @@ export default function Home() {
               <span className="flex items-center gap-3">
                 {generating ? (
                   <>
-                    <span className="spinner" />
+                    <span style={{
+                      width: "18px",
+                      height: "18px",
+                      border: "2px solid rgba(255,255,255,0.2)",
+                      borderTopColor: "#fff",
+                      borderRadius: "50%",
+                      animation: "gai-spin 0.7s linear infinite",
+                      display: "inline-block",
+                    }} />
                     Generating...
                   </>
                 ) : (
