@@ -9,8 +9,14 @@ interface BuilderScreenProps {
   onChangeTemplate?: () => void;
 }
 
+const TEST_BRIEFS = [
+  `The evolution from RAG to Vibe Coding to Agent Harnesses - through multiple lenses: technical architecture (RAG pipelines → prompt-driven dev → orchestration frameworks), developer experience (search → generate → delegate), enterprise adoption (augmentation → acceleration → autonomy), risk & governance (hallucination management → code review → agent guardrails), and business value (cost reduction → speed → new capabilities).`,
+  `Build a 12-slide deck on the Year of the Agentic AI Builder for enterprise IT leaders at JuiceIT 2026. Cover: Python overtaking JS in 2024, vibe coding becoming mainstream, 41% AI-generated code, the shadow AI risk in enterprise, and why hands-on workshops matter now. End with a CTA for upcoming sessions in Perth, Adelaide, and Brisbane.`,
+];
+
 export default function BuilderScreen({ templateName, onChangeTemplate }: BuilderScreenProps) {
   const [brief, setBrief] = useState("");
+  const [testBriefIndex, setTestBriefIndex] = useState(0);
   const [slideCount, setSlideCount] = useState("10-15");
   const [model, setModel] = useState<ModelChoice>("claude-sonnet-4-5-20250929");
   const [generating, setGenerating] = useState(false);
@@ -183,6 +189,22 @@ export default function BuilderScreen({ templateName, onChangeTemplate }: Builde
             </div>
           )}
 
+          <div className="flex items-center justify-end mb-2">
+            <button
+              className="test-brief-btn"
+              onClick={() => {
+                setBrief(TEST_BRIEFS[testBriefIndex]);
+                setTestBriefIndex((prev) => (prev + 1) % TEST_BRIEFS.length);
+              }}
+              disabled={generating}
+              title="Load a test brief"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+              </svg>
+              Test Brief
+            </button>
+          </div>
           <textarea
             className="brief-input w-full mb-8"
             rows={8}

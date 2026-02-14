@@ -1154,6 +1154,34 @@ textarea.brief-input:disabled {
 }
 
 
+/* ─── Test Brief Button ──────────────────── */
+
+.test-brief-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.test-brief-btn:hover {
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(10, 172, 220, 0.3);
+}
+
+.test-brief-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+
 /* ═══════════════════════════════════════════
    RESPONSIVE POLISH
    ═══════════════════════════════════════════ */
