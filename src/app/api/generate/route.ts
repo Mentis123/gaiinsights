@@ -36,10 +36,10 @@ export async function POST(req: NextRequest) {
 
     const userPrompt = `Create a ${slideCount || "10-15"} slide presentation based on this brief:\n\n${brief}\n\nReturn ONLY the JSON object. No markdown formatting, no code blocks, just raw JSON.`;
 
-    console.log(`[Generate] Using model: ${selectedModel}`);
+    console.log(`[Generate] Using model: ${selectedModel}, requested slides: ${slideCount || "10-15"}`);
     const message = await client.messages.create({
       model: selectedModel,
-      max_tokens: 8192,
+      max_tokens: 16384,
       system: SLIDE_SYSTEM_PROMPT,
       messages: [{ role: "user", content: userPrompt }],
     });
@@ -56,7 +56,30 @@ export async function POST(req: NextRequest) {
       jsonStr = jsonStr.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
     }
 
+    // Robust JSON extraction: find outermost { } boundaries (handles Claude preamble/postamble)
+    const firstBrace = jsonStr.indexOf("{");
+    const lastBrace = jsonStr.lastIndexOf("}");
+    if (firstBrace !== -1 && lastBrace > firstBrace) {
+      jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
+    }
+
     const content = JSON.parse(jsonStr);
+
+    // Validate JSON structure
+    if (!content.slides || !Array.isArray(content.slides) || content.slides.length === 0) {
+      throw new Error("Invalid response: missing or empty slides array");
+    }
+    for (let i = 0; i < content.slides.length; i++) {
+      const slide = content.slides[i];
+      if (!slide.layout || typeof slide.layout !== "string") {
+        throw new Error(`Invalid slide ${i + 1}: missing layout`);
+      }
+      if (!slide.placeholders || typeof slide.placeholders !== "object") {
+        throw new Error(`Invalid slide ${i + 1}: missing placeholders`);
+      }
+    }
+
+    console.log(`[Generate] Model: ${selectedModel}, slides generated: ${content.slides.length}`);
 
     // Build the PowerPoint using template-based approach
     const buffer = await buildPresentation(content);
