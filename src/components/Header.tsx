@@ -30,24 +30,18 @@ export default function Header({ model, templateName, onChangeTemplate }: Header
             Deck Builder
           </h1>
           <p className="text-xs text-muted">
-            {templateName ? (
+            {templateName || "GAI Insights"}
+            {onChangeTemplate && (
               <>
-                {templateName}
-                {onChangeTemplate && (
-                  <>
-                    {" "}
-                    <button
-                      onClick={onChangeTemplate}
-                      className="text-xs hover:underline"
-                      style={{ color: "#0AACDC" }}
-                    >
-                      Change
-                    </button>
-                  </>
-                )}
+                {" · "}
+                <button
+                  onClick={onChangeTemplate}
+                  className="text-xs hover:underline"
+                  style={{ color: "#0AACDC" }}
+                >
+                  {templateName ? "Change Template" : "Upload Template"}
+                </button>
               </>
-            ) : (
-              "GAI Insights"
             )}
           </p>
         </div>
