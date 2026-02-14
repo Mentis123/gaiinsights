@@ -20,6 +20,7 @@ export async function POST(request: Request): Promise<NextResponse> {
             "application/vnd.openxmlformats-officedocument.presentationml.presentation",
           ],
           maximumSizeInBytes: 50 * 1024 * 1024, // 50MB
+          addRandomSuffix: true,
         };
       },
       onUploadCompleted: async () => {
