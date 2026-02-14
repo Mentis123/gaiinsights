@@ -3,9 +3,15 @@
 import { useState, useEffect, useRef } from "react";
 
 type AppState = "loading" | "login" | "builder";
+type ModelChoice = "claude-sonnet-4-5-20250929" | "claude-opus-4-6";
+
+const MODEL_OPTIONS: { value: ModelChoice; label: string }[] = [
+  { value: "claude-sonnet-4-5-20250929", label: "Sonnet 4.5" },
+  { value: "claude-opus-4-6", label: "Opus 4.6" },
+];
 
 const PROGRESS_STAGES = [
-  "Sending brief to Claude Sonnet 4.5...",
+  "Sending brief to Claude...",
   "Claude is architecting your slides...",
   "Structuring content and speaker notes...",
   "Building branded slide layouts...",
@@ -18,6 +24,7 @@ export default function Home() {
   const [authError, setAuthError] = useState(false);
   const [brief, setBrief] = useState("");
   const [slideCount, setSlideCount] = useState("10-15");
+  const [model, setModel] = useState<ModelChoice>("claude-sonnet-4-5-20250929");
   const [generating, setGenerating] = useState(false);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
@@ -86,14 +93,15 @@ export default function Home() {
     setGenerating(true);
     setError("");
     setDownloadUrl(null);
-    setStatus("Generating slides with Claude Sonnet 4.5...");
+    const modelLabel = MODEL_OPTIONS.find((m) => m.value === model)?.label || "Claude";
+    setStatus(`Generating slides with ${modelLabel}...`);
 
     try {
-      console.log("[DeckBuilder] Starting generation...");
+      console.log("[DeckBuilder] Starting generation with model:", model);
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ brief, slideCount }),
+        body: JSON.stringify({ brief, slideCount, model }),
       });
 
       console.log("[DeckBuilder] Response status:", res.status);
@@ -261,7 +269,7 @@ export default function Home() {
           </div>
           <div className="badge badge-cyan">
             <span className="badge-dot" />
-            Sonnet 4.5
+            {MODEL_OPTIONS.find((m) => m.value === model)?.label}
           </div>
         </header>
 
@@ -275,11 +283,20 @@ export default function Home() {
             specific data points.
           </p>
 
-          {/* Generating overlay - prominent and unmissable */}
+          {/* Generating overlay - inline styles to guarantee visibility */}
           {generating && (
-            <div className="generating-overlay fade-in mb-6">
-              <div className="generating-overlay-inner">
-                <div className="generating-spinner-ring">
+            <div style={{
+              background: "rgba(0, 29, 88, 0.6)",
+              border: "1px solid rgba(10, 172, 220, 0.3)",
+              borderRadius: "16px",
+              padding: "24px 28px",
+              backdropFilter: "blur(8px)",
+              WebkitBackdropFilter: "blur(8px)",
+              marginBottom: "24px",
+              animation: "fadeIn 0.3s ease forwards",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
+                <div style={{ flexShrink: 0 }}>
                   <svg viewBox="0 0 50 50" width="48" height="48">
                     <circle
                       cx="25" cy="25" r="20"
@@ -294,24 +311,47 @@ export default function Home() {
                       strokeWidth="3"
                       strokeLinecap="round"
                       strokeDasharray="80 126"
-                      className="generating-ring-spin"
+                      style={{ animation: "spin 1.4s linear infinite", transformOrigin: "center" }}
                     />
                   </svg>
                 </div>
-                <div className="generating-text-block">
-                  <p className="generating-stage-text">
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{
+                    color: "#fff",
+                    fontFamily: "Outfit, sans-serif",
+                    fontSize: "15px",
+                    fontWeight: 500,
+                    lineHeight: 1.4,
+                    margin: 0,
+                  }}>
                     {PROGRESS_STAGES[progressStage]}
                   </p>
-                  <p className="generating-elapsed">
+                  <p style={{
+                    color: "rgba(255, 255, 255, 0.4)",
+                    fontFamily: "Outfit, sans-serif",
+                    fontSize: "13px",
+                    fontWeight: 400,
+                    margin: "4px 0 0",
+                    fontVariantNumeric: "tabular-nums",
+                  }}>
                     {elapsed}s elapsed
                   </p>
                 </div>
               </div>
-              <div className="generating-progress-bar">
-                <div
-                  className="generating-progress-fill"
-                  style={{ animationDuration: "50s" }}
-                />
+              <div style={{
+                marginTop: "16px",
+                height: "3px",
+                background: "rgba(255, 255, 255, 0.08)",
+                borderRadius: "2px",
+                overflow: "hidden",
+              }}>
+                <div style={{
+                  height: "100%",
+                  background: "linear-gradient(90deg, #0AACDC, #9B69FF, #D200F5)",
+                  borderRadius: "2px",
+                  animation: "progressGrow 50s linear forwards",
+                  width: "0%",
+                }} />
               </div>
             </div>
           )}
@@ -369,21 +409,41 @@ export default function Home() {
 
           {/* Controls row */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 mb-8">
-            <div>
-              <label className="label-uppercase text-muted block mb-3">
-                Slide count
-              </label>
-              <div className="slide-count">
-                {["5-8", "10-15", "15-25", "25-35"].map((count) => (
-                  <button
-                    key={count}
-                    className={slideCount === count ? "active" : ""}
-                    onClick={() => setSlideCount(count)}
-                    disabled={generating}
-                  >
-                    {count}
-                  </button>
-                ))}
+            <div className="flex flex-col sm:flex-row gap-6">
+              <div>
+                <label className="label-uppercase text-muted block mb-3">
+                  Slide count
+                </label>
+                <div className="slide-count">
+                  {["5-8", "10-15", "15-25", "25-35"].map((count) => (
+                    <button
+                      key={count}
+                      className={slideCount === count ? "active" : ""}
+                      onClick={() => setSlideCount(count)}
+                      disabled={generating}
+                    >
+                      {count}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="label-uppercase text-muted block mb-3">
+                  Model
+                </label>
+                <div className="slide-count">
+                  {MODEL_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      className={model === opt.value ? "active" : ""}
+                      onClick={() => setModel(opt.value)}
+                      disabled={generating}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 

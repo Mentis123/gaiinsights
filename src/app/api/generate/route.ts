@@ -9,11 +9,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { brief, slideCount } = await req.json();
+  const { brief, slideCount, model } = await req.json();
 
   if (!brief || typeof brief !== "string") {
     return NextResponse.json({ error: "Brief is required" }, { status: 400 });
   }
+
+  const ALLOWED_MODELS = ["claude-sonnet-4-5-20250929", "claude-opus-4-6"];
+  const selectedModel = ALLOWED_MODELS.includes(model) ? model : "claude-sonnet-4-5-20250929";
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey || apiKey === "your-key-here") {
@@ -33,8 +36,9 @@ export async function POST(req: NextRequest) {
 
     const userPrompt = `Create a ${slideCount || "10-15"} slide presentation based on this brief:\n\n${brief}\n\nReturn ONLY the JSON object. No markdown formatting, no code blocks, just raw JSON.`;
 
+    console.log(`[Generate] Using model: ${selectedModel}`);
     const message = await client.messages.create({
-      model: "claude-sonnet-4-5-20250929",
+      model: selectedModel,
       max_tokens: 8192,
       system: SLIDE_SYSTEM_PROMPT,
       messages: [{ role: "user", content: userPrompt }],
