@@ -3,7 +3,7 @@ import TemplateUploader from "./TemplateUploader";
 import LayoutPreview from "./LayoutPreview";
 import type { TemplateConfig } from "@/lib/types";
 
-type StudioPhase = "upload" | "workshop" | "approve";
+type StudioPhase = "select" | "upload" | "workshop";
 
 interface StudioScreenProps {
   existingConfig: TemplateConfig | null;
@@ -12,11 +12,13 @@ interface StudioScreenProps {
 }
 
 export default function StudioScreen({ existingConfig, onApprove, onSkip }: StudioScreenProps) {
-  const [phase, setPhase] = useState<StudioPhase>(existingConfig ? "workshop" : "upload");
+  // If we have an existing template, start at selection; otherwise go straight to upload
+  const [phase, setPhase] = useState<StudioPhase>(existingConfig ? "select" : "upload");
   const [config, setConfig] = useState<TemplateConfig | null>(existingConfig);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [brandVoice, setBrandVoice] = useState(existingConfig?.promptOverrides?.brandVoice || "");
+  const [templateName, setTemplateName] = useState(existingConfig?.name || "");
   const [saving, setSaving] = useState(false);
 
   const handleUpload = async (file: File) => {
@@ -55,6 +57,10 @@ export default function StudioScreen({ existingConfig, onApprove, onSkip }: Stud
       }
 
       setConfig(data.config);
+      // Pre-fill name from filename (strip extension)
+      const fileName = file.name.replace(/\.pptx$/i, "").replace(/[-_]/g, " ");
+      setTemplateName(data.config.name || fileName);
+      setBrandVoice(data.config.promptOverrides?.brandVoice || "");
       setPhase("workshop");
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : "Upload failed");
@@ -90,9 +96,9 @@ export default function StudioScreen({ existingConfig, onApprove, onSkip }: Stud
 
     setSaving(true);
     try {
-      // Save the refined config
       const updatedConfig: TemplateConfig = {
         ...config,
+        name: templateName.trim() || undefined,
         promptOverrides: {
           ...config.promptOverrides,
           brandVoice: brandVoice.trim() || undefined,
@@ -123,12 +129,15 @@ export default function StudioScreen({ existingConfig, onApprove, onSkip }: Stud
     try {
       await fetch("/api/templates", { method: "DELETE" });
       setConfig(null);
+      setTemplateName("");
       setPhase("upload");
       setBrandVoice("");
     } catch {
       // Silently fail
     }
   };
+
+  const existingName = existingConfig?.name || "Custom Template";
 
   return (
     <main className="min-h-screen p-4 md:p-8">
@@ -165,6 +174,81 @@ export default function StudioScreen({ existingConfig, onApprove, onSkip }: Stud
           </button>
         </header>
 
+        {/* Phase: Select Template */}
+        {phase === "select" && (
+          <div className="fade-in">
+            <div className="glass-strong rounded-2xl p-8 md:p-10 glow-cyan mb-8">
+              <h2 className="heading-display text-2xl md:text-3xl mb-2">
+                Choose Your Template
+              </h2>
+              <p className="text-muted text-sm mb-8">
+                Select a template to use for your presentations, or upload a new one.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* GAI Insights Default */}
+                <button
+                  className="studio-template-card"
+                  onClick={onSkip}
+                >
+                  <div className="studio-template-card-icon" style={{ background: "linear-gradient(135deg, #001D58, #0AACDC)" }}>
+                    <span style={{ fontSize: "24px", fontFamily: "Syne, sans-serif", fontWeight: 700, color: "#0AACDC" }}>G</span>
+                  </div>
+                  <div className="studio-template-card-name">GAI Insights</div>
+                  <div className="studio-template-card-desc">Default branded template with navy, cyan, and purple theme</div>
+                </button>
+
+                {/* Existing Custom Template */}
+                {existingConfig && (
+                  <button
+                    className="studio-template-card studio-template-card-active"
+                    onClick={() => {
+                      setConfig(existingConfig);
+                      setTemplateName(existingConfig.name || "");
+                      setBrandVoice(existingConfig.promptOverrides?.brandVoice || "");
+                      setPhase("workshop");
+                    }}
+                  >
+                    <div className="studio-template-card-icon" style={{ background: "linear-gradient(135deg, #43157D, #D200F5)" }}>
+                      <div className="flex gap-0.5">
+                        {Object.values(existingConfig.theme.colors).slice(0, 4).map((color, i) => (
+                          <div key={i} style={{ width: 8, height: 8, borderRadius: 2, background: color }} />
+                        ))}
+                      </div>
+                    </div>
+                    <div className="studio-template-card-name">{existingName}</div>
+                    <div className="studio-template-card-desc">
+                      {Object.keys(existingConfig.layouts).length} layouts &middot; {existingConfig.theme.majorFont}
+                      <span className="studio-template-card-badge">Active</span>
+                    </div>
+                  </button>
+                )}
+
+                {/* Upload New */}
+                <button
+                  className="studio-template-card studio-template-card-upload"
+                  onClick={() => {
+                    setConfig(null);
+                    setTemplateName("");
+                    setBrandVoice("");
+                    setPhase("upload");
+                  }}
+                >
+                  <div className="studio-template-card-icon" style={{ background: "rgba(255,255,255,0.05)", border: "2px dashed rgba(255,255,255,0.15)" }}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="17 8 12 3 7 8" />
+                      <line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                  </div>
+                  <div className="studio-template-card-name">Upload New</div>
+                  <div className="studio-template-card-desc">Upload a .pptx file to auto-discover layouts and branding</div>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Phase: Upload */}
         {phase === "upload" && (
           <div className="glass-strong rounded-2xl p-8 md:p-10 glow-purple fade-in">
@@ -180,6 +264,14 @@ export default function StudioScreen({ existingConfig, onApprove, onSkip }: Stud
               uploading={uploading}
               error={uploadError}
             />
+            {existingConfig && (
+              <button
+                className="text-sm text-muted hover:text-white transition-colors mt-6"
+                onClick={() => setPhase("select")}
+              >
+                &larr; Back to Templates
+              </button>
+            )}
           </div>
         )}
 
@@ -203,6 +295,19 @@ export default function StudioScreen({ existingConfig, onApprove, onSkip }: Stud
                 >
                   Remove Template
                 </button>
+              </div>
+
+              {/* Template name */}
+              <div className="mb-6">
+                <label className="label-uppercase text-muted block mb-2">Template Name</label>
+                <input
+                  type="text"
+                  className="studio-input w-full"
+                  placeholder="e.g. Acme Corp Brand Deck"
+                  value={templateName}
+                  onChange={(e) => setTemplateName(e.target.value)}
+                  style={{ maxWidth: 400 }}
+                />
               </div>
 
               {/* Theme info */}
@@ -282,9 +387,9 @@ export default function StudioScreen({ existingConfig, onApprove, onSkip }: Stud
             <div className="flex items-center justify-between">
               <button
                 className="text-sm text-muted hover:text-white transition-colors"
-                onClick={() => setPhase("upload")}
+                onClick={() => existingConfig ? setPhase("select") : setPhase("upload")}
               >
-                &larr; Upload Different Template
+                &larr; {existingConfig ? "Back to Templates" : "Upload Different Template"}
               </button>
               <button
                 className="btn-primary"

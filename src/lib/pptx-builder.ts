@@ -100,12 +100,29 @@ function escapeXml(text: string): string {
     .replace(/'/g, "&apos;");
 }
 
-function textToParagraphs(text: string): string {
+function textToParagraphs(text: string, isBody: boolean = false): string {
   const lines = text.split("\n").filter((l) => l.trim());
   if (lines.length === 0) return "<a:p><a:endParaRPr/></a:p>";
   return lines
-    .map((line) => `<a:p><a:r><a:t>${escapeXml(line)}</a:t></a:r></a:p>`)
+    .map((line, i) => {
+      // Add space before first body paragraph to push text down from title
+      const spcBef = (isBody && i === 0) ? '<a:pPr><a:spcBef><a:spcPts val="800"/></a:spcBef></a:pPr>' : '';
+      return `<a:p>${spcBef}<a:r><a:t>${escapeXml(line)}</a:t></a:r></a:p>`;
+    })
     .join("");
+}
+
+/**
+ * Extract placeholder position from layout XML shape.
+ * Returns position {x, y, cx, cy} or null if not found.
+ */
+function extractShapePosition(shapeXml: string): { x: string; y: string; cx: string; cy: string } | null {
+  const offMatch = shapeXml.match(/<a:off\s+x="(\d+)"\s+y="(\d+)"/);
+  const extMatch = shapeXml.match(/<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
+  if (offMatch && extMatch) {
+    return { x: offMatch[1], y: offMatch[2], cx: extMatch[1], cy: extMatch[2] };
+  }
+  return null;
 }
 
 /**
@@ -114,12 +131,10 @@ function textToParagraphs(text: string): string {
  */
 function extractPlaceholderShapes(layoutXml: string): Map<string, string> {
   const shapes = new Map<string, string>();
-  // Match each <p:sp>...</p:sp> block
   const spRegex = /<p:sp\b[^>]*>[\s\S]*?<\/p:sp>/g;
   let match;
   while ((match = spRegex.exec(layoutXml)) !== null) {
     const spXml = match[0];
-    // Check if this shape has a placeholder
     const phMatch = spXml.match(/<p:ph\s+([^/]*?)\/>/);
     if (!phMatch) continue;
 
@@ -136,42 +151,37 @@ function extractPlaceholderShapes(layoutXml: string): Map<string, string> {
 }
 
 /**
- * Replace the <p:txBody> content inside a cloned shape XML with our generated text.
- * Preserves the shape's position, size, and formatting properties.
+ * Build a clean placeholder shape using position from the layout shape.
+ * Avoids cloning potentially broken relationship references (r:embed, r:link etc.)
+ * from the layout shape. PowerPoint will inherit formatting from the layout via
+ * the placeholder type/idx reference.
  */
-function replaceTextBody(shapeXml: string, text: string): string {
+function buildCleanShape(
+  shapeId: number,
+  ph: { phType: string; phIdx?: number; name: string },
+  text: string,
+  layoutShape: string | undefined
+): string {
+  const idxAttr = ph.phIdx !== undefined ? ` idx="${ph.phIdx}"` : "";
+  const isBody = ph.phType === "body" || ph.phType === "subTitle";
   const paragraphs = text
-    ? textToParagraphs(text)
+    ? textToParagraphs(text, isBody)
     : "<a:p><a:endParaRPr/></a:p>";
 
-  // Replace the entire <p:txBody>...</p:txBody> content
-  // Keep <a:bodyPr> and <a:lstStyle> from the original, replace paragraphs
-  const txBodyMatch = shapeXml.match(/<p:txBody>([\s\S]*?)<\/p:txBody>/);
-  if (!txBodyMatch) {
-    // No txBody found, append one
-    return shapeXml.replace(
-      /<\/p:sp>/,
-      `<p:txBody><a:bodyPr/><a:lstStyle/>${paragraphs}</p:txBody></p:sp>`
-    );
+  // Extract position from layout shape if available
+  let spPr = "<p:spPr/>";
+  if (layoutShape) {
+    const pos = extractShapePosition(layoutShape);
+    if (pos) {
+      spPr = `<p:spPr><a:xfrm><a:off x="${pos.x}" y="${pos.y}"/><a:ext cx="${pos.cx}" cy="${pos.cy}"/></a:xfrm></p:spPr>`;
+    }
   }
 
-  const txBodyContent = txBodyMatch[1];
-
-  // Extract <a:bodyPr.../> (may be self-closing or have content)
-  const bodyPrMatch = txBodyContent.match(/<a:bodyPr[^>]*(?:\/>|>[\s\S]*?<\/a:bodyPr>)/);
-  const bodyPr = bodyPrMatch ? bodyPrMatch[0] : "<a:bodyPr/>";
-
-  // Extract <a:lstStyle.../> (may be self-closing or have content)
-  const lstStyleMatch = txBodyContent.match(/<a:lstStyle[^>]*(?:\/>|>[\s\S]*?<\/a:lstStyle>)/);
-  const lstStyle = lstStyleMatch ? lstStyleMatch[0] : "<a:lstStyle/>";
-
-  const newTxBody = `<p:txBody>${bodyPr}${lstStyle}${paragraphs}</p:txBody>`;
-  return shapeXml.replace(/<p:txBody>[\s\S]*?<\/p:txBody>/, newTxBody);
+  return `<p:sp><p:nvSpPr><p:cNvPr id="${shapeId}" name="${ph.name}"/><p:cNvSpPr><a:spLocks noGrp="1"/></p:cNvSpPr><p:nvPr><p:ph type="${ph.phType}"${idxAttr}/></p:nvPr></p:nvSpPr>${spPr}<p:txBody><a:bodyPr/><a:lstStyle/>${paragraphs}</p:txBody></p:sp>`;
 }
 
 /**
- * Build slide XML by cloning placeholder shapes from the layout XML.
- * Falls back to minimal XML if layout shapes can't be extracted.
+ * Build slide XML using clean shapes with positions from the layout.
  */
 function buildSlideXml(
   layout: BuilderLayoutConfig,
@@ -181,7 +191,6 @@ function buildSlideXml(
   let shapes = "";
   let shapeId = 2;
 
-  // Try to extract placeholder shapes from the layout
   const layoutShapes = layoutXml ? extractPlaceholderShapes(layoutXml) : new Map<string, string>();
 
   for (const ph of layout.placeholders) {
@@ -190,27 +199,7 @@ function buildSlideXml(
     const lookupKey = `${ph.phType}:${phIdx}`;
 
     const layoutShape = layoutShapes.get(lookupKey);
-
-    if (layoutShape) {
-      // Clone the layout shape and replace text content
-      let clonedShape = replaceTextBody(layoutShape, text);
-
-      // Update shape ID to avoid conflicts
-      clonedShape = clonedShape.replace(
-        /(<p:cNvPr\s+id=")(\d+)(")/,
-        `$1${shapeId}$3`
-      );
-
-      shapes += clonedShape;
-    } else {
-      // Fallback: minimal placeholder XML (original approach)
-      const idxAttr = ph.phIdx !== undefined ? ` idx="${ph.phIdx}"` : "";
-      const paragraphs = text
-        ? textToParagraphs(text)
-        : "<a:p><a:endParaRPr/></a:p>";
-
-      shapes += `<p:sp><p:nvSpPr><p:cNvPr id="${shapeId}" name="${ph.name}"/><p:cNvSpPr><a:spLocks noGrp="1"/></p:cNvSpPr><p:nvPr><p:ph type="${ph.phType}"${idxAttr}/></p:nvPr></p:nvSpPr><p:spPr/><p:txBody><a:bodyPr/><a:lstStyle/>${paragraphs}</p:txBody></p:sp>`;
-    }
+    shapes += buildCleanShape(shapeId, ph, text, layoutShape);
     shapeId++;
   }
 
@@ -243,6 +232,47 @@ function buildNotesSlideRelsXml(slideNum: number): string {
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="../slides/slide${slideNum}.xml"/></Relationships>`;
 }
 
+/**
+ * Remove any existing slides, notes slides, and their rels/content-type entries
+ * from a template zip. This ensures a clean slate before injecting new slides,
+ * which is critical when the uploaded template has sample slides in it.
+ */
+function cleanExistingSlides(zip: JSZip, presRels: string, contentTypes: string): { presRels: string; contentTypes: string } {
+  // Remove existing slide files and their rels
+  const slideFiles = Object.keys(zip.files).filter((f) => /^ppt\/slides\/slide\d+\.xml$/.test(f));
+  for (const f of slideFiles) {
+    zip.remove(f);
+    const relsPath = f.replace("slides/", "slides/_rels/") + ".rels";
+    if (zip.files[relsPath]) zip.remove(relsPath);
+  }
+
+  // Remove existing notes slide files and their rels
+  const notesFiles = Object.keys(zip.files).filter((f) => /^ppt\/notesSlides\/notesSlide\d+\.xml$/.test(f));
+  for (const f of notesFiles) {
+    zip.remove(f);
+    const relsPath = f.replace("notesSlides/", "notesSlides/_rels/") + ".rels";
+    if (zip.files[relsPath]) zip.remove(relsPath);
+  }
+
+  // Strip existing slide relationship entries from presentation.xml.rels
+  const cleanedRels = presRels.replace(
+    /<Relationship[^>]*Type="http:\/\/schemas\.openxmlformats\.org\/officeDocument\/2006\/relationships\/slide"[^>]*\/>/g,
+    ""
+  );
+
+  // Strip existing slide and notes content type overrides
+  let cleanedCT = contentTypes.replace(
+    /<Override\s+PartName="\/ppt\/slides\/slide\d+\.xml"[^/]*\/>/g,
+    ""
+  );
+  cleanedCT = cleanedCT.replace(
+    /<Override\s+PartName="\/ppt\/notesSlides\/notesSlide\d+\.xml"[^/]*\/>/g,
+    ""
+  );
+
+  return { presRels: cleanedRels, contentTypes: cleanedCT };
+}
+
 export async function buildPresentation(
   content: PresentationContent,
   options?: {
@@ -266,13 +296,16 @@ export async function buildPresentation(
   // Read current presentation.xml
   const presXml = await zip.file("ppt/presentation.xml")!.async("text");
 
-  // Read current presentation.xml.rels
-  const presRels = await zip.file("ppt/_rels/presentation.xml.rels")!.async("text");
+  // Read current presentation.xml.rels and [Content_Types].xml
+  let presRels = await zip.file("ppt/_rels/presentation.xml.rels")!.async("text");
+  let contentTypes = await zip.file("[Content_Types].xml")!.async("text");
 
-  // Read [Content_Types].xml
-  const contentTypes = await zip.file("[Content_Types].xml")!.async("text");
+  // Clean up existing slides from template (critical for uploaded templates with sample slides)
+  const cleaned = cleanExistingSlides(zip, presRels, contentTypes);
+  presRels = cleaned.presRels;
+  contentTypes = cleaned.contentTypes;
 
-  // Pre-read layout XMLs for cloning (cache to avoid reading same layout twice)
+  // Pre-read layout XMLs for position extraction (cache to avoid reading same layout twice)
   const layoutXmlCache = new Map<string, string>();
   for (const slideData of content.slides) {
     const layoutName = slideData.layout || "content";
@@ -291,7 +324,7 @@ export async function buildPresentation(
     }
   }
 
-  // Find the highest existing rId in presentation.xml.rels
+  // Find the highest existing rId in (cleaned) presentation.xml.rels
   const rIdMatches = presRels.match(/Id="rId(\d+)"/g) || [];
   let maxRId = 0;
   for (const match of rIdMatches) {
@@ -308,7 +341,7 @@ export async function buildPresentation(
   }> = [];
 
   let nextRId = maxRId + 1;
-  let nextSldId = 256; // Standard starting slide ID
+  let nextSldId = 256;
   let notesCount = 0;
 
   for (let i = 0; i < content.slides.length; i++) {
@@ -319,21 +352,17 @@ export async function buildPresentation(
     const rId = `rId${nextRId}`;
     const hasNotes = !!(slideData.notes && slideData.notes.trim());
 
-    // Get cached layout XML for cloning
     const layoutXml = layoutXmlCache.get(layout.layoutFile) || null;
 
-    // Create slide XML (with layout cloning)
     const slideXml = buildSlideXml(layout, slideData.placeholders, layoutXml);
     zip.file(`ppt/slides/slide${slideNum}.xml`, slideXml);
 
-    // Create slide rels (with notes reference if applicable)
     const slideRels = buildSlideRelsXml(
       layout.layoutFile,
       hasNotes ? slideNum : undefined
     );
     zip.file(`ppt/slides/_rels/slide${slideNum}.xml.rels`, slideRels);
 
-    // Create notes slide if notes exist
     if (hasNotes) {
       notesCount++;
       const notesXml = buildNotesSlideXml(slideNum, slideData.notes!);
@@ -348,26 +377,23 @@ export async function buildPresentation(
     nextSldId++;
   }
 
-  // Update presentation.xml - add slide references to sldIdLst
+  // Update presentation.xml - replace sldIdLst with our slides only
   const sldIdEntries = slideEntries
     .map((e) => `<p:sldId id="${e.sldId}" r:id="${e.rId}"/>`)
     .join("");
 
   let newPresXml: string;
   if (presXml.includes("<p:sldIdLst/>")) {
-    // Empty sldIdLst (self-closing)
     newPresXml = presXml.replace(
       "<p:sldIdLst/>",
       `<p:sldIdLst>${sldIdEntries}</p:sldIdLst>`
     );
   } else if (presXml.includes("<p:sldIdLst>")) {
-    // Existing sldIdLst with content - replace it
     newPresXml = presXml.replace(
       /<p:sldIdLst>[\s\S]*?<\/p:sldIdLst>/,
       `<p:sldIdLst>${sldIdEntries}</p:sldIdLst>`
     );
   } else {
-    // No sldIdLst at all - add after sldMasterIdLst
     newPresXml = presXml.replace(
       /<\/p:sldMasterIdLst>/,
       `</p:sldMasterIdLst><p:sldIdLst>${sldIdEntries}</p:sldIdLst>`
@@ -397,7 +423,6 @@ export async function buildPresentation(
     )
     .join("");
 
-  // Add notes slide content types
   const notesOverrides = slideEntries
     .filter((e) => e.hasNotes)
     .map(

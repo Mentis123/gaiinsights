@@ -71,7 +71,12 @@ export default function Home() {
             setTemplateConfig(config);
             setState("builder");
           }}
-          onSkip={() => setState("builder")}
+          onSkip={() => {
+            // Clear custom template — go back to GAI Insights default
+            setTemplateConfig(null);
+            fetch("/api/templates", { method: "DELETE" }).catch(() => {});
+            setState("builder");
+          }}
         />
       </Suspense>
     );
@@ -87,7 +92,8 @@ export default function Home() {
 }
 
 function getTemplateName(config: TemplateConfig): string {
-  // Extract a friendly name from the blob URL or use a default
+  if (config.name) return config.name;
+  // Fallback: extract a friendly name from the blob URL
   const url = config.blobUrl;
   const match = url.match(/\/([^/]+)\.pptx/);
   if (match) {

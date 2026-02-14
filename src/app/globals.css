@@ -1035,6 +1035,77 @@ textarea.brief-input:disabled {
 }
 
 
+/* ─── Template Selection Cards ────────────── */
+
+.studio-template-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 28px 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  text-align: center;
+}
+
+.studio-template-card:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(10, 172, 220, 0.3);
+  transform: translateY(-2px);
+}
+
+.studio-template-card-active {
+  border-color: rgba(210, 0, 245, 0.3);
+}
+
+.studio-template-card-active:hover {
+  border-color: rgba(210, 0, 245, 0.5);
+}
+
+.studio-template-card-upload {
+  border-style: dashed;
+}
+
+.studio-template-card-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.studio-template-card-name {
+  font-family: "Syne", sans-serif;
+  font-weight: 600;
+  font-size: 15px;
+  color: #fff;
+}
+
+.studio-template-card-desc {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+  line-height: 1.5;
+}
+
+.studio-template-card-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  background: rgba(210, 0, 245, 0.15);
+  color: #D200F5;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+
 /* ═══════════════════════════════════════════
    RESPONSIVE POLISH
    ═══════════════════════════════════════════ */

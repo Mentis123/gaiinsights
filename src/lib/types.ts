@@ -21,6 +21,7 @@ export interface LayoutConfig {
 
 export interface TemplateConfig {
   version: 1;
+  name?: string;
   uploadedAt: string;
   blobUrl: string;
   theme: {
