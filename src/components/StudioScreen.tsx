@@ -34,18 +34,24 @@ export default function StudioScreen({ existingConfig, onApprove, onSkip }: Stud
     setUploadError("");
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
+      // Step 1: Client-side upload directly to Vercel Blob (bypasses 4.5MB serverless limit)
+      const { upload } = await import("@vercel/blob/client");
+      const blob = await upload(file.name, file, {
+        access: "public",
+        handleUploadUrl: "/api/templates/upload",
+      });
 
-      const res = await fetch("/api/templates/upload", {
+      // Step 2: Tell server to extract config from the uploaded blob
+      const res = await fetch("/api/templates/extract", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ blobUrl: blob.url }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "Upload failed");
+        throw new Error(data.error || "Extraction failed");
       }
 
       setConfig(data.config);
