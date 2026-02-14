@@ -885,6 +885,147 @@ textarea.brief-input:disabled {
 
 
 /* ═══════════════════════════════════════════
+   TEMPLATE STUDIO
+   ═══════════════════════════════════════════ */
+
+/* Upload drop zone */
+.upload-zone {
+  border: 2px dashed rgba(155, 105, 255, 0.25);
+  border-radius: 20px;
+  padding: 60px 40px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  background: rgba(155, 105, 255, 0.03);
+  position: relative;
+}
+
+.upload-zone:hover {
+  border-color: rgba(155, 105, 255, 0.45);
+  background: rgba(155, 105, 255, 0.06);
+  transform: translateY(-2px);
+}
+
+.upload-zone-active {
+  border-color: rgba(10, 172, 220, 0.6) !important;
+  background: rgba(10, 172, 220, 0.08) !important;
+  box-shadow: 0 0 40px rgba(10, 172, 220, 0.15);
+}
+
+.upload-zone-uploading {
+  pointer-events: none;
+  border-color: rgba(10, 172, 220, 0.3);
+  background: rgba(10, 172, 220, 0.04);
+}
+
+.upload-zone-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.upload-icon {
+  color: rgba(155, 105, 255, 0.5);
+  transition: color 0.3s ease;
+}
+
+.upload-zone:hover .upload-icon {
+  color: rgba(155, 105, 255, 0.8);
+}
+
+.upload-zone .hidden {
+  display: none;
+}
+
+/* Layout preview cards */
+.layout-preview-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  padding: 20px;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.layout-preview-card:hover {
+  border-color: var(--preview-accent, rgba(10, 172, 220, 0.3));
+  background: rgba(255, 255, 255, 0.035);
+  transform: translateY(-2px);
+}
+
+.layout-category-badge {
+  font-family: "Outfit", sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 100px;
+}
+
+.layout-preview-svg-wrap {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  justify-content: center;
+}
+
+.layout-preview-svg {
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+/* Studio inputs */
+.studio-input {
+  background: rgba(0, 29, 88, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  color: #e2e8f0;
+  font-family: "Outfit", sans-serif;
+  font-size: 13px;
+  padding: 10px 14px;
+  width: 100%;
+  transition: all 0.3s ease;
+}
+
+.studio-input:focus {
+  outline: none;
+  border-color: rgba(10, 172, 220, 0.35);
+  background: rgba(0, 29, 88, 0.3);
+}
+
+.studio-input::placeholder {
+  color: rgba(226, 232, 240, 0.2);
+  font-size: 12px;
+}
+
+.studio-textarea {
+  resize: vertical;
+  line-height: 1.6;
+}
+
+/* Theme bar */
+.studio-theme-bar {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 12px;
+  padding: 16px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.studio-color-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: transform 0.2s ease;
+}
+
+.studio-color-swatch:hover {
+  transform: scale(1.2);
+}
+
+
+/* ═══════════════════════════════════════════
    RESPONSIVE POLISH
    ═══════════════════════════════════════════ */
 
@@ -893,4 +1034,6 @@ textarea.brief-input:disabled {
   .heading-display { font-size: 22px !important; }
   .btn-primary { width: 100%; padding: 16px 24px; }
   .info-card { padding: 20px; }
+  .upload-zone { padding: 40px 20px; }
+  .layout-preview-card { padding: 16px; }
 }

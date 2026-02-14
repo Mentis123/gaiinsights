@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { TemplateConfig } from "@/lib/types";
+import type { BuilderLayoutConfig } from "@/lib/pptx-builder";
 
 export const maxDuration = 60;
 
@@ -31,16 +33,23 @@ export async function POST(req: NextRequest) {
     const Anthropic = (await import("@anthropic-ai/sdk")).default;
     const { buildPresentation } = await import("@/lib/pptx-builder");
     const { SLIDE_SYSTEM_PROMPT } = await import("@/lib/brand");
+    const { buildSystemPrompt } = await import("@/lib/prompt-builder");
+
+    // Check for custom template
+    const templateConfig = await loadCustomTemplate();
+    const systemPrompt = templateConfig
+      ? buildSystemPrompt(templateConfig)
+      : SLIDE_SYSTEM_PROMPT;
 
     const client = new Anthropic({ apiKey });
 
     const userPrompt = `Create a ${slideCount || "10-15"} slide presentation based on this brief:\n\n${brief}\n\nReturn ONLY the JSON object. No markdown formatting, no code blocks, just raw JSON.`;
 
-    console.log(`[Generate] Using model: ${selectedModel}, requested slides: ${slideCount || "10-15"}`);
+    console.log(`[Generate] Using model: ${selectedModel}, requested slides: ${slideCount || "10-15"}, custom template: ${!!templateConfig}`);
     const message = await client.messages.create({
       model: selectedModel,
       max_tokens: 16384,
-      system: SLIDE_SYSTEM_PROMPT,
+      system: systemPrompt,
       messages: [{ role: "user", content: userPrompt }],
     });
 
@@ -81,8 +90,37 @@ export async function POST(req: NextRequest) {
 
     console.log(`[Generate] Model: ${selectedModel}, slides generated: ${content.slides.length}`);
 
-    // Build the PowerPoint using template-based approach
-    const buffer = await buildPresentation(content);
+    // Build the PowerPoint — use custom template if available
+    let builderOptions: Parameters<typeof buildPresentation>[1] | undefined;
+
+    if (templateConfig) {
+      // Fetch the template binary from Blob
+      const templateRes = await fetch(templateConfig.blobUrl);
+      if (templateRes.ok) {
+        const templateArrayBuffer = await templateRes.arrayBuffer();
+        const templateBuffer = Buffer.from(templateArrayBuffer);
+
+        // Convert TemplateConfig layouts to BuilderLayoutConfig format
+        const builderLayouts: Record<string, BuilderLayoutConfig> = {};
+        for (const [slug, layout] of Object.entries(templateConfig.layouts)) {
+          builderLayouts[slug] = {
+            layoutFile: layout.layoutFile,
+            placeholders: layout.placeholders.map((ph) => ({
+              idx: ph.idx,
+              phType: ph.phType,
+              phIdx: ph.phIdx,
+              name: ph.name,
+            })),
+          };
+        }
+
+        builderOptions = { templateBuffer, layouts: builderLayouts };
+      } else {
+        console.warn("[Generate] Could not fetch custom template, falling back to default");
+      }
+    }
+
+    const buffer = await buildPresentation(content, builderOptions);
 
     // Return the file
     return new NextResponse(new Uint8Array(buffer), {
@@ -96,6 +134,25 @@ export async function POST(req: NextRequest) {
     console.error("Generation error:", error);
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json({ error: `Generation failed: ${message}` }, { status: 500 });
+  }
+}
+
+/**
+ * Load custom template config from Vercel Blob if it exists.
+ */
+async function loadCustomTemplate(): Promise<TemplateConfig | null> {
+  try {
+    const { list } = await import("@vercel/blob");
+    const { blobs } = await list({ prefix: "templates/active-config.json" });
+    if (blobs.length === 0) return null;
+
+    const res = await fetch(blobs[0].url);
+    if (!res.ok) return null;
+
+    return await res.json();
+  } catch {
+    // Blob not configured or not available — use default
+    return null;
   }
 }
 

@@ -1,21 +1,21 @@
 import JSZip from "jszip";
 import * as fs from "fs";
 import * as path from "path";
+import type { PresentationContent } from "./types";
 
 // Layout config: name -> { layoutFile, placeholders }
 // layoutFile maps to slideLayout(N+1).xml where N is the 0-based layout index
-const LAYOUTS: Record<
-  string,
-  {
-    layoutFile: string;
-    placeholders: Array<{
-      idx: string; // placeholder index from JSON ("0", "1", "2")
-      phType: string; // OOXML placeholder type
-      phIdx?: number; // OOXML idx attribute (omit for idx=0)
-      name: string; // shape name
-    }>;
-  }
-> = {
+export type BuilderLayoutConfig = {
+  layoutFile: string;
+  placeholders: Array<{
+    idx: string;
+    phType: string;
+    phIdx?: number;
+    name: string;
+  }>;
+};
+
+const LAYOUTS: Record<string, BuilderLayoutConfig> = {
   title: {
     layoutFile: "slideLayout1.xml", // TITLE (layout 0)
     placeholders: [
@@ -89,20 +89,7 @@ LAYOUTS.divider_a = LAYOUTS.divider;
 LAYOUTS.comparison_2 = LAYOUTS.comparison;
 LAYOUTS.main_point = LAYOUTS.statement;
 
-interface SlideData {
-  layout: string;
-  placeholders: Record<string, string>;
-  notes?: string;
-}
-
-interface PresentationContent {
-  metadata: {
-    title: string;
-    author?: string;
-    date?: string;
-  };
-  slides: SlideData[];
-}
+// SlideData and PresentationContent imported from ./types
 
 function escapeXml(text: string): string {
   return text
@@ -187,7 +174,7 @@ function replaceTextBody(shapeXml: string, text: string): string {
  * Falls back to minimal XML if layout shapes can't be extracted.
  */
 function buildSlideXml(
-  layout: (typeof LAYOUTS)[string],
+  layout: BuilderLayoutConfig,
   placeholders: Record<string, string>,
   layoutXml: string | null
 ): string {
@@ -257,12 +244,24 @@ function buildNotesSlideRelsXml(slideNum: number): string {
 }
 
 export async function buildPresentation(
-  content: PresentationContent
+  content: PresentationContent,
+  options?: {
+    templateBuffer?: Buffer;
+    layouts?: Record<string, BuilderLayoutConfig>;
+  }
 ): Promise<Buffer> {
-  // Load blank template (0 slides, all layouts/masters intact)
-  const templatePath = path.join(process.cwd(), "public", "gai-blank.pptx");
-  const templateBuffer = fs.readFileSync(templatePath);
-  const zip = await JSZip.loadAsync(templateBuffer);
+  // Load template: use provided buffer or fall back to default GAI template
+  let rawBuffer: Buffer;
+  if (options?.templateBuffer) {
+    rawBuffer = options.templateBuffer;
+  } else {
+    const templatePath = path.join(process.cwd(), "public", "gai-blank.pptx");
+    rawBuffer = fs.readFileSync(templatePath);
+  }
+  const zip = await JSZip.loadAsync(rawBuffer);
+
+  // Use provided layouts or fall back to hardcoded defaults
+  const activeLayouts = options?.layouts || LAYOUTS;
 
   // Read current presentation.xml
   const presXml = await zip.file("ppt/presentation.xml")!.async("text");
@@ -277,7 +276,7 @@ export async function buildPresentation(
   const layoutXmlCache = new Map<string, string>();
   for (const slideData of content.slides) {
     const layoutName = slideData.layout || "content";
-    const layout = LAYOUTS[layoutName] || LAYOUTS.content;
+    const layout = activeLayouts[layoutName] || activeLayouts.content;
     if (!layoutXmlCache.has(layout.layoutFile)) {
       const layoutPath = `ppt/slideLayouts/${layout.layoutFile}`;
       const layoutFile = zip.file(layoutPath);
@@ -315,7 +314,7 @@ export async function buildPresentation(
   for (let i = 0; i < content.slides.length; i++) {
     const slideData = content.slides[i];
     const layoutName = slideData.layout || "content";
-    const layout = LAYOUTS[layoutName] || LAYOUTS.content;
+    const layout = activeLayouts[layoutName] || activeLayouts.content;
     const slideNum = i + 1;
     const rId = `rId${nextRId}`;
     const hasNotes = !!(slideData.notes && slideData.notes.trim());
