@@ -9,7 +9,7 @@ import type { TemplateConfig, LayoutConfig, PlaceholderDef } from "./types";
 export async function extractTemplateConfig(
   buffer: Buffer,
   blobUrl: string
-): Promise<TemplateConfig> {
+): Promise<Omit<TemplateConfig, "id">> {
   const zip = await JSZip.loadAsync(buffer);
 
   // 1. Parse slide dimensions from presentation.xml

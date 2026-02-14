@@ -1,25 +1,28 @@
 import { useState } from "react";
 import TemplateUploader from "./TemplateUploader";
 import LayoutPreview from "./LayoutPreview";
-import type { TemplateConfig } from "@/lib/types";
+import type { TemplateConfig, TemplateLibrary } from "@/lib/types";
 
 type StudioPhase = "select" | "upload" | "workshop";
 
 interface StudioScreenProps {
-  existingConfig: TemplateConfig | null;
-  onApprove: (config: TemplateConfig) => void;
-  onSkip: () => void;
+  library: TemplateLibrary;
+  onSelect: (library: TemplateLibrary) => void;
+  onApprove: (config: TemplateConfig, library?: TemplateLibrary) => void;
+  onBack: () => void;
 }
 
-export default function StudioScreen({ existingConfig, onApprove, onSkip }: StudioScreenProps) {
-  // If we have an existing template, start at selection; otherwise go straight to upload
-  const [phase, setPhase] = useState<StudioPhase>(existingConfig ? "select" : "upload");
-  const [config, setConfig] = useState<TemplateConfig | null>(existingConfig);
+export default function StudioScreen({ library, onSelect, onApprove, onBack }: StudioScreenProps) {
+  // Always start at selection — that's where tiles live
+  const [phase, setPhase] = useState<StudioPhase>("select");
+  const [editingConfig, setEditingConfig] = useState<TemplateConfig | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
-  const [brandVoice, setBrandVoice] = useState(existingConfig?.promptOverrides?.brandVoice || "");
-  const [templateName, setTemplateName] = useState(existingConfig?.name || "");
+  const [brandVoice, setBrandVoice] = useState("");
+  const [templateName, setTemplateName] = useState("");
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [templates, setTemplates] = useState(library.templates);
 
   const handleUpload = async (file: File) => {
     if (!file.name.toLowerCase().endsWith(".pptx")) {
@@ -36,14 +39,12 @@ export default function StudioScreen({ existingConfig, onApprove, onSkip }: Stud
     setUploadError("");
 
     try {
-      // Step 1: Client-side upload directly to Vercel Blob (bypasses 4.5MB serverless limit)
       const { upload } = await import("@vercel/blob/client");
       const blob = await upload(file.name, file, {
         access: "public",
         handleUploadUrl: "/api/templates/upload",
       });
 
-      // Step 2: Tell server to extract config from the uploaded blob
       const res = await fetch("/api/templates/extract", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -56,9 +57,14 @@ export default function StudioScreen({ existingConfig, onApprove, onSkip }: Stud
         throw new Error(data.error || "Extraction failed");
       }
 
-      setConfig(data.config);
-      // Pre-fill name from filename (strip extension)
+      // Update local templates list
+      if (data.library) {
+        setTemplates(data.library.templates);
+      }
+
+      // Pre-fill name from filename
       const fileName = file.name.replace(/\.pptx$/i, "").replace(/[-_]/g, " ");
+      setEditingConfig(data.config);
       setTemplateName(data.config.name || fileName);
       setBrandVoice(data.config.promptOverrides?.brandVoice || "");
       setPhase("workshop");
@@ -69,38 +75,101 @@ export default function StudioScreen({ existingConfig, onApprove, onSkip }: Stud
     }
   };
 
+  const handleEdit = (config: TemplateConfig) => {
+    setEditingConfig(config);
+    setTemplateName(config.name || "");
+    setBrandVoice(config.promptOverrides?.brandVoice || "");
+    setUploadError("");
+    setPhase("workshop");
+  };
+
+  const handleSelectDefault = async () => {
+    try {
+      const res = await fetch("/api/templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ activeId: null }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        onSelect(data.library);
+      }
+    } catch {
+      onSelect({ ...library, activeId: null });
+    }
+  };
+
+  const handleSelectTemplate = async (id: string) => {
+    try {
+      const res = await fetch("/api/templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ activeId: id }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        onSelect(data.library);
+      }
+    } catch {
+      onSelect({ ...library, activeId: id });
+    }
+  };
+
+  const handleDelete = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDeleting(id);
+    try {
+      const res = await fetch(`/api/templates?id=${id}`, { method: "DELETE" });
+      if (res.ok) {
+        const data = await res.json();
+        setTemplates(data.library.templates);
+      } else {
+        setTemplates((prev) => prev.filter((t) => t.id !== id));
+      }
+    } catch {
+      setTemplates((prev) => prev.filter((t) => t.id !== id));
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  const handleEditClick = (config: TemplateConfig, e: React.MouseEvent) => {
+    e.stopPropagation();
+    handleEdit(config);
+  };
+
   const handleUpdateLabel = (slug: string, label: string) => {
-    if (!config) return;
-    setConfig({
-      ...config,
+    if (!editingConfig) return;
+    setEditingConfig({
+      ...editingConfig,
       layouts: {
-        ...config.layouts,
-        [slug]: { ...config.layouts[slug], userLabel: label },
+        ...editingConfig.layouts,
+        [slug]: { ...editingConfig.layouts[slug], userLabel: label },
       },
     });
   };
 
   const handleUpdateRules = (slug: string, rules: string) => {
-    if (!config) return;
-    setConfig({
-      ...config,
+    if (!editingConfig) return;
+    setEditingConfig({
+      ...editingConfig,
       layouts: {
-        ...config.layouts,
-        [slug]: { ...config.layouts[slug], rules },
+        ...editingConfig.layouts,
+        [slug]: { ...editingConfig.layouts[slug], rules },
       },
     });
   };
 
   const handleApprove = async () => {
-    if (!config) return;
+    if (!editingConfig) return;
 
     setSaving(true);
     try {
       const updatedConfig: TemplateConfig = {
-        ...config,
+        ...editingConfig,
         name: templateName.trim() || undefined,
         promptOverrides: {
-          ...config.promptOverrides,
+          ...editingConfig.promptOverrides,
           brandVoice: brandVoice.trim() || undefined,
         },
       };
@@ -117,7 +186,20 @@ export default function StudioScreen({ existingConfig, onApprove, onSkip }: Stud
       }
 
       const data = await res.json();
-      onApprove(data.config);
+
+      // Also set this as active
+      const selectRes = await fetch("/api/templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ activeId: data.config.id }),
+      });
+
+      if (selectRes.ok) {
+        const selectData = await selectRes.json();
+        onApprove(data.config, selectData.library);
+      } else {
+        onApprove(data.config);
+      }
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : "Save failed");
     } finally {
@@ -125,19 +207,12 @@ export default function StudioScreen({ existingConfig, onApprove, onSkip }: Stud
     }
   };
 
-  const handleRemoveTemplate = async () => {
-    try {
-      await fetch("/api/templates", { method: "DELETE" });
-      setConfig(null);
-      setTemplateName("");
-      setPhase("upload");
-      setBrandVoice("");
-    } catch {
-      // Silently fail
-    }
+  const getDisplayName = (config: TemplateConfig): string => {
+    if (config.name) return config.name;
+    const match = config.blobUrl.match(/\/([^/]+)\.pptx/);
+    if (match) return match[1].replace(/-/g, " ");
+    return "Custom Template";
   };
-
-  const existingName = existingConfig?.name || "Custom Template";
 
   return (
     <main className="min-h-screen p-4 md:p-8">
@@ -163,14 +238,14 @@ export default function StudioScreen({ existingConfig, onApprove, onSkip }: Stud
               >
                 Template Studio
               </h1>
-              <p className="text-xs text-muted">Upload &amp; customize your brand template</p>
+              <p className="text-xs text-muted">Manage &amp; customize your brand templates</p>
             </div>
           </div>
           <button
             className="text-sm text-muted hover:text-white transition-colors"
-            onClick={onSkip}
+            onClick={onBack}
           >
-            Skip &rarr; Use Default
+            &larr; Back to Builder
           </button>
         </header>
 
@@ -182,55 +257,89 @@ export default function StudioScreen({ existingConfig, onApprove, onSkip }: Stud
                 Choose Your Template
               </h2>
               <p className="text-muted text-sm mb-8">
-                Select a template to use for your presentations, or upload a new one.
+                Select a template for your presentations, or upload a new one.
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* GAI Insights Default */}
                 <button
-                  className="studio-template-card"
-                  onClick={onSkip}
+                  className={`studio-template-card${library.activeId === null ? " studio-template-card-active" : ""}`}
+                  onClick={handleSelectDefault}
                 >
                   <div className="studio-template-card-icon" style={{ background: "linear-gradient(135deg, #001D58, #0AACDC)" }}>
                     <span style={{ fontSize: "24px", fontFamily: "Syne, sans-serif", fontWeight: 700, color: "#0AACDC" }}>G</span>
                   </div>
                   <div className="studio-template-card-name">GAI Insights</div>
-                  <div className="studio-template-card-desc">Default branded template with navy, cyan, and purple theme</div>
+                  <div className="studio-template-card-desc">
+                    Default branded template with navy, cyan, and purple theme
+                    {library.activeId === null && (
+                      <span className="studio-template-card-badge">Active</span>
+                    )}
+                  </div>
                 </button>
 
-                {/* Existing Custom Template */}
-                {existingConfig && (
-                  <button
-                    className="studio-template-card studio-template-card-active"
-                    onClick={() => {
-                      setConfig(existingConfig);
-                      setTemplateName(existingConfig.name || "");
-                      setBrandVoice(existingConfig.promptOverrides?.brandVoice || "");
-                      setPhase("workshop");
-                    }}
-                  >
-                    <div className="studio-template-card-icon" style={{ background: "linear-gradient(135deg, #43157D, #D200F5)" }}>
-                      <div className="flex gap-0.5">
-                        {Object.values(existingConfig.theme.colors).slice(0, 4).map((color, i) => (
-                          <div key={i} style={{ width: 8, height: 8, borderRadius: 2, background: color }} />
-                        ))}
+                {/* User's uploaded templates */}
+                {templates.map((tpl) => (
+                  <div key={tpl.id} className="studio-template-card-wrapper">
+                    <button
+                      className={`studio-template-card${library.activeId === tpl.id ? " studio-template-card-active" : ""}`}
+                      onClick={() => handleSelectTemplate(tpl.id)}
+                    >
+                      <div className="studio-template-card-icon" style={{ background: "linear-gradient(135deg, #43157D, #D200F5)" }}>
+                        <div className="flex gap-0.5">
+                          {Object.values(tpl.theme.colors).slice(0, 4).map((color, i) => (
+                            <div key={i} style={{ width: 8, height: 8, borderRadius: 2, background: color }} />
+                          ))}
+                        </div>
                       </div>
+                      <div className="studio-template-card-name">{getDisplayName(tpl)}</div>
+                      <div className="studio-template-card-desc">
+                        {Object.keys(tpl.layouts).length} layouts &middot; {tpl.theme.majorFont}
+                        {library.activeId === tpl.id && (
+                          <span className="studio-template-card-badge">Active</span>
+                        )}
+                      </div>
+                    </button>
+                    <div className="studio-template-card-actions">
+                      <button
+                        className="studio-card-action-btn"
+                        onClick={(e) => handleEditClick(tpl, e)}
+                        title="Edit template settings"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                        </svg>
+                        Edit
+                      </button>
+                      <button
+                        className="studio-card-action-btn studio-card-action-btn-danger"
+                        onClick={(e) => handleDelete(tpl.id, e)}
+                        disabled={deleting === tpl.id}
+                        title="Delete template"
+                      >
+                        {deleting === tpl.id ? (
+                          <span className="spinner" style={{ width: 14, height: 14 }} />
+                        ) : (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                          </svg>
+                        )}
+                        Delete
+                      </button>
                     </div>
-                    <div className="studio-template-card-name">{existingName}</div>
-                    <div className="studio-template-card-desc">
-                      {Object.keys(existingConfig.layouts).length} layouts &middot; {existingConfig.theme.majorFont}
-                      <span className="studio-template-card-badge">Active</span>
-                    </div>
-                  </button>
-                )}
+                  </div>
+                ))}
 
                 {/* Upload New */}
                 <button
                   className="studio-template-card studio-template-card-upload"
                   onClick={() => {
-                    setConfig(null);
+                    setEditingConfig(null);
                     setTemplateName("");
                     setBrandVoice("");
+                    setUploadError("");
                     setPhase("upload");
                   }}
                 >
@@ -264,38 +373,25 @@ export default function StudioScreen({ existingConfig, onApprove, onSkip }: Stud
               uploading={uploading}
               error={uploadError}
             />
-            {existingConfig && (
-              <button
-                className="text-sm text-muted hover:text-white transition-colors mt-6"
-                onClick={() => setPhase("select")}
-              >
-                &larr; Back to Templates
-              </button>
-            )}
+            <button
+              className="text-sm text-muted hover:text-white transition-colors mt-6"
+              onClick={() => setPhase("select")}
+            >
+              &larr; Back to Templates
+            </button>
           </div>
         )}
 
         {/* Phase: Workshop */}
-        {phase === "workshop" && config && (
+        {phase === "workshop" && editingConfig && (
           <div className="fade-in">
             <div className="glass-strong rounded-2xl p-8 md:p-10 glow-cyan mb-8">
-              <div className="flex items-start justify-between mb-6">
-                <div>
-                  <h2 className="heading-display text-2xl md:text-3xl mb-2">
-                    Workshop Your Layouts
-                  </h2>
-                  <p className="text-muted text-sm">
-                    We found {Object.keys(config.layouts).length} layouts in your template. Rename them, set rules, and customize.
-                  </p>
-                </div>
-                <button
-                  onClick={handleRemoveTemplate}
-                  className="text-xs text-muted hover:text-white transition-colors"
-                  title="Remove template and start over"
-                >
-                  Remove Template
-                </button>
-              </div>
+              <h2 className="heading-display text-2xl md:text-3xl mb-2">
+                Workshop Your Layouts
+              </h2>
+              <p className="text-muted text-sm mb-6">
+                We found {Object.keys(editingConfig.layouts).length} layouts in your template. Rename them, set rules, and customize.
+              </p>
 
               {/* Template name */}
               <div className="mb-6">
@@ -315,7 +411,7 @@ export default function StudioScreen({ existingConfig, onApprove, onSkip }: Stud
                 <div className="flex items-center gap-3">
                   <span className="label-uppercase text-muted">Theme Colors</span>
                   <div className="flex gap-1">
-                    {Object.entries(config.theme.colors).slice(0, 8).map(([name, color]) => (
+                    {Object.entries(editingConfig.theme.colors).slice(0, 8).map(([name, color]) => (
                       <div
                         key={name}
                         className="studio-color-swatch"
@@ -327,27 +423,27 @@ export default function StudioScreen({ existingConfig, onApprove, onSkip }: Stud
                 </div>
                 <div className="flex items-center gap-6 mt-2">
                   <span className="text-xs text-subtle">
-                    Heading: <strong className="text-white">{config.theme.majorFont}</strong>
+                    Heading: <strong className="text-white">{editingConfig.theme.majorFont}</strong>
                   </span>
                   <span className="text-xs text-subtle">
-                    Body: <strong className="text-white">{config.theme.minorFont}</strong>
+                    Body: <strong className="text-white">{editingConfig.theme.minorFont}</strong>
                   </span>
                   <span className="text-xs text-subtle">
-                    {Math.round(config.slideWidth / 914400)}&quot; &times; {Math.round(config.slideHeight / 914400)}&quot;
+                    {Math.round(editingConfig.slideWidth / 914400)}&quot; &times; {Math.round(editingConfig.slideHeight / 914400)}&quot;
                   </span>
                 </div>
               </div>
 
               {/* Layout cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {Object.entries(config.layouts).map(([slug, layout]) => (
+                {Object.entries(editingConfig.layouts).map(([slug, layout]) => (
                   <LayoutPreview
                     key={slug}
                     slug={slug}
                     layout={layout}
-                    themeColors={config.theme.colors}
-                    slideWidth={config.slideWidth}
-                    slideHeight={config.slideHeight}
+                    themeColors={editingConfig.theme.colors}
+                    slideWidth={editingConfig.slideWidth}
+                    slideHeight={editingConfig.slideHeight}
                     onUpdateLabel={handleUpdateLabel}
                     onUpdateRules={handleUpdateRules}
                   />
@@ -387,9 +483,9 @@ export default function StudioScreen({ existingConfig, onApprove, onSkip }: Stud
             <div className="flex items-center justify-between">
               <button
                 className="text-sm text-muted hover:text-white transition-colors"
-                onClick={() => existingConfig ? setPhase("select") : setPhase("upload")}
+                onClick={() => setPhase("select")}
               >
-                &larr; {existingConfig ? "Back to Templates" : "Upload Different Template"}
+                &larr; Back to Templates
               </button>
               <button
                 className="btn-primary"
@@ -407,7 +503,7 @@ export default function StudioScreen({ existingConfig, onApprove, onSkip }: Stud
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="20 6 9 17 4 12" />
                       </svg>
-                      Approve &amp; Build
+                      Save &amp; Use Template
                     </>
                   )}
                 </span>

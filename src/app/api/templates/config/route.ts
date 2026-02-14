@@ -1,29 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { put, list } from "@vercel/blob";
+import { getActiveTemplate, updateTemplate } from "@/lib/template-storage";
 import type { TemplateConfig } from "@/lib/types";
 
+/**
+ * GET /api/templates/config — Get the currently active template config.
+ */
 export async function GET(req: NextRequest) {
-  // Check auth
   const authCookie = req.cookies.get("gai_auth");
   if (authCookie?.value !== "authenticated") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    // Check if config exists in Blob
-    const { blobs } = await list({ prefix: "templates/active-config.json" });
-    if (blobs.length === 0) {
-      return NextResponse.json({ success: true, config: null });
-    }
-
-    // Fetch the config
-    const configBlob = blobs[0];
-    const res = await fetch(configBlob.url);
-    if (!res.ok) {
-      return NextResponse.json({ success: true, config: null });
-    }
-
-    const config: TemplateConfig = await res.json();
+    const config = await getActiveTemplate();
     return NextResponse.json({ success: true, config });
   } catch (error) {
     console.error("[Templates/Config] GET error:", error);
@@ -31,60 +20,27 @@ export async function GET(req: NextRequest) {
   }
 }
 
+/**
+ * PUT /api/templates/config — Update a template config by ID.
+ * The full config (with id) is sent in the body.
+ */
 export async function PUT(req: NextRequest) {
-  // Check auth
   const authCookie = req.cookies.get("gai_auth");
   if (authCookie?.value !== "authenticated") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    const updates = await req.json();
+    const updates: TemplateConfig = await req.json();
 
-    // Load existing config
-    const { blobs } = await list({ prefix: "templates/active-config.json" });
-    if (blobs.length === 0) {
-      return NextResponse.json({ error: "No template config found" }, { status: 404 });
+    if (!updates.id) {
+      return NextResponse.json({ error: "Template id is required" }, { status: 400 });
     }
 
-    const configBlob = blobs[0];
-    const res = await fetch(configBlob.url);
-    if (!res.ok) {
-      return NextResponse.json({ error: "Failed to load existing config" }, { status: 500 });
-    }
+    const library = await updateTemplate(updates);
+    const config = library.templates.find((t) => t.id === updates.id);
 
-    const existing: TemplateConfig = await res.json();
-
-    // Merge updates (shallow merge of top-level fields)
-    const updated: TemplateConfig = {
-      ...existing,
-      ...updates,
-      // Deep-merge specific nested fields
-      theme: { ...existing.theme, ...updates.theme },
-      promptOverrides: { ...existing.promptOverrides, ...updates.promptOverrides },
-    };
-
-    // If layouts were updated, merge per-layout
-    if (updates.layouts) {
-      updated.layouts = { ...existing.layouts };
-      for (const [key, value] of Object.entries(updates.layouts)) {
-        if (existing.layouts[key]) {
-          updated.layouts[key] = { ...existing.layouts[key], ...(value as object) };
-        } else {
-          updated.layouts[key] = value as TemplateConfig["layouts"][string];
-        }
-      }
-    }
-
-    // Save updated config
-    await put("templates/active-config.json", JSON.stringify(updated, null, 2), {
-      access: "public",
-      contentType: "application/json",
-      addRandomSuffix: false,
-      allowOverwrite: true,
-    });
-
-    return NextResponse.json({ success: true, config: updated });
+    return NextResponse.json({ success: true, config });
   } catch (error) {
     console.error("[Templates/Config] PUT error:", error);
     const message = error instanceof Error ? error.message : "Update failed";

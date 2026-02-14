@@ -39,7 +39,7 @@ export default function Header({ model, templateName, onChangeTemplate }: Header
                   className="text-xs hover:underline"
                   style={{ color: "#0AACDC" }}
                 >
-                  {templateName ? "Edit Template" : "Upload Template"}
+                  Manage Templates
                 </button>
               </>
             )}

@@ -1105,6 +1105,54 @@ textarea.brief-input:disabled {
   text-transform: uppercase;
 }
 
+.studio-template-card-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.studio-template-card-wrapper .studio-template-card {
+  border-radius: 16px 16px 0 0;
+}
+
+.studio-template-card-actions {
+  display: flex;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: none;
+  border-radius: 0 0 16px 16px;
+  overflow: hidden;
+}
+
+.studio-card-action-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.02);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.studio-card-action-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.studio-card-action-btn + .studio-card-action-btn {
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.studio-card-action-btn-danger:hover {
+  background: rgba(210, 0, 245, 0.08);
+  color: #D200F5;
+}
+
 
 /* ═══════════════════════════════════════════
    RESPONSIVE POLISH

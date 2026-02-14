@@ -20,6 +20,7 @@ export interface LayoutConfig {
 }
 
 export interface TemplateConfig {
+  id: string;
   version: 1;
   name?: string;
   uploadedAt: string;
@@ -53,6 +54,13 @@ export interface PresentationContent {
     date?: string;
   };
   slides: SlideData[];
+}
+
+// ─── Template Library ────────────────────────────────
+
+export interface TemplateLibrary {
+  activeId: string | null; // null = use GAI Insights default
+  templates: TemplateConfig[];
 }
 
 // ─── API Types ───────────────────────────────────────

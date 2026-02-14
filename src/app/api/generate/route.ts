@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type { TemplateConfig } from "@/lib/types";
 import type { BuilderLayoutConfig } from "@/lib/pptx-builder";
 
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 export async function POST(req: NextRequest) {
   // Check auth
@@ -138,18 +138,12 @@ export async function POST(req: NextRequest) {
 }
 
 /**
- * Load custom template config from Vercel Blob if it exists.
+ * Load custom template config from the template library if one is active.
  */
 async function loadCustomTemplate(): Promise<TemplateConfig | null> {
   try {
-    const { list } = await import("@vercel/blob");
-    const { blobs } = await list({ prefix: "templates/active-config.json" });
-    if (blobs.length === 0) return null;
-
-    const res = await fetch(blobs[0].url);
-    if (!res.ok) return null;
-
-    return await res.json();
+    const { getActiveTemplate } = await import("@/lib/template-storage");
+    return await getActiveTemplate();
   } catch {
     // Blob not configured or not available — use default
     return null;

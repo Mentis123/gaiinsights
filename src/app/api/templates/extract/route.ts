@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { put } from "@vercel/blob";
 import { extractTemplateConfig } from "@/lib/template-extractor";
+import { addTemplate, generateTemplateId } from "@/lib/template-storage";
 
 export const maxDuration = 30;
 
 export async function POST(req: NextRequest) {
-  // Check auth
   const authCookie = req.cookies.get("gai_auth");
   if (authCookie?.value !== "authenticated") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -28,17 +27,17 @@ export async function POST(req: NextRequest) {
     const buffer = Buffer.from(arrayBuffer);
 
     // Extract template config
-    const config = await extractTemplateConfig(buffer, blobUrl);
+    const rawConfig = await extractTemplateConfig(buffer, blobUrl);
 
-    // Store config in Blob
-    await put("templates/active-config.json", JSON.stringify(config, null, 2), {
-      access: "public",
-      contentType: "application/json",
-      addRandomSuffix: false,
-      allowOverwrite: true,
-    });
+    // Add ID and save to library
+    const config = {
+      ...rawConfig,
+      id: generateTemplateId(),
+    };
 
-    return NextResponse.json({ success: true, config });
+    const library = await addTemplate(config);
+
+    return NextResponse.json({ success: true, config, library });
   } catch (error) {
     console.error("[Templates/Extract] Error:", error);
     const message = error instanceof Error ? error.message : "Extraction failed";

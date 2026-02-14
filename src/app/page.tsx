@@ -4,35 +4,38 @@ import { useState, useEffect, lazy, Suspense } from "react";
 import LoginScreen from "@/components/LoginScreen";
 import BuilderScreen from "@/components/BuilderScreen";
 import type { AppState } from "@/components/types";
-import type { TemplateConfig } from "@/lib/types";
+import type { TemplateConfig, TemplateLibrary } from "@/lib/types";
 
 const StudioScreen = lazy(() => import("@/components/StudioScreen"));
 
 export default function Home() {
   const [state, setState] = useState<AppState>("loading");
-  const [templateConfig, setTemplateConfig] = useState<TemplateConfig | null>(null);
+  const [library, setLibrary] = useState<TemplateLibrary>({ activeId: null, templates: [] });
+
+  const activeTemplate = library.activeId
+    ? library.templates.find((t) => t.id === library.activeId) || null
+    : null;
 
   useEffect(() => {
     if (document.cookie.includes("gai_auth")) {
       setState("builder");
-      // Check for existing custom template
-      loadTemplateConfig();
+      loadLibrary();
     } else {
       setState("login");
     }
   }, []);
 
-  const loadTemplateConfig = async () => {
+  const loadLibrary = async () => {
     try {
-      const res = await fetch("/api/templates/config");
+      const res = await fetch("/api/templates");
       if (res.ok) {
         const data = await res.json();
-        if (data.config) {
-          setTemplateConfig(data.config);
+        if (data.library) {
+          setLibrary(data.library);
         }
       }
     } catch {
-      // No custom template, use default
+      // No templates, use default
     }
   };
 
@@ -51,7 +54,7 @@ export default function Home() {
       <LoginScreen
         onSuccess={() => {
           setState("builder");
-          loadTemplateConfig();
+          loadLibrary();
         }}
       />
     );
@@ -66,17 +69,21 @@ export default function Home() {
         </main>
       }>
         <StudioScreen
-          existingConfig={templateConfig}
-          onApprove={(config: TemplateConfig) => {
-            setTemplateConfig(config);
+          library={library}
+          onSelect={(updatedLibrary: TemplateLibrary) => {
+            setLibrary(updatedLibrary);
             setState("builder");
           }}
-          onSkip={() => {
-            // Clear custom template — go back to GAI Insights default
-            setTemplateConfig(null);
-            fetch("/api/templates", { method: "DELETE" }).catch(() => {});
+          onApprove={(config: TemplateConfig, updatedLibrary?: TemplateLibrary) => {
+            if (updatedLibrary) setLibrary(updatedLibrary);
+            else setLibrary((prev) => ({
+              ...prev,
+              activeId: config.id,
+              templates: prev.templates.map((t) => t.id === config.id ? config : t),
+            }));
             setState("builder");
           }}
+          onBack={() => setState("builder")}
         />
       </Suspense>
     );
@@ -85,7 +92,7 @@ export default function Home() {
   // ─── Builder ───────────────────────────────────
   return (
     <BuilderScreen
-      templateName={templateConfig ? getTemplateName(templateConfig) : null}
+      templateName={activeTemplate ? getTemplateName(activeTemplate) : null}
       onChangeTemplate={() => setState("studio")}
     />
   );
@@ -93,7 +100,6 @@ export default function Home() {
 
 function getTemplateName(config: TemplateConfig): string {
   if (config.name) return config.name;
-  // Fallback: extract a friendly name from the blob URL
   const url = config.blobUrl;
   const match = url.match(/\/([^/]+)\.pptx/);
   if (match) {
