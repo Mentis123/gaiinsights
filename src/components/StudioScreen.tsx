@@ -248,6 +248,19 @@ export default function StudioScreen({ existingConfig, onApprove, onSkip }: Stud
                   />
                 ))}
               </div>
+
+              {/* Preservation note */}
+              <div className="studio-preservation-note mt-6">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0AACDC" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="16" x2="12" y2="12" />
+                  <line x1="12" y1="8" x2="12.01" y2="8" />
+                </svg>
+                <p className="text-xs text-subtle">
+                  These wireframes show placeholder positions only. Background images, master slide graphics,
+                  embedded media, and all visual styling from your template are fully preserved in the generated .pptx output.
+                </p>
+              </div>
             </div>
 
             {/* Brand voice override */}
