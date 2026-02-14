@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type { TemplateConfig } from "@/lib/types";
 import type { BuilderLayoutConfig } from "@/lib/pptx-builder";
 
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 export async function POST(req: NextRequest) {
   // Check auth
