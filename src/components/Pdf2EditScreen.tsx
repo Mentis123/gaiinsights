@@ -3,6 +3,13 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import * as pdfjsLib from "pdfjs-dist";
 import type { PDFDocumentProxy } from "pdfjs-dist";
+import type {
+  SlideAnalysis,
+  TextElement,
+  ShapeElement,
+  ImageRegion,
+  LineElement,
+} from "@/lib/pdf2edit-types";
 
 // Set worker source to CDN (avoids bundling issues)
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
@@ -27,11 +34,41 @@ interface PageOcrResult {
 }
 
 type Phase = "idle" | "uploading" | "previewing" | "processing" | "done";
+type ConversionMode = "vision" | "ocr";
+type ModelChoice = "claude-sonnet-4-5-20250929" | "claude-opus-4-6";
 
 // ── Slide dimensions ────────────────────────────────
 
 const SLIDE_WIDTH = 13.33; // inches (LAYOUT_WIDE)
 const SLIDE_HEIGHT = 7.5;
+
+// ── Image Cropping Utility ──────────────────────────
+
+async function cropImageRegion(
+  imageDataUrl: string,
+  srcX: number,
+  srcY: number,
+  srcW: number,
+  srcH: number
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = srcW;
+      canvas.height = srcH;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        reject(new Error("Could not create canvas context"));
+        return;
+      }
+      ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, srcW, srcH);
+      resolve(canvas.toDataURL("image/png"));
+    };
+    img.onerror = () => reject(new Error("Failed to load image for cropping"));
+    img.src = imageDataUrl;
+  });
+}
 
 // ── Component ───────────────────────────────────────
 
@@ -41,6 +78,7 @@ export default function Pdf2EditScreen() {
   const [fileName, setFileName] = useState("");
   const [pages, setPages] = useState<PageData[]>([]);
   const [ocrResults, setOcrResults] = useState<PageOcrResult[]>([]);
+  const [analysisResults, setAnalysisResults] = useState<SlideAnalysis[]>([]);
   const [progressText, setProgressText] = useState("");
   const [progressPage, setProgressPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
@@ -48,6 +86,8 @@ export default function Pdf2EditScreen() {
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [downloadName, setDownloadName] = useState("");
   const [elapsed, setElapsed] = useState(0);
+  const [conversionMode, setConversionMode] = useState<ConversionMode>("vision");
+  const [selectedModel, setSelectedModel] = useState<ModelChoice>("claude-sonnet-4-5-20250929");
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -116,9 +156,211 @@ export default function Pdf2EditScreen() {
     }
   }, []);
 
-  // ── OCR + PPTX Generation ────────────────────────
+  // ── Vision Mode: AI Analysis + Native PPTX ────────
 
-  const handleConvert = useCallback(async () => {
+  const handleConvertVision = useCallback(async () => {
+    if (pages.length === 0) return;
+
+    setPhase("processing");
+    setError("");
+    setAnalysisResults([]);
+
+    try {
+      const analyses: SlideAnalysis[] = [];
+
+      // Step 1: Analyze all pages with Claude Vision
+      for (let i = 0; i < pages.length; i++) {
+        setProgressPage(i + 1);
+        setProgressText(`Analyzing slide ${i + 1} of ${pages.length}...`);
+
+        let analysis: SlideAnalysis | null = null;
+        let retries = 0;
+
+        while (!analysis && retries < 2) {
+          const res = await fetch("/api/pdf2edit/analyze", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              image: pages[i].imageDataUrl,
+              width: pages[i].width,
+              height: pages[i].height,
+              model: selectedModel,
+            }),
+          });
+
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            if (data.retryable && retries === 0) {
+              retries++;
+              setProgressText(`Retrying analysis for slide ${i + 1}...`);
+              continue;
+            }
+            throw new Error(
+              data.error || `Analysis failed for slide ${i + 1} (${res.status})`
+            );
+          }
+
+          analysis = await res.json();
+        }
+
+        if (!analysis) {
+          throw new Error(`Failed to analyze slide ${i + 1} after retries`);
+        }
+
+        analyses.push(analysis);
+      }
+
+      setAnalysisResults(analyses);
+      setProgressText("Building native PPTX...");
+
+      // Step 2: Build PPTX with native elements only
+      const PptxGenJS = (await import("pptxgenjs")).default;
+      const pptx = new PptxGenJS();
+      pptx.layout = "LAYOUT_WIDE"; // 13.33 x 7.5
+
+      for (let i = 0; i < pages.length; i++) {
+        setProgressText(`Building slide ${i + 1} of ${pages.length}...`);
+        const slide = pptx.addSlide();
+        const analysis = analyses[i];
+        const pageData = pages[i];
+
+        // Set background color
+        if (analysis.background?.color) {
+          slide.background = { color: analysis.background.color };
+        }
+
+        // Add elements in order (should be z-order from API)
+        for (const el of analysis.elements) {
+          try {
+            switch (el.type) {
+              case "shape": {
+                const shape = el as ShapeElement;
+                const shapeMap: Record<string, string> = {
+                  roundedRect: "roundRect",
+                  ellipse: "ellipse",
+                  rect: "rect",
+                };
+                const shapeName = shapeMap[shape.shape] || "rect";
+                const shapeOpts: Record<string, unknown> = {
+                  x: shape.x,
+                  y: shape.y,
+                  w: shape.w,
+                  h: shape.h,
+                  fill: { color: shape.fill },
+                };
+                if (shape.borderColor) {
+                  shapeOpts.line = {
+                    color: shape.borderColor,
+                    width: shape.borderWidth || 1,
+                  };
+                }
+                slide.addShape(
+                  shapeName as Parameters<typeof slide.addShape>[0],
+                  shapeOpts
+                );
+                break;
+              }
+
+              case "image": {
+                const img = el as ImageRegion;
+                try {
+                  const croppedData = await cropImageRegion(
+                    pageData.imageDataUrl,
+                    img.srcX,
+                    img.srcY,
+                    img.srcW,
+                    img.srcH
+                  );
+                  slide.addImage({
+                    data: croppedData,
+                    x: img.x,
+                    y: img.y,
+                    w: img.w,
+                    h: img.h,
+                  });
+                } catch (cropErr) {
+                  console.warn(`[pdf2edit] Failed to crop image region on slide ${i + 1}:`, cropErr);
+                }
+                break;
+              }
+
+              case "text": {
+                const txt = el as TextElement;
+                slide.addText(txt.text, {
+                  x: txt.x,
+                  y: txt.y,
+                  w: Math.max(txt.w, 0.5),
+                  h: Math.max(txt.h, 0.2),
+                  fontSize: txt.fontSize,
+                  fontFace: txt.fontFace || "Arial",
+                  color: txt.color,
+                  bold: txt.bold || false,
+                  italic: txt.italic || false,
+                  align: txt.align || "left",
+                  valign: txt.valign || "top",
+                  isTextBox: true,
+                  wrap: true,
+                });
+                break;
+              }
+
+              case "line": {
+                const line = el as LineElement;
+                slide.addShape(
+                  "line" as Parameters<typeof slide.addShape>[0],
+                  {
+                    x: line.x,
+                    y: line.y,
+                    w: line.w,
+                    h: line.h,
+                    line: {
+                      color: line.color,
+                      width: line.lineWidth || 1,
+                    },
+                  }
+                );
+                break;
+              }
+            }
+          } catch (elErr) {
+            console.warn(`[pdf2edit] Element render error on slide ${i + 1}:`, elErr);
+          }
+        }
+      }
+
+      // Step 3: Generate and download
+      setProgressText("Finalizing download...");
+      const pptxBlob = (await pptx.write({ outputType: "blob" })) as Blob;
+      const baseName = fileName.replace(/\.pdf$/i, "");
+      const outName = `${baseName}_editable.pptx`;
+
+      const url = URL.createObjectURL(pptxBlob);
+
+      // Auto-download
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = outName;
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => document.body.removeChild(a), 100);
+
+      setDownloadUrl(url);
+      setDownloadName(outName);
+      setPhase("done");
+      setProgressText("");
+    } catch (err) {
+      console.error("[pdf2edit] Vision convert error:", err);
+      setError(
+        err instanceof Error ? err.message : "Conversion failed"
+      );
+      setPhase("previewing");
+    }
+  }, [pages, fileName, selectedModel]);
+
+  // ── OCR Mode: Legacy Fallback ──────────────────────
+
+  const handleConvertOcr = useCallback(async () => {
     if (pages.length === 0) return;
 
     setPhase("processing");
@@ -126,7 +368,6 @@ export default function Pdf2EditScreen() {
     setOcrResults([]);
 
     try {
-      // Step 1: OCR all pages
       const results: PageOcrResult[] = [];
 
       for (let i = 0; i < pages.length; i++) {
@@ -153,17 +394,15 @@ export default function Pdf2EditScreen() {
       setOcrResults(results);
       setProgressText("Building PPTX...");
 
-      // Step 2: Build PPTX client-side with pptxgenjs
       const PptxGenJS = (await import("pptxgenjs")).default;
       const pptx = new PptxGenJS();
-      pptx.layout = "LAYOUT_WIDE"; // 13.33 x 7.5
+      pptx.layout = "LAYOUT_WIDE";
 
       for (let i = 0; i < pages.length; i++) {
         const slide = pptx.addSlide();
         const pageData = pages[i];
         const ocrPage = results[i];
 
-        // Add original page image as background
         slide.addImage({
           data: pageData.imageDataUrl,
           x: 0,
@@ -172,7 +411,6 @@ export default function Pdf2EditScreen() {
           h: SLIDE_HEIGHT,
         });
 
-        // Add editable text boxes at OCR positions
         for (const block of ocrPage.blocks) {
           if (block.vertices.length < 4) continue;
 
@@ -182,15 +420,11 @@ export default function Pdf2EditScreen() {
           const maxX = Math.max(v[1].x, v[2].x);
           const maxY = Math.max(v[2].y, v[3].y);
 
-          // Convert pixel coordinates to inches
           const xInches = (minX / pageData.width) * SLIDE_WIDTH;
           const yInches = (minY / pageData.height) * SLIDE_HEIGHT;
-          const wInches =
-            ((maxX - minX) / pageData.width) * SLIDE_WIDTH;
-          const hInches =
-            ((maxY - minY) / pageData.height) * SLIDE_HEIGHT;
+          const wInches = ((maxX - minX) / pageData.width) * SLIDE_WIDTH;
+          const hInches = ((maxY - minY) / pageData.height) * SLIDE_HEIGHT;
 
-          // Estimate font size from block height
           const fontPt = Math.min(
             48,
             Math.max(8, Math.round(hInches * 72 * 0.75))
@@ -210,7 +444,6 @@ export default function Pdf2EditScreen() {
         }
       }
 
-      // Step 3: Generate and download
       setProgressText("Finalizing download...");
       const pptxBlob = (await pptx.write({ outputType: "blob" })) as Blob;
       const baseName = fileName.replace(/\.pdf$/i, "");
@@ -218,7 +451,6 @@ export default function Pdf2EditScreen() {
 
       const url = URL.createObjectURL(pptxBlob);
 
-      // Auto-download
       const a = document.createElement("a");
       a.href = url;
       a.download = outName;
@@ -232,13 +464,23 @@ export default function Pdf2EditScreen() {
       setPhase("done");
       setProgressText("");
     } catch (err) {
-      console.error("[pdf2edit] Convert error:", err);
+      console.error("[pdf2edit] OCR convert error:", err);
       setError(
         err instanceof Error ? err.message : "Conversion failed"
       );
       setPhase("previewing");
     }
   }, [pages, fileName]);
+
+  // ── Dispatch to correct handler ────────────────────
+
+  const handleConvert = useCallback(() => {
+    if (conversionMode === "vision") {
+      handleConvertVision();
+    } else {
+      handleConvertOcr();
+    }
+  }, [conversionMode, handleConvertVision, handleConvertOcr]);
 
   // ── File handling ────────────────────────────────
 
@@ -272,6 +514,7 @@ export default function Pdf2EditScreen() {
     setPhase("idle");
     setPages([]);
     setOcrResults([]);
+    setAnalysisResults([]);
     setError("");
     setDownloadUrl(null);
     setDownloadName("");
@@ -302,7 +545,9 @@ export default function Pdf2EditScreen() {
           </div>
           <div>
             <h1 className="heading-display text-xl md:text-2xl">PDF2Edit</h1>
-            <p className="text-muted text-xs mt-1">PDF to Editable PPTX Converter</p>
+            <p className="text-muted text-xs mt-1">
+              PDF to Editable PPTX &middot; {conversionMode === "vision" ? "AI Vision Rebuild" : "OCR + Image Overlay"}
+            </p>
           </div>
           <div className="ml-auto">
             <a
@@ -321,7 +566,9 @@ export default function Pdf2EditScreen() {
             Convert PDF to Editable Slides
           </h2>
           <p className="text-muted mb-6 text-sm">
-            Drop an image-based PDF. We&apos;ll OCR every page and create an editable PowerPoint with text boxes positioned over the original images.
+            {conversionMode === "vision"
+              ? "AI Vision analyzes each slide and rebuilds it with native, fully editable PowerPoint elements. No background images."
+              : "OCR detects text and overlays editable text boxes on the original page images."}
           </p>
 
           {/* Error bar */}
@@ -402,7 +649,7 @@ export default function Pdf2EditScreen() {
                     Drop your PDF here
                   </p>
                   <p className="text-muted text-sm mt-2">
-                    or click to browse &middot; Image-based PDFs work best &middot; Max 100MB
+                    or click to browse &middot; Max 100MB
                   </p>
                 </div>
               </div>
@@ -436,6 +683,90 @@ export default function Pdf2EditScreen() {
                 </div>
               </div>
 
+              {/* Mode toggle + Model selector */}
+              <div style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "12px",
+                alignItems: "center",
+                marginBottom: "20px",
+                padding: "16px",
+                background: "rgba(255, 255, 255, 0.03)",
+                borderRadius: "12px",
+                border: "1px solid rgba(255, 255, 255, 0.06)",
+              }}>
+                {/* Mode toggle */}
+                <div style={{ display: "flex", borderRadius: "8px", overflow: "hidden", border: "1px solid rgba(255, 255, 255, 0.1)" }}>
+                  <button
+                    onClick={() => setConversionMode("vision")}
+                    style={{
+                      padding: "8px 16px",
+                      fontSize: "13px",
+                      fontWeight: 500,
+                      border: "none",
+                      cursor: "pointer",
+                      transition: "all 0.2s",
+                      background: conversionMode === "vision"
+                        ? "linear-gradient(135deg, rgba(10, 172, 220, 0.3), rgba(155, 105, 255, 0.3))"
+                        : "rgba(255, 255, 255, 0.03)",
+                      color: conversionMode === "vision" ? "#ffffff" : "rgba(255, 255, 255, 0.4)",
+                      borderRight: "1px solid rgba(255, 255, 255, 0.1)",
+                    }}
+                  >
+                    AI Vision Rebuild
+                  </button>
+                  <button
+                    onClick={() => setConversionMode("ocr")}
+                    style={{
+                      padding: "8px 16px",
+                      fontSize: "13px",
+                      fontWeight: 500,
+                      border: "none",
+                      cursor: "pointer",
+                      transition: "all 0.2s",
+                      background: conversionMode === "ocr"
+                        ? "linear-gradient(135deg, rgba(10, 172, 220, 0.3), rgba(155, 105, 255, 0.3))"
+                        : "rgba(255, 255, 255, 0.03)",
+                      color: conversionMode === "ocr" ? "#ffffff" : "rgba(255, 255, 255, 0.4)",
+                    }}
+                  >
+                    Legacy OCR
+                  </button>
+                </div>
+
+                {/* Model selector (Vision mode only) */}
+                {conversionMode === "vision" && (
+                  <select
+                    value={selectedModel}
+                    onChange={(e) => setSelectedModel(e.target.value as ModelChoice)}
+                    style={{
+                      padding: "8px 12px",
+                      fontSize: "13px",
+                      background: "rgba(255, 255, 255, 0.05)",
+                      border: "1px solid rgba(255, 255, 255, 0.1)",
+                      borderRadius: "8px",
+                      color: "#ffffff",
+                      cursor: "pointer",
+                      appearance: "none",
+                      paddingRight: "28px",
+                      backgroundImage: `url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='rgba(255,255,255,0.4)' stroke-width='1.5' fill='none'/%3E%3C/svg%3E")`,
+                      backgroundRepeat: "no-repeat",
+                      backgroundPosition: "right 10px center",
+                    }}
+                  >
+                    <option value="claude-sonnet-4-5-20250929" style={{ background: "#001D58" }}>Sonnet 4.5</option>
+                    <option value="claude-opus-4-6" style={{ background: "#001D58" }}>Opus 4.6</option>
+                  </select>
+                )}
+
+                {/* Cost estimate */}
+                {conversionMode === "vision" && (
+                  <span className="text-muted" style={{ fontSize: "12px", marginLeft: "auto" }}>
+                    ~${(pages.length * (selectedModel.includes("opus") ? 0.15 : 0.03)).toFixed(2)} estimated
+                  </span>
+                )}
+              </div>
+
               <div className="pdf-page-grid">
                 {pages.map((p) => (
                   <div key={p.pageNum} className="pdf-page-thumb">
@@ -456,16 +787,28 @@ export default function Pdf2EditScreen() {
                 >
                   <span className="flex items-center gap-3">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                      {conversionMode === "vision" ? (
+                        <>
+                          <circle cx="12" cy="12" r="10" />
+                          <circle cx="12" cy="12" r="4" />
+                          <line x1="21.17" y1="8" x2="12" y2="8" />
+                          <line x1="3.95" y1="6.06" x2="8.54" y2="14" />
+                          <line x1="10.88" y1="21.94" x2="15.46" y2="14" />
+                        </>
+                      ) : (
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                      )}
                     </svg>
-                    Convert to Editable PPTX
+                    {conversionMode === "vision"
+                      ? "Rebuild with AI Vision"
+                      : "Convert with OCR"}
                   </span>
                 </button>
               </div>
             </div>
           )}
 
-          {/* ─── Phase: Processing (shown inline, toast is separate) ─── */}
+          {/* ─── Phase: Processing ─── */}
           {phase === "processing" && (
             <div className="fade-in" style={{ textAlign: "center", padding: "48px 0" }}>
               <div className="spinner spinner-lg" style={{ margin: "0 auto 16px" }} />
@@ -484,10 +827,12 @@ export default function Pdf2EditScreen() {
             style={{ "--card-accent": "rgba(10, 172, 220, 0.4)" } as React.CSSProperties}
           >
             <div className="label-uppercase mb-3" style={{ color: "#0AACDC" }}>
-              How it works
+              {conversionMode === "vision" ? "AI Vision Rebuild" : "How it works"}
             </div>
             <p className="text-sm leading-relaxed text-muted">
-              Your PDF pages are rendered as images, then Google Cloud Vision OCR detects all text with positions. We overlay editable text boxes on the original images.
+              {conversionMode === "vision"
+                ? "Claude Vision analyzes each slide image and identifies every element — text, shapes, colors, and images. Slides are rebuilt from scratch with native PowerPoint elements."
+                : "Your PDF pages are rendered as images, then Google Cloud Vision OCR detects all text with positions. We overlay editable text boxes on the original images."}
             </p>
           </div>
 
@@ -496,10 +841,12 @@ export default function Pdf2EditScreen() {
             style={{ "--card-accent": "rgba(155, 105, 255, 0.4)" } as React.CSSProperties}
           >
             <div className="label-uppercase mb-3" style={{ color: "#9B69FF" }}>
-              Editable output
+              {conversionMode === "vision" ? "Truly editable" : "Editable output"}
             </div>
             <p className="text-sm leading-relaxed text-muted">
-              Open in PowerPoint or Google Slides. Click any text to edit it. The original page images preserve the visual design as backgrounds.
+              {conversionMode === "vision"
+                ? "No background images or doubled text. Every element is a native PowerPoint object — resize, recolor, restyle, and rearrange freely."
+                : "Open in PowerPoint or Google Slides. Click any text to edit it. The original page images preserve the visual design as backgrounds."}
             </p>
           </div>
 
@@ -508,17 +855,19 @@ export default function Pdf2EditScreen() {
             style={{ "--card-accent": "rgba(210, 0, 245, 0.4)" } as React.CSSProperties}
           >
             <div className="label-uppercase mb-3" style={{ color: "#D200F5" }}>
-              Privacy first
+              {conversionMode === "vision" ? "Cost" : "Privacy first"}
             </div>
             <p className="text-sm leading-relaxed text-muted">
-              PDF rendering happens in your browser. Only page images are sent to Google Vision for OCR. PPTX is built entirely client-side.
+              {conversionMode === "vision"
+                ? "~$0.03/page with Sonnet 4.5 (~$0.27 for a 10-page deck). PDF rendering stays in your browser — only page images are sent to Claude for analysis."
+                : "PDF rendering happens in your browser. Only page images are sent to Google Vision for OCR. PPTX is built entirely client-side."}
             </p>
           </div>
         </div>
 
         {/* Footer */}
         <footer className="text-center mt-16 pb-8 text-xs text-subtle">
-          GAI Insights PDF2Edit v1.0 &middot; Powered by Google Cloud Vision
+          GAI Insights PDF2Edit v2.0 &middot; {conversionMode === "vision" ? "Powered by Claude AI" : "Powered by Google Cloud Vision"}
         </footer>
       </div>
 
