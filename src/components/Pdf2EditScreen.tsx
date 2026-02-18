@@ -35,12 +35,28 @@ interface PageOcrResult {
 
 type Phase = "idle" | "uploading" | "previewing" | "processing" | "done";
 type ConversionMode = "vision" | "ocr";
-type ModelChoice = "claude-sonnet-4-5-20250929" | "claude-opus-4-6";
+type ModelChoice = "claude-sonnet-4-6" | "claude-sonnet-4-5-20250929" | "claude-opus-4-6";
 
 // ── Slide dimensions ────────────────────────────────
 
 const SLIDE_WIDTH = 13.33; // inches (LAYOUT_WIDE)
 const SLIDE_HEIGHT = 7.5;
+
+// ── Nano Banana Pro Prompt ───────────────────────────
+
+const CLEAN_BG_PROMPT = `Remove ALL text from this presentation slide image. This includes:
+- Titles, subtitles, headings
+- Body text, bullet points, captions
+- Labels, annotations, watermarks
+- Any and all readable characters
+
+KEEP everything else exactly as-is:
+- Background colors, gradients, and patterns
+- Photos, illustrations, icons, and logos
+- Decorative shapes, lines, and borders
+- Any non-text visual elements
+
+Return the cleaned image at the same resolution.`;
 
 // ── Image Cropping Utility ──────────────────────────
 
@@ -87,7 +103,9 @@ export default function Pdf2EditScreen() {
   const [downloadName, setDownloadName] = useState("");
   const [elapsed, setElapsed] = useState(0);
   const [conversionMode, setConversionMode] = useState<ConversionMode>("vision");
-  const [selectedModel, setSelectedModel] = useState<ModelChoice>("claude-sonnet-4-5-20250929");
+  const [selectedModel, setSelectedModel] = useState<ModelChoice>("claude-sonnet-4-6");
+  const [cleanBackgrounds, setCleanBackgrounds] = useState(false);
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -522,6 +540,24 @@ export default function Pdf2EditScreen() {
     setProgressText("");
     setProgressPage(0);
     setTotalPages(0);
+    setCopiedIdx(null);
+  }, []);
+
+  const handleCopyPrompt = useCallback((idx: number) => {
+    navigator.clipboard.writeText(CLEAN_BG_PROMPT).then(() => {
+      setCopiedIdx(idx);
+      setTimeout(() => setCopiedIdx(null), 2000);
+    });
+  }, []);
+
+  const handleDownloadPageImage = useCallback((pageData: PageData) => {
+    const a = document.createElement("a");
+    a.href = pageData.imageDataUrl;
+    a.download = `slide_${pageData.pageNum}_background.jpg`;
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => document.body.removeChild(a), 100);
   }, []);
 
   // ── Render ───────────────────────────────────────
@@ -610,6 +646,209 @@ export default function Pdf2EditScreen() {
               >
                 <span>Convert Another</span>
               </button>
+            </div>
+          )}
+
+          {/* ─── Clean Backgrounds Panel (Done + Vision + Toggle On) ─── */}
+          {phase === "done" && conversionMode === "vision" && cleanBackgrounds && pages.length > 0 && (
+            <div className="fade-in" style={{ marginTop: "24px" }}>
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                marginBottom: "16px",
+              }}>
+                <div style={{
+                  width: "8px",
+                  height: "8px",
+                  borderRadius: "50%",
+                  background: "linear-gradient(135deg, #0AACDC, #9B69FF)",
+                  flexShrink: 0,
+                }} />
+                <h3 className="heading-display" style={{ fontSize: "16px", margin: 0 }}>
+                  Clean Backgrounds — Manual Test
+                </h3>
+                <span className="text-muted" style={{ fontSize: "12px" }}>
+                  Download each slide image + copy the prompt into Nano Banana Pro
+                </span>
+              </div>
+
+              {/* Prompt block with copy */}
+              <div style={{
+                background: "rgba(0, 0, 0, 0.3)",
+                border: "1px solid rgba(155, 105, 255, 0.2)",
+                borderRadius: "12px",
+                padding: "16px",
+                marginBottom: "16px",
+                position: "relative",
+              }}>
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: "10px",
+                }}>
+                  <span className="label-uppercase" style={{ color: "#9B69FF", fontSize: "11px" }}>
+                    Gemini Prompt
+                  </span>
+                  <button
+                    onClick={() => handleCopyPrompt(-1)}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      padding: "6px 14px",
+                      fontSize: "12px",
+                      fontWeight: 600,
+                      background: copiedIdx === -1
+                        ? "rgba(10, 172, 220, 0.2)"
+                        : "rgba(155, 105, 255, 0.15)",
+                      border: copiedIdx === -1
+                        ? "1px solid rgba(10, 172, 220, 0.4)"
+                        : "1px solid rgba(155, 105, 255, 0.3)",
+                      borderRadius: "8px",
+                      color: copiedIdx === -1 ? "#0AACDC" : "#9B69FF",
+                      cursor: "pointer",
+                      transition: "all 0.2s",
+                    }}
+                  >
+                    {copiedIdx === -1 ? (
+                      <>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                        </svg>
+                        Copy Prompt
+                      </>
+                    )}
+                  </button>
+                </div>
+                <pre style={{
+                  margin: 0,
+                  fontSize: "12px",
+                  lineHeight: 1.6,
+                  color: "rgba(255, 255, 255, 0.6)",
+                  whiteSpace: "pre-wrap",
+                  fontFamily: "'SF Mono', 'Cascadia Code', 'Fira Code', monospace",
+                }}>
+                  {CLEAN_BG_PROMPT}
+                </pre>
+              </div>
+
+              {/* Slide image grid */}
+              <div style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+                gap: "16px",
+              }}>
+                {pages.map((p, idx) => (
+                  <div key={p.pageNum} style={{
+                    background: "rgba(255, 255, 255, 0.03)",
+                    border: "1px solid rgba(255, 255, 255, 0.06)",
+                    borderRadius: "12px",
+                    overflow: "hidden",
+                    transition: "border-color 0.2s",
+                  }}>
+                    <div style={{ position: "relative", aspectRatio: "16/9" }}>
+                      <img
+                        src={p.imageDataUrl}
+                        alt={`Slide ${p.pageNum}`}
+                        style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                      />
+                      <span style={{
+                        position: "absolute",
+                        top: "8px",
+                        left: "8px",
+                        background: "rgba(0, 0, 0, 0.7)",
+                        color: "#fff",
+                        fontSize: "11px",
+                        fontWeight: 600,
+                        padding: "2px 8px",
+                        borderRadius: "6px",
+                        backdropFilter: "blur(4px)",
+                      }}>
+                        Slide {p.pageNum}
+                      </span>
+                    </div>
+                    <div style={{
+                      padding: "12px",
+                      display: "flex",
+                      gap: "8px",
+                    }}>
+                      <button
+                        onClick={() => handleDownloadPageImage(p)}
+                        style={{
+                          flex: 1,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "6px",
+                          padding: "8px 12px",
+                          fontSize: "12px",
+                          fontWeight: 600,
+                          background: "linear-gradient(135deg, rgba(10, 172, 220, 0.15), rgba(155, 105, 255, 0.15))",
+                          border: "1px solid rgba(10, 172, 220, 0.3)",
+                          borderRadius: "8px",
+                          color: "#0AACDC",
+                          cursor: "pointer",
+                          transition: "all 0.2s",
+                        }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                          <polyline points="7 10 12 15 17 10" />
+                          <line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                        Download Image
+                      </button>
+                      <button
+                        onClick={() => handleCopyPrompt(idx)}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "6px",
+                          padding: "8px 12px",
+                          fontSize: "12px",
+                          fontWeight: 600,
+                          background: copiedIdx === idx
+                            ? "rgba(10, 172, 220, 0.2)"
+                            : "rgba(155, 105, 255, 0.1)",
+                          border: copiedIdx === idx
+                            ? "1px solid rgba(10, 172, 220, 0.4)"
+                            : "1px solid rgba(155, 105, 255, 0.2)",
+                          borderRadius: "8px",
+                          color: copiedIdx === idx ? "#0AACDC" : "#9B69FF",
+                          cursor: "pointer",
+                          transition: "all 0.2s",
+                        }}
+                      >
+                        {copiedIdx === idx ? (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        ) : (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <p className="text-muted" style={{ fontSize: "11px", marginTop: "12px", textAlign: "center" }}>
+                Use these images with <strong style={{ color: "rgba(155, 105, 255, 0.8)" }}>Gemini 3 Pro Image</strong> (Nano Banana Pro) in Google AI Studio to generate text-free backgrounds
+              </p>
             </div>
           )}
 
@@ -754,15 +993,62 @@ export default function Pdf2EditScreen() {
                       backgroundPosition: "right 10px center",
                     }}
                   >
+                    <option value="claude-sonnet-4-6" style={{ background: "#001D58" }}>Sonnet 4.6</option>
                     <option value="claude-sonnet-4-5-20250929" style={{ background: "#001D58" }}>Sonnet 4.5</option>
                     <option value="claude-opus-4-6" style={{ background: "#001D58" }}>Opus 4.6</option>
                   </select>
                 )}
 
+                {/* Clean backgrounds toggle (Vision mode only) */}
+                {conversionMode === "vision" && (
+                  <label style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    cursor: "pointer",
+                    fontSize: "13px",
+                    color: cleanBackgrounds ? "#ffffff" : "rgba(255, 255, 255, 0.4)",
+                    transition: "color 0.2s",
+                    userSelect: "none",
+                  }}>
+                    <div style={{
+                      position: "relative",
+                      width: "36px",
+                      height: "20px",
+                      borderRadius: "10px",
+                      background: cleanBackgrounds
+                        ? "linear-gradient(135deg, #0AACDC, #9B69FF)"
+                        : "rgba(255, 255, 255, 0.1)",
+                      transition: "background 0.2s",
+                      cursor: "pointer",
+                      flexShrink: 0,
+                    }}>
+                      <div style={{
+                        position: "absolute",
+                        top: "2px",
+                        left: cleanBackgrounds ? "18px" : "2px",
+                        width: "16px",
+                        height: "16px",
+                        borderRadius: "50%",
+                        background: "#ffffff",
+                        transition: "left 0.2s",
+                      }} />
+                      <input
+                        type="checkbox"
+                        checked={cleanBackgrounds}
+                        onChange={(e) => setCleanBackgrounds(e.target.checked)}
+                        style={{ position: "absolute", opacity: 0, width: "100%", height: "100%", cursor: "pointer", margin: 0 }}
+                      />
+                    </div>
+                    Clean backgrounds
+                  </label>
+                )}
+
                 {/* Cost estimate */}
                 {conversionMode === "vision" && (
                   <span className="text-muted" style={{ fontSize: "12px", marginLeft: "auto" }}>
-                    ~${(pages.length * (selectedModel.includes("opus") ? 0.15 : 0.03)).toFixed(2)} estimated
+                    ~${(pages.length * ((selectedModel === "claude-opus-4-6" ? 0.15 : 0.03) + (cleanBackgrounds ? 0.14 : 0))).toFixed(2)} estimated
+                    {cleanBackgrounds && " (incl. bg clean)"}
                   </span>
                 )}
               </div>

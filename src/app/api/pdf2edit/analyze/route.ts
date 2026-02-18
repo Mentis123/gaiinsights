@@ -4,7 +4,7 @@ import type { SlideAnalysis } from "@/lib/pdf2edit-types";
 
 export const maxDuration = 120;
 
-const ALLOWED_MODELS = ["claude-sonnet-4-5-20250929", "claude-opus-4-6"];
+const ALLOWED_MODELS = ["claude-sonnet-4-6", "claude-sonnet-4-5-20250929", "claude-opus-4-6"];
 
 export async function POST(req: NextRequest) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
 
     const selectedModel = ALLOWED_MODELS.includes(model)
       ? model
-      : "claude-sonnet-4-5-20250929";
+      : "claude-sonnet-4-6";
 
     // Strip data URI prefix to get raw base64
     const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
