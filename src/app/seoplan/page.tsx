@@ -47,20 +47,33 @@ function Section({ id, number, title, status, children }: {
   id: string; number: string; title: string; status?: "done" | "todo" | "needs-access" | "in-progress"; children: React.ReactNode;
 }) {
   return (
-    <section id={id} className="scroll-mt-24">
-      <div className="flex items-center gap-3 mb-6 flex-wrap">
-        <span className="text-cyan-400 font-mono text-sm opacity-60">{number}</span>
-        <h2 className="text-2xl font-bold" style={{ fontFamily: "Syne, sans-serif" }}>{title}</h2>
-        {status && <StatusPill status={status} />}
+    <section id={id} className="scroll-mt-28">
+      <div className="flex items-start gap-4 mb-8">
+        <span
+          className="shrink-0 w-11 h-11 flex items-center justify-center rounded-lg text-sm font-bold tracking-wide border border-cyan-500/20 bg-cyan-500/[0.06] text-cyan-400"
+          style={{ fontFamily: "Syne, sans-serif", fontVariantNumeric: "tabular-nums" }}
+        >
+          {number}
+        </span>
+        <div className="flex flex-col gap-1.5 pt-1">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h2 className="text-2xl font-bold tracking-tight" style={{ fontFamily: "Syne, sans-serif" }}>{title}</h2>
+            {status && <StatusPill status={status} />}
+          </div>
+          <div className="h-px w-16 bg-gradient-to-r from-cyan-500/30 to-transparent" />
+        </div>
       </div>
-      <div className="space-y-5">{children}</div>
+      <div className="space-y-5 pl-0 md:pl-[3.75rem]">{children}</div>
     </section>
   );
 }
 
 function Card({ children, accent }: { children: React.ReactNode; accent?: boolean }) {
   return (
-    <div className={`rounded-xl border p-5 ${accent ? "bg-cyan-500/5 border-cyan-500/20" : "bg-white/[0.02] border-white/[0.06]"}`}>
+    <div className={`rounded-xl border p-6 transition-colors duration-300 ${accent
+      ? "bg-gradient-to-br from-cyan-500/[0.06] to-cyan-500/[0.02] border-cyan-500/20 shadow-[inset_0_1px_0_rgba(10,172,220,0.08)]"
+      : "bg-white/[0.015] border-white/[0.06] hover:border-white/[0.1]"
+    }`}>
       {children}
     </div>
   );
@@ -91,12 +104,15 @@ function Tip({ children, def }: { children: React.ReactNode; def: string }) {
 /** Expandable explainer using <details> — no JS needed */
 function Explainer({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <details className="group/exp rounded-xl border border-cyan-500/10 bg-cyan-500/[0.03] overflow-hidden">
-      <summary className="flex items-center gap-2 cursor-pointer p-4 text-sm font-medium text-cyan-400 hover:text-cyan-300 transition-colors [&::-webkit-details-marker]:hidden list-none">
-        <span className="transition-transform duration-200 group-open/exp:rotate-90 text-xs">{"\u25B6"}</span>
-        {title}
+    <details className="group/exp rounded-xl border border-cyan-500/12 bg-cyan-500/[0.025] overflow-hidden backdrop-blur-sm">
+      <summary className="flex items-center gap-2.5 cursor-pointer p-4 text-sm font-medium text-cyan-400 hover:text-cyan-300 transition-colors [&::-webkit-details-marker]:hidden list-none">
+        <span className="transition-transform duration-200 group-open/exp:rotate-90 text-[10px] opacity-60">{"\u25B6"}</span>
+        <span className="flex items-center gap-2.5">
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-cyan-400/60 shrink-0" />
+          {title}
+        </span>
       </summary>
-      <div className="px-5 pb-4 text-sm text-white/70 border-t border-cyan-500/10 pt-3 space-y-2">
+      <div className="px-5 pb-5 text-sm text-white/65 border-t border-cyan-500/8 pt-4 space-y-2.5 leading-relaxed">
         {children}
       </div>
     </details>
@@ -106,15 +122,15 @@ function Explainer({ title, children }: { title: string; children: React.ReactNo
 /** Level 2 Deep Dive — purple-accented expandable with research data */
 function DeepDive({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <details className="group/dd rounded-xl border border-purple-500/15 bg-purple-500/[0.03] overflow-hidden">
-      <summary className="flex items-center gap-2 cursor-pointer p-4 text-sm font-medium text-purple-400 hover:text-purple-300 transition-colors [&::-webkit-details-marker]:hidden list-none">
-        <span className="transition-transform duration-200 group-open/dd:rotate-90 text-xs">{"\u25B6"}</span>
-        <span className="flex items-center gap-2">
-          <span className="px-1.5 py-0.5 text-[9px] font-bold tracking-widest uppercase rounded bg-purple-500/20 border border-purple-500/25 text-purple-300">LVL 2</span>
+    <details className="group/dd rounded-xl border border-purple-500/12 overflow-hidden" style={{ background: "linear-gradient(135deg, rgba(67,21,125,0.04) 0%, rgba(155,105,255,0.02) 100%)" }}>
+      <summary className="flex items-center gap-2.5 cursor-pointer p-4 text-sm font-medium text-purple-400/90 hover:text-purple-300 transition-colors [&::-webkit-details-marker]:hidden list-none">
+        <span className="transition-transform duration-200 group-open/dd:rotate-90 text-[10px] opacity-60">{"\u25B6"}</span>
+        <span className="flex items-center gap-2.5">
+          <span className="px-2 py-0.5 text-[9px] font-bold tracking-[0.12em] uppercase rounded-md border text-purple-300/90" style={{ background: "linear-gradient(135deg, rgba(67,21,125,0.3) 0%, rgba(155,105,255,0.2) 100%)", borderColor: "rgba(155,105,255,0.25)" }}>LVL 2</span>
           {title}
         </span>
       </summary>
-      <div className="px-5 pb-4 text-sm text-white/70 border-t border-purple-500/10 pt-3 space-y-3">
+      <div className="px-5 pb-5 text-sm text-white/60 border-t border-purple-500/8 pt-4 space-y-3 leading-relaxed">
         {children}
       </div>
     </details>
@@ -123,12 +139,19 @@ function DeepDive({ title, children }: { title: string; children: React.ReactNod
 
 function CodeBlock({ title, code }: { title: string; code: string }) {
   return (
-    <div className="rounded-xl border border-white/[0.08] overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-2.5 bg-white/[0.03] border-b border-white/[0.06]">
-        <span className="text-xs font-medium text-white/50">{title}</span>
-        <span className="text-[10px] text-white/30 font-mono">JSON-LD &middot; Select All &amp; Copy</span>
+    <div className="rounded-xl border border-white/[0.08] overflow-hidden" style={{ background: "linear-gradient(180deg, rgba(0,29,88,0.15) 0%, rgba(2,6,23,0.4) 100%)" }}>
+      <div className="flex items-center justify-between px-5 py-3 border-b border-white/[0.06]" style={{ background: "rgba(0,29,88,0.2)" }}>
+        <div className="flex items-center gap-2.5">
+          <div className="flex gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-white/10" />
+            <span className="w-2 h-2 rounded-full bg-white/10" />
+            <span className="w-2 h-2 rounded-full bg-white/10" />
+          </div>
+          <span className="text-xs font-medium text-white/50">{title}</span>
+        </div>
+        <span className="text-[10px] text-cyan-500/40 font-mono tracking-wide">JSON-LD</span>
       </div>
-      <pre className="p-4 text-xs text-cyan-200/80 overflow-x-auto leading-relaxed font-mono">
+      <pre className="p-5 text-xs text-cyan-200/70 overflow-x-auto leading-relaxed font-mono">
         {code}
       </pre>
     </div>
@@ -137,12 +160,16 @@ function CodeBlock({ title, code }: { title: string; code: string }) {
 
 function SectionDivider({ title }: { title: string }) {
   return (
-    <div className="pt-8 pb-4">
+    <div className="pt-12 pb-6">
       <div className="flex items-center gap-4">
         <div className="h-px flex-1 bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent" />
-        <span className="text-xs font-bold tracking-[0.2em] uppercase text-cyan-500/40" style={{ fontFamily: "Syne, sans-serif" }}>
-          {title}
-        </span>
+        <div className="flex items-center gap-3 px-4 py-2 rounded-full border border-cyan-500/10 bg-cyan-500/[0.03]">
+          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400/50" />
+          <span className="text-[11px] font-bold tracking-[0.18em] uppercase text-cyan-400/50" style={{ fontFamily: "Syne, sans-serif" }}>
+            {title}
+          </span>
+          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400/50" />
+        </div>
         <div className="h-px flex-1 bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent" />
       </div>
     </div>
@@ -279,124 +306,209 @@ export default function SEOPlanPage() {
   return (
     <main className="relative z-10 min-h-screen">
       {/* ─── Header ─── */}
-      <header className="border-b border-white/[0.06] bg-black/20 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+      <header className="border-b border-white/[0.05] sticky top-0 z-50" style={{ background: "rgba(2,6,23,0.85)", backdropFilter: "blur(16px) saturate(1.5)", WebkitBackdropFilter: "blur(16px) saturate(1.5)" }}>
+        <div className="max-w-5xl mx-auto px-6 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="text-lg font-bold tracking-tight" style={{ fontFamily: "Syne, sans-serif" }}>
-              <span className="text-cyan-400">GAI</span> <span className="text-white/90">Insights</span>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-cyan-400/80" style={{ boxShadow: "0 0 8px rgba(10,172,220,0.4)" }} />
+              <span className="text-[15px] font-bold tracking-tight" style={{ fontFamily: "Syne, sans-serif" }}>
+                <span className="text-cyan-400">GAI</span> <span className="text-white/85">Insights</span>
+              </span>
             </div>
-            <span className="text-white/20">|</span>
-            <span className="text-white/40 text-sm">SEO Playbook</span>
+            <span className="text-white/10 text-xs">|</span>
+            <span className="text-white/35 text-xs font-medium tracking-wide">SEO Playbook</span>
           </div>
-          <div className="flex items-center gap-3">
-            <a href="#glossary" className="text-xs text-cyan-500/60 hover:text-cyan-400 transition-colors">Glossary</a>
-            <span className="text-white/10">|</span>
-            <span className="text-white/30 text-xs font-mono">Feb 2026</span>
+          <div className="flex items-center gap-4">
+            <a href="#priority-matrix" className="text-[11px] text-cyan-500/50 hover:text-cyan-400 transition-colors tracking-wide uppercase font-medium" style={{ fontFamily: "Syne, sans-serif" }}>Action Items</a>
+            <a href="#glossary" className="text-[11px] text-cyan-500/50 hover:text-cyan-400 transition-colors tracking-wide uppercase font-medium" style={{ fontFamily: "Syne, sans-serif" }}>Glossary</a>
+            <span className="text-white/20 text-xs font-mono">02.2026</span>
           </div>
         </div>
       </header>
 
       {/* ─── Hero ─── */}
-      <div className="max-w-5xl mx-auto px-6 pt-16 pb-8">
-        <p className="text-cyan-400 text-sm font-medium mb-3 tracking-wide uppercase">
-          Comprehensive SEO Playbook
-        </p>
-        <h1 className="text-4xl md:text-5xl font-extrabold leading-tight mb-4" style={{ fontFamily: "Syne, sans-serif" }}>
-          SEO Action Plan for{" "}
-          <span className="bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
-            gaiinsights.com
-          </span>
-        </h1>
-        <p className="text-white/50 text-lg max-w-2xl mb-6">
-          Real audit findings, ready-to-use code, 12 drafted posts, and a complete best practices
-          guide. Built so your team can execute without needing an SEO expert.
-        </p>
-        <div className="flex flex-wrap gap-2 text-xs">
-          <span className="px-3 py-1.5 rounded-full bg-green-500/10 text-green-400 border border-green-500/20">4 Audits Complete</span>
-          <span className="px-3 py-1.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">6 JSON-LD Code Blocks</span>
-          <span className="px-3 py-1.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20">12 GBP Posts Drafted</span>
-          <span className="px-3 py-1.5 rounded-full bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">10 Best Practice Guides</span>
+      <div className="relative overflow-hidden">
+        {/* Circuit-arc decorative SVG */}
+        <svg className="absolute top-6 right-0 w-[420px] h-[420px] opacity-[0.04] pointer-events-none" viewBox="0 0 420 420" fill="none" aria-hidden="true">
+          <circle cx="210" cy="210" r="180" stroke="#0AACDC" strokeWidth="0.75" strokeDasharray="4 8" />
+          <circle cx="210" cy="210" r="140" stroke="#0AACDC" strokeWidth="0.5" strokeDasharray="2 6" />
+          <circle cx="210" cy="210" r="100" stroke="#0AACDC" strokeWidth="0.5" />
+          <path d="M210 30 A180 180 0 0 1 390 210" stroke="#0AACDC" strokeWidth="1.5" strokeLinecap="round" opacity="0.6" />
+          <path d="M210 70 A140 140 0 0 1 350 210" stroke="#9B69FF" strokeWidth="1" strokeLinecap="round" opacity="0.4" />
+          <circle cx="390" cy="210" r="3" fill="#0AACDC" opacity="0.8" />
+          <circle cx="350" cy="210" r="2.5" fill="#9B69FF" opacity="0.6" />
+          <circle cx="210" cy="30" r="2" fill="#0AACDC" opacity="0.5" />
+          <circle cx="300" cy="55" r="1.5" fill="#0AACDC" opacity="0.4" />
+          <circle cx="370" cy="120" r="2" fill="#0AACDC" opacity="0.3" />
+        </svg>
+
+        <div className="max-w-5xl mx-auto px-6 pt-20 pb-12 relative">
+          <div className="flex items-center gap-2.5 mb-5">
+            <span className="h-px w-8 bg-gradient-to-r from-cyan-400/60 to-transparent" />
+            <p className="text-cyan-400/80 text-xs font-semibold tracking-[0.2em] uppercase" style={{ fontFamily: "Syne, sans-serif" }}>
+              Comprehensive SEO Playbook
+            </p>
+          </div>
+          <h1 className="text-4xl md:text-[3.25rem] font-extrabold leading-[1.12] mb-5 tracking-tight" style={{ fontFamily: "Syne, sans-serif" }}>
+            SEO Action Plan for{" "}
+            <span className="bg-gradient-to-r from-cyan-400 via-cyan-300 to-purple-400 bg-clip-text text-transparent">
+              gaiinsights.com
+            </span>
+          </h1>
+          <p className="text-white/45 text-lg max-w-2xl mb-8 leading-relaxed" style={{ fontFamily: "Outfit, sans-serif" }}>
+            Real audit findings, ready-to-use code, 12 drafted posts, and a complete best practices
+            guide. Built so your team can execute without needing an SEO expert.
+          </p>
+          <div className="flex flex-wrap gap-2.5 text-xs">
+            {([
+              ["4 Audits Complete", "green"],
+              ["6 JSON-LD Code Blocks", "cyan"],
+              ["12 GBP Posts Drafted", "purple"],
+              ["10 Best Practice Guides", "yellow"],
+            ] as const).map(([label, color]) => (
+              <span key={label} className={`px-3.5 py-1.5 rounded-full border font-medium tracking-wide ${
+                color === "green" ? "bg-green-500/8 text-green-400/90 border-green-500/15" :
+                color === "cyan" ? "bg-cyan-500/8 text-cyan-400/90 border-cyan-500/15" :
+                color === "purple" ? "bg-purple-500/8 text-purple-400/90 border-purple-500/15" :
+                "bg-yellow-500/8 text-yellow-400/90 border-yellow-500/15"
+              }`}>
+                {label}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
 
       {/* ─── Quick SEO Primer ─── */}
-      <div className="max-w-5xl mx-auto px-6 pb-8">
+      <div className="max-w-5xl mx-auto px-6 pb-6">
         <Explainer title="New to SEO? Start here \u2014 60-second primer">
           <p><strong className="text-white/90">SEO (Search Engine Optimization)</strong> is the practice of making your website show up higher in Google (and AI search tools like Perplexity and ChatGPT). Higher rankings = more people find you = more leads.</p>
-          <p className="mt-2">This playbook covers <strong className="text-white/90">everything</strong> your website needs to rank well. Hover over any <span className="border-b border-dotted border-cyan-500/40 text-cyan-300">underlined cyan term</span> to see a plain-English definition. Expand any blue box for deeper explanations.</p>
-          <p className="mt-2">The most impactful items are at the top. Green badges mean we&rsquo;ve already done the work \u2014 you just need to paste the code into HubSpot. Orange badges mean you need to grant us access to a tool first.</p>
+          <p className="mt-2">This playbook covers <strong className="text-white/90">everything</strong> your website needs to rank well. The most impactful items are at the top. Green badges mean we&rsquo;ve already done the work \u2014 you just need to paste the code into HubSpot. Orange badges mean you need to grant us access to a tool first.</p>
         </Explainer>
       </div>
 
+      {/* ─── Reading Guide ─── */}
+      <div className="max-w-5xl mx-auto px-6 pb-10">
+        <div className="rounded-xl border border-white/[0.05] p-5" style={{ background: "rgba(0,29,88,0.06)" }}>
+          <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-white/30 mb-3" style={{ fontFamily: "Syne, sans-serif" }}>How to Read This Document</p>
+          <div className="grid sm:grid-cols-3 gap-4 text-xs">
+            <div className="flex gap-3 items-start">
+              <span className="shrink-0 mt-0.5 border-b border-dotted border-cyan-500/40 text-cyan-300 cursor-help text-sm">term</span>
+              <p className="text-white/40">Hover any <span className="text-cyan-300/70">cyan underlined</span> word for an instant definition</p>
+            </div>
+            <div className="flex gap-3 items-start">
+              <span className="shrink-0 mt-0.5 inline-block w-1.5 h-1.5 rounded-full bg-cyan-400/60" />
+              <p className="text-white/40"><span className="text-cyan-400/70">Cyan boxes</span> explain concepts &mdash; expand if you need background</p>
+            </div>
+            <div className="flex gap-3 items-start">
+              <span className="shrink-0 mt-px px-1.5 py-0.5 text-[8px] font-bold tracking-widest uppercase rounded-md text-purple-300/70 border border-purple-500/20" style={{ background: "rgba(67,21,125,0.2)" }}>LVL 2</span>
+              <p className="text-white/40"><span className="text-purple-400/70">Purple boxes</span> contain deep research data &mdash; expand for specifics</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* ─── TOC ─── */}
-      <div className="max-w-5xl mx-auto px-6 pb-12">
-        <nav className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
-          <p className="text-xs text-white/30 uppercase tracking-wide mb-4 font-medium">Contents</p>
+      <div className="max-w-5xl mx-auto px-6 pb-14">
+        <nav className="rounded-2xl border border-white/[0.06] overflow-hidden" style={{ background: "linear-gradient(180deg, rgba(0,29,88,0.12) 0%, rgba(2,6,23,0.3) 100%)" }}>
+          {/* TOC header bar */}
+          <div className="px-6 py-3.5 border-b border-white/[0.05] flex items-center justify-between" style={{ background: "rgba(0,29,88,0.15)" }}>
+            <div className="flex items-center gap-2.5">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <rect x="1" y="1" width="5" height="5" rx="1" stroke="rgba(10,172,220,0.5)" strokeWidth="1" />
+                <rect x="8" y="1" width="5" height="5" rx="1" stroke="rgba(10,172,220,0.3)" strokeWidth="1" />
+                <rect x="1" y="8" width="5" height="5" rx="1" stroke="rgba(10,172,220,0.3)" strokeWidth="1" />
+                <rect x="8" y="8" width="5" height="5" rx="1" stroke="rgba(10,172,220,0.2)" strokeWidth="1" />
+              </svg>
+              <span className="text-[11px] font-bold tracking-[0.15em] uppercase text-white/40" style={{ fontFamily: "Syne, sans-serif" }}>Mission Index</span>
+            </div>
+            <span className="text-[10px] text-white/20 font-mono">17 sections</span>
+          </div>
 
-          <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-cyan-500/40 mb-2">Part 1 &mdash; Audit Findings</p>
-          <ol className="grid sm:grid-cols-2 gap-1.5 text-sm mb-4">
-            {([
-              ["01", "Schema Markup Audit", "done"],
-              ["02", "Competitive Landscape", "done"],
-              ["03", "Content Gap Analysis", "done"],
-              ["04", "Business Profile", "done"],
-            ] as const).map(([n, label, status]) => (
-              <li key={n}>
-                <a href={`#section-${n}`} className="flex items-center gap-2 text-white/50 hover:text-cyan-400 transition-colors py-1">
-                  <span className="text-cyan-500/60 font-mono text-xs w-5">{n}</span>
-                  {label}
-                  <StatusPill status={status} />
-                </a>
-              </li>
-            ))}
-          </ol>
+          <div className="p-6 space-y-5">
+            {/* Part 1 */}
+            <div>
+              <div className="flex items-center gap-2 mb-2.5">
+                <span className="h-px w-3 bg-cyan-500/30" />
+                <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-cyan-500/50">Part 1 &mdash; Audit Findings</p>
+              </div>
+              <ol className="grid sm:grid-cols-2 gap-1 text-sm">
+                {([
+                  ["01", "Schema Markup Audit", "done"],
+                  ["02", "Competitive Landscape", "done"],
+                  ["03", "Content Gap Analysis", "done"],
+                  ["04", "Business Profile", "done"],
+                ] as const).map(([n, label, status]) => (
+                  <li key={n}>
+                    <a href={`#section-${n}`} className="group flex items-center gap-2.5 text-white/45 hover:text-cyan-400 transition-colors py-1.5 px-2 -mx-2 rounded-lg hover:bg-cyan-500/[0.04]">
+                      <span className="text-cyan-500/40 group-hover:text-cyan-400 font-mono text-xs w-5 tabular-nums">{n}</span>
+                      <span className="flex-1">{label}</span>
+                      <StatusPill status={status} />
+                    </a>
+                  </li>
+                ))}
+              </ol>
+            </div>
 
-          <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-purple-500/40 mb-2">Part 2 &mdash; Ready-to-Use Deliverables</p>
-          <ol className="grid sm:grid-cols-2 gap-1.5 text-sm mb-4">
-            {([
-              ["05", "Schema Code (JSON-LD)", "done"],
-              ["06", "GBP Posts (12 Drafted)", "done"],
-              ["07", "Keyword Strategy", "needs-access"],
-            ] as const).map(([n, label, status]) => (
-              <li key={n}>
-                <a href={`#section-${n}`} className="flex items-center gap-2 text-white/50 hover:text-cyan-400 transition-colors py-1">
-                  <span className="text-cyan-500/60 font-mono text-xs w-5">{n}</span>
-                  {label}
-                  <StatusPill status={status} />
-                </a>
-              </li>
-            ))}
-          </ol>
+            {/* Part 2 */}
+            <div>
+              <div className="flex items-center gap-2 mb-2.5">
+                <span className="h-px w-3 bg-purple-500/30" />
+                <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-purple-500/50">Part 2 &mdash; Ready-to-Use Deliverables</p>
+              </div>
+              <ol className="grid sm:grid-cols-2 gap-1 text-sm">
+                {([
+                  ["05", "Schema Code (JSON-LD)", "done"],
+                  ["06", "GBP Posts (12 Drafted)", "done"],
+                  ["07", "Keyword Strategy", "needs-access"],
+                ] as const).map(([n, label, status]) => (
+                  <li key={n}>
+                    <a href={`#section-${n}`} className="group flex items-center gap-2.5 text-white/45 hover:text-cyan-400 transition-colors py-1.5 px-2 -mx-2 rounded-lg hover:bg-cyan-500/[0.04]">
+                      <span className="text-cyan-500/40 group-hover:text-cyan-400 font-mono text-xs w-5 tabular-nums">{n}</span>
+                      <span className="flex-1">{label}</span>
+                      <StatusPill status={status} />
+                    </a>
+                  </li>
+                ))}
+              </ol>
+            </div>
 
-          <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-yellow-500/40 mb-2">Part 3 &mdash; SEO Best Practices Guide</p>
-          <ol className="grid sm:grid-cols-2 gap-1.5 text-sm">
-            {[
-              ["08", "Meta Tags & Titles"],
-              ["09", "Content Structure & Headings"],
-              ["10", "Internal Linking"],
-              ["11", "E-E-A-T Signals"],
-              ["12", "AI Search Optimization (GEO)"],
-              ["13", "Technical SEO Checklist"],
-              ["14", "Image SEO"],
-              ["15", "Core Web Vitals"],
-              ["16", "Backlink Strategy"],
-              ["17", "Content Freshness"],
-            ].map(([n, label]) => (
-              <li key={n}>
-                <a href={`#section-${n}`} className="flex items-center gap-2 text-white/50 hover:text-cyan-400 transition-colors py-1">
-                  <span className="text-cyan-500/60 font-mono text-xs w-5">{n}</span>
-                  {label}
-                </a>
-              </li>
-            ))}
-          </ol>
+            {/* Part 3 */}
+            <div>
+              <div className="flex items-center gap-2 mb-2.5">
+                <span className="h-px w-3 bg-yellow-500/30" />
+                <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-yellow-500/50">Part 3 &mdash; SEO Best Practices Guide</p>
+              </div>
+              <ol className="grid sm:grid-cols-2 gap-1 text-sm">
+                {[
+                  ["08", "Meta Tags & Titles"],
+                  ["09", "Content Structure & Headings"],
+                  ["10", "Internal Linking"],
+                  ["11", "E-E-A-T Signals"],
+                  ["12", "AI Search Optimization (GEO)"],
+                  ["13", "Technical SEO Checklist"],
+                  ["14", "Image SEO"],
+                  ["15", "Core Web Vitals"],
+                  ["16", "Backlink Strategy"],
+                  ["17", "Content Freshness"],
+                ].map(([n, label]) => (
+                  <li key={n}>
+                    <a href={`#section-${n}`} className="group flex items-center gap-2.5 text-white/45 hover:text-cyan-400 transition-colors py-1.5 px-2 -mx-2 rounded-lg hover:bg-cyan-500/[0.04]">
+                      <span className="text-cyan-500/40 group-hover:text-cyan-400 font-mono text-xs w-5 tabular-nums">{n}</span>
+                      <span className="flex-1">{label}</span>
+                    </a>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </div>
         </nav>
       </div>
 
       {/* ═══════════════════════════════════════════
           CONTENT
          ═══════════════════════════════════════════ */}
-      <div className="max-w-5xl mx-auto px-6 pb-24 space-y-16">
+      <div className="max-w-5xl mx-auto px-6 pb-24 space-y-20">
 
         {/* ═══ PART 1: AUDIT FINDINGS ═══ */}
         <SectionDivider title="Part 1 \u2014 Audit Findings" />
@@ -1345,9 +1457,23 @@ export default function SEOPlanPage() {
         {/* ═══ PRIORITY MATRIX ═══ */}
         <SectionDivider title="Priority Matrix & Next Steps" />
 
-        <section id="priority-matrix" className="scroll-mt-24">
-          <Card>
-            <h3 className="text-sm font-semibold text-cyan-400 uppercase tracking-wide mb-4">Execution Priority</h3>
+        <section id="priority-matrix" className="scroll-mt-28">
+          {/* Priority Matrix header */}
+          <div className="flex items-center gap-3 mb-8">
+            <span className="flex items-center justify-center w-11 h-11 rounded-lg border border-cyan-500/30 text-cyan-400" style={{ background: "linear-gradient(135deg, rgba(10,172,220,0.12) 0%, rgba(10,172,220,0.04) 100%)", boxShadow: "0 0 20px rgba(10,172,220,0.08)" }}>
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3 12L7 8L10 11L15 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /><circle cx="15" cy="5" r="1.5" fill="currentColor" /></svg>
+            </span>
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight" style={{ fontFamily: "Syne, sans-serif" }}>Your Action Plan</h2>
+              <div className="h-px w-16 bg-gradient-to-r from-cyan-500/30 to-transparent mt-1.5" />
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-cyan-500/15 overflow-hidden" style={{ background: "linear-gradient(180deg, rgba(0,29,88,0.1) 0%, rgba(2,6,23,0.2) 100%)", boxShadow: "0 0 40px rgba(10,172,220,0.04)" }}>
+            <div className="px-6 py-4 border-b border-white/[0.05]" style={{ background: "rgba(0,29,88,0.12)" }}>
+              <h3 className="text-[11px] font-bold tracking-[0.15em] uppercase text-cyan-400/60" style={{ fontFamily: "Syne, sans-serif" }}>Execution Priority</h3>
+            </div>
+            <div className="p-6">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -1385,49 +1511,38 @@ export default function SEOPlanPage() {
                 </tbody>
               </table>
             </div>
-          </Card>
-
-          <Card accent>
-            <h3 className="text-sm font-semibold text-white/90 mb-3">What Your Team Needs to Do</h3>
-            <div className="grid sm:grid-cols-2 gap-4 text-sm">
-              <div className="rounded-lg bg-green-500/5 border border-green-500/15 p-4">
-                <p className="font-semibold text-green-400 mb-2">Immediate (This Week)</p>
-                <ol className="list-decimal list-inside space-y-1 text-white/60 text-xs">
-                  <li>Paste JSON-LD code into HubSpot site header</li>
-                  <li>Remove deprecated ProfessionalService schema</li>
-                  <li>Claim/verify Google Business Profile</li>
-                  <li>Start posting GBP content (2x/week)</li>
-                </ol>
-              </div>
-              <div className="rounded-lg bg-yellow-500/5 border border-yellow-500/15 p-4">
-                <p className="font-semibold text-yellow-400 mb-2">Short Term (This Month)</p>
-                <ol className="list-decimal list-inside space-y-1 text-white/60 text-xs">
-                  <li>Grant Google Search Console access</li>
-                  <li>Add author bios to blog post template</li>
-                  <li>Create RISE and WINS methodology pages</li>
-                  <li>Start AI consulting pricing guide draft</li>
-                </ol>
-              </div>
-              <div className="rounded-lg bg-purple-500/5 border border-purple-500/15 p-4">
-                <p className="font-semibold text-purple-400 mb-2">Medium Term (Next 90 Days)</p>
-                <ol className="list-decimal list-inside space-y-1 text-white/60 text-xs">
-                  <li>Launch 4 industry-specific landing pages</li>
-                  <li>Publish agentic AI pillar content</li>
-                  <li>Implement hub-and-spoke internal linking</li>
-                  <li>Set up quarterly content refresh schedule</li>
-                </ol>
-              </div>
-              <div className="rounded-lg bg-cyan-500/5 border border-cyan-500/15 p-4">
-                <p className="font-semibold text-cyan-400 mb-2">Ongoing</p>
-                <ol className="list-decimal list-inside space-y-1 text-white/60 text-xs">
-                  <li>2 GBP posts per week</li>
-                  <li>Internal links in every daily briefing</li>
-                  <li>Quarterly content freshness updates</li>
-                  <li>Monitor Core Web Vitals monthly</li>
-                </ol>
-              </div>
             </div>
-          </Card>
+          </div>
+
+          <div className="mt-6">
+            <h3 className="text-sm font-semibold text-white/80 mb-4" style={{ fontFamily: "Syne, sans-serif" }}>What Your Team Needs to Do</h3>
+            <div className="grid sm:grid-cols-2 gap-4 text-sm">
+              {([
+                { phase: "1", label: "Immediate", time: "This Week", color: "green", borderColor: "rgba(34,197,94,0.2)", bgColor: "rgba(34,197,94,0.04)", textColor: "text-green-400", items: ["Paste JSON-LD code into HubSpot site header", "Remove deprecated ProfessionalService schema", "Claim/verify Google Business Profile", "Start posting GBP content (2x/week)"] },
+                { phase: "2", label: "Short Term", time: "This Month", color: "yellow", borderColor: "rgba(234,179,8,0.2)", bgColor: "rgba(234,179,8,0.04)", textColor: "text-yellow-400", items: ["Grant Google Search Console access", "Add author bios to blog post template", "Create RISE and WINS methodology pages", "Start AI consulting pricing guide draft"] },
+                { phase: "3", label: "Medium Term", time: "Next 90 Days", color: "purple", borderColor: "rgba(155,105,255,0.2)", bgColor: "rgba(155,105,255,0.04)", textColor: "text-purple-400", items: ["Launch 4 industry-specific landing pages", "Publish agentic AI pillar content", "Implement hub-and-spoke internal linking", "Set up quarterly content refresh schedule"] },
+                { phase: "4", label: "Ongoing", time: "Continuous", color: "cyan", borderColor: "rgba(10,172,220,0.2)", bgColor: "rgba(10,172,220,0.04)", textColor: "text-cyan-400", items: ["2 GBP posts per week", "Internal links in every daily briefing", "Quarterly content freshness updates", "Monitor Core Web Vitals monthly"] },
+              ] as const).map((p) => (
+                <div key={p.phase} className="rounded-xl p-5 border" style={{ borderColor: p.borderColor, background: p.bgColor }}>
+                  <div className="flex items-center gap-2.5 mb-3">
+                    <span className={`w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold ${p.textColor}`} style={{ background: p.bgColor, border: `1px solid ${p.borderColor}` }}>{p.phase}</span>
+                    <div>
+                      <p className={`font-semibold text-sm ${p.textColor}`}>{p.label}</p>
+                      <p className="text-[10px] text-white/30 -mt-0.5">{p.time}</p>
+                    </div>
+                  </div>
+                  <ol className="space-y-1.5 text-white/55 text-xs">
+                    {p.items.map((item, i) => (
+                      <li key={i} className="flex gap-2 items-start">
+                        <span className="text-white/20 shrink-0 mt-px">{i + 1}.</span>
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              ))}
+            </div>
+          </div>
         </section>
 
 
@@ -1455,15 +1570,19 @@ export default function SEOPlanPage() {
 
 
         {/* ═══ FOOTER ═══ */}
-        <footer className="pt-8 border-t border-white/[0.06]">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-white/30">
-            <div>
-              <p>Generated by Claude Code &mdash; Deep research powered by Exa AI</p>
-              <p className="mt-1">Schema audit, competitive analysis, content gaps, and GBP posts completed autonomously.</p>
+        <footer className="pt-10 mt-4">
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-white/[0.06] to-transparent mb-8" />
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-white/25">
+            <div className="flex items-center gap-3">
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400/30" />
+              <div>
+                <p>Generated by Claude Code &mdash; Research powered by Exa AI</p>
+                <p className="mt-0.5">Schema audit, competitive analysis, content gaps, and GBP posts completed autonomously.</p>
+              </div>
             </div>
             <p>
               Inspired by{" "}
-              <a href="https://x.com/bloggersarvesh/status/2022663312853598425" target="_blank" rel="noopener noreferrer" className="text-cyan-500/60 hover:text-cyan-400 transition-colors">
+              <a href="https://x.com/bloggersarvesh/status/2022663312853598425" target="_blank" rel="noopener noreferrer" className="text-cyan-500/40 hover:text-cyan-400 transition-colors">
                 @bloggersarvesh
               </a>
             </p>
