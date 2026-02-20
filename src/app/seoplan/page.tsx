@@ -103,6 +103,24 @@ function Explainer({ title, children }: { title: string; children: React.ReactNo
   );
 }
 
+/** Level 2 Deep Dive — purple-accented expandable with research data */
+function DeepDive({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <details className="group/dd rounded-xl border border-purple-500/15 bg-purple-500/[0.03] overflow-hidden">
+      <summary className="flex items-center gap-2 cursor-pointer p-4 text-sm font-medium text-purple-400 hover:text-purple-300 transition-colors [&::-webkit-details-marker]:hidden list-none">
+        <span className="transition-transform duration-200 group-open/dd:rotate-90 text-xs">{"\u25B6"}</span>
+        <span className="flex items-center gap-2">
+          <span className="px-1.5 py-0.5 text-[9px] font-bold tracking-widest uppercase rounded bg-purple-500/20 border border-purple-500/25 text-purple-300">LVL 2</span>
+          {title}
+        </span>
+      </summary>
+      <div className="px-5 pb-4 text-sm text-white/70 border-t border-purple-500/10 pt-3 space-y-3">
+        {children}
+      </div>
+    </details>
+  );
+}
+
 function CodeBlock({ title, code }: { title: string; code: string }) {
   return (
     <div className="rounded-xl border border-white/[0.08] overflow-hidden">
@@ -977,6 +995,13 @@ export default function SEOPlanPage() {
               <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"\u2022"}</span><span>Use a branded 1200x630px image with your logo \u2014 makes shares look professional</span></li>
             </ul>
           </Card>
+
+          <DeepDive title="Deep dive: Meta tag stats, robots directives, and OG specs">
+            <p><strong className="text-white/90">Google rewrites 60-70% of meta descriptions</strong> it deems inadequate. If yours are vague or missing, Google will auto-generate one from your page content &mdash; and you lose control of your messaging in search results.</p>
+            <p><strong className="text-white/90">OG Image specifications:</strong> 1200&times;630px is the universal standard across Facebook, LinkedIn, X, Slack, and Discord. Use PNG for text-heavy images (sharper rendering) and JPEG for photos. Always include <code className="text-xs bg-white/10 px-1 py-0.5 rounded">og:image:width</code> and <code className="text-xs bg-white/10 px-1 py-0.5 rounded">og:image:height</code> attributes for faster social card rendering.</p>
+            <p><strong className="text-white/90">Robots meta tag:</strong> Ensure <code className="text-xs bg-white/10 px-1 py-0.5 rounded">index, follow</code> on pages you want ranked. Use <code className="text-xs bg-white/10 px-1 py-0.5 rounded">noindex</code> on thank-you pages, internal search results, and staging pages. A common mistake is accidentally noindexing important pages during site redesigns.</p>
+            <p><strong className="text-white/90">Twitter/X card setup:</strong> Add <code className="text-xs bg-white/10 px-1 py-0.5 rounded">twitter:site</code> with your X handle. Use <code className="text-xs bg-white/10 px-1 py-0.5 rounded">summary_large_image</code> card type for maximum visual impact. The same 1200&times;630 image works for both OG and Twitter cards &mdash; no need for separate assets.</p>
+          </DeepDive>
         </Section>
 
         {/* ─── 09 CONTENT STRUCTURE ─── */}
@@ -1014,6 +1039,13 @@ export default function SEOPlanPage() {
               <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"\u2022"}</span>Add an FAQ section at the bottom of every major article</li>
             </ul>
           </Card>
+
+          <DeepDive title="Deep dive: Featured snippet types, PAA targeting, and FAQ schema impact">
+            <p><strong className="text-white/90">4 types of Featured Snippets:</strong> paragraphs (most common), lists, tables, and videos. For paragraph snippets: answer concisely in 40-60 words immediately below the H2. For tables: use HTML <code className="text-xs bg-white/10 px-1 py-0.5 rounded">&lt;table&gt;</code> elements &mdash; your buyer&rsquo;s guides are perfect for this format.</p>
+            <p><strong className="text-white/90">People Also Ask (PAA) boxes appear in ~65% of all Google searches.</strong> Research the PAA questions for your target queries using AlsoAsked.com or AnswerThePublic, then dedicate H2/H3 sections to answering them exactly. This is one of the highest-opportunity SERP features.</p>
+            <p><strong className="text-white/90">FAQ sections with <code className="text-xs bg-white/10 px-1 py-0.5 rounded">FAQPage</code> schema</strong> serve triple duty: they win FAQ rich results (expandable Q&amp;A directly in search), feed into AI Overviews, and appear in voice search results. Aim for 5-8 questions per page with 2-3 sentence answers.</p>
+            <p><strong className="text-white/90">Table of Contents with jump links</strong> on articles over 1,500 words can earn &ldquo;jump to&rdquo; links in Google search results, giving you more visual real estate on the SERP. Google uses these to link directly to relevant sections.</p>
+          </DeepDive>
         </Section>
 
         {/* ─── 10 INTERNAL LINKING ─── */}
@@ -1047,6 +1079,14 @@ export default function SEOPlanPage() {
               <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"\u2022"}</span>Your daily news briefings are link-building goldmines \u2014 link to your own resources</li>
             </ul>
           </Card>
+
+          <DeepDive title="Deep dive: Link density rules, click depth, and missed opportunity stats">
+            <p><strong className="text-white/90">82% of potential internal link opportunities</strong> on the average website go unused. Most sites dramatically under-link their content.</p>
+            <p><strong className="text-white/90">The 200-300 word rule:</strong> Include one contextual internal link for every 200-300 words of content. A 2,000-word article should have approximately 7-10 internal links. There&rsquo;s no penalty for &ldquo;too many&rdquo; links &mdash; relevance is what matters.</p>
+            <p><strong className="text-white/90">Click depth matters:</strong> Any important page should be reachable within 3 clicks from the homepage. Google gives more weight to links in body content than links in navigation menus.</p>
+            <p><strong className="text-white/90">Strategic link equity flow:</strong> Check Google Search Console to identify your highest-authority pages, then link from those to pages you want to boost. Your homepage, about page, and top-ranking blog posts carry the most &ldquo;link juice.&rdquo;</p>
+            <p><strong className="text-white/90">Anchor text variation:</strong> Vary anchor text slightly across different linking pages to avoid looking manipulative &mdash; &ldquo;AI readiness assessment framework,&rdquo; &ldquo;our RISE assessment,&rdquo; &ldquo;AI maturity benchmarking&rdquo; all linking to the same page.</p>
+          </DeepDive>
         </Section>
 
         {/* ─── 11 E-E-A-T ─── */}
@@ -1076,6 +1116,18 @@ export default function SEOPlanPage() {
               ))}
             </div>
           </Card>
+
+          <DeepDive title="Deep dive: Dec 2025 core update impact, YMYL classification, and technical E-E-A-T signals">
+            <p><strong className="text-white/90">Google&rsquo;s December 2025 core update</strong> hit hard: generic content farms lost <strong className="text-red-400">60% of traffic</strong>, while sites demonstrating genuine expertise gained <strong className="text-green-400">23%</strong>. E-E-A-T is no longer optional &mdash; it&rsquo;s the primary differentiator in the age of AI-generated content.</p>
+            <p><strong className="text-white/90">YMYL classification:</strong> GAI Insights operates in what Google calls &ldquo;Your Money or Your Life&rdquo; territory &mdash; advising enterprises on AI strategy and investment. Quality standards are highest for YMYL topics, making E-E-A-T signals especially critical.</p>
+            <p><strong className="text-white/90">Technical E-E-A-T signals to implement:</strong></p>
+            <ul className="list-disc list-inside space-y-1 text-white/60 text-xs ml-2">
+              <li><code className="bg-white/10 px-1 py-0.5 rounded">Organization</code> schema with <code className="bg-white/10 px-1 py-0.5 rounded">sameAs</code> linking to LinkedIn, X, Crunchbase</li>
+              <li><code className="bg-white/10 px-1 py-0.5 rounded">Article</code> schema with <code className="bg-white/10 px-1 py-0.5 rounded">author</code> referencing your <code className="bg-white/10 px-1 py-0.5 rounded">Person</code> entities</li>
+              <li>Visible author byline, publication date, and &ldquo;last updated&rdquo; date on all content</li>
+              <li>Trust badges, industry certifications, and client testimonials with real names</li>
+            </ul>
+          </DeepDive>
         </Section>
 
         {/* ─── 12 AI SEARCH / GEO ─── */}
@@ -1105,6 +1157,14 @@ export default function SEOPlanPage() {
               Even gating 80% of the content is fine \u2014 but the executive summary and key statistics should be crawlable.
             </p>
           </Card>
+
+          <DeepDive title="Deep dive: AI referral stats, citation patterns, and LLM source preferences">
+            <p><strong className="text-white/90">AI referrals spiked 357% year-over-year</strong> by mid-2025, reaching 1.13 billion visits to top websites. This is no longer a niche concern &mdash; AI search is a major traffic source.</p>
+            <p><strong className="text-white/90">97% of AI Overview citations</strong> come from pages already ranking in the top 20 organic results. Traditional SEO is a <em>prerequisite</em> for AI visibility &mdash; you need to rank before AI will cite you.</p>
+            <p><strong className="text-white/90">24.6% of search results</strong> in 2025 included AI Overviews, and these drove a <strong className="text-red-400">61% drop in organic CTR</strong> for affected queries. If your content isn&rsquo;t being cited <em>inside</em> the AI Overview, you&rsquo;re losing clicks to competitors who are.</p>
+            <p><strong className="text-white/90">LLM source preferences:</strong> Use Perplexity and ChatGPT to search your topic areas and note which domains they cite. Prioritize earning backlinks from those specific domains &mdash; AI systems have preferred source pools they draw from repeatedly.</p>
+            <p><strong className="text-white/90">Long-tail conversational queries:</strong> Research the exact prompts people use in ChatGPT and Perplexity for AI consulting topics. Optimize for natural language questions (&ldquo;How should an enterprise approach AI implementation?&rdquo;) not just keywords.</p>
+          </DeepDive>
         </Section>
 
         {/* ─── 13 TECHNICAL SEO ─── */}
@@ -1136,6 +1196,14 @@ export default function SEOPlanPage() {
               ))}
             </div>
           </Card>
+
+          <DeepDive title="Deep dive: 75% of SEO issues are technical, redirect equity loss, and crawl budget">
+            <p><strong className="text-white/90">Research suggests 75% of SEO issues are technical, not content-related.</strong> A perfectly written article won&rsquo;t rank if Google can&rsquo;t crawl, index, or render it properly.</p>
+            <p><strong className="text-white/90">Redirect equity loss:</strong> Each redirect hop loses some link equity (ranking power). A chain of A {"\u2192"} B {"\u2192"} C loses roughly 15-20% more equity than a direct A {"\u2192"} C redirect. Audit for chains periodically using Screaming Frog or Sitebulb.</p>
+            <p><strong className="text-white/90">Crawl budget optimization:</strong> Google allocates a limited <Tip def="The number of pages Google will crawl on your site in a given time period.">crawl budget</Tip> to each site. Don&rsquo;t waste it on duplicate pages, pagination, or session-based URLs. Use robots.txt and noindex tags to exclude low-value pages.</p>
+            <p><strong className="text-white/90">Security headers to implement:</strong> HSTS (HTTP Strict Transport Security), X-Content-Type-Options, X-Frame-Options. These are both security best practices and minor trust signals. Check your headers at securityheaders.com.</p>
+            <p><strong className="text-white/90">HubSpot-specific tip:</strong> HubSpot auto-generates sitemaps and canonicals, but verify that custom pages, landing pages, and any URL variants aren&rsquo;t creating conflicts. The HubSpot URL redirect tool should be maintained whenever you rename or restructure pages.</p>
+          </DeepDive>
         </Section>
 
         {/* ─── 14 IMAGE SEO ─── */}
@@ -1154,6 +1222,14 @@ export default function SEOPlanPage() {
               <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"\u2022"}</span><span><strong className="text-white/90">Compress images</strong> before uploading. Tools: TinyPNG, Squoosh. Aim for under 200KB per image</span></li>
             </ul>
           </Card>
+
+          <DeepDive title="Image SEO Deep Dive — Formats, Alt Text Rules & Hidden Wins">
+            <p><strong className="text-purple-300">WebP vs JPEG vs PNG:</strong> WebP images are <strong className="text-white/90">30-50% smaller</strong> than equivalent JPEG files with no visible quality loss. AVIF is even smaller (up to 50% vs WebP) but browser support is still catching up. HubSpot&rsquo;s CDN may auto-convert to WebP &mdash; check your page source to confirm. If not, convert manually before upload.</p>
+            <p><strong className="text-purple-300">Alt Text Best Practices:</strong> Keep alt text under <strong className="text-white/90">125 characters</strong> &mdash; screen readers cut off longer descriptions. Be specific and descriptive (&ldquo;Bar chart showing 40% enterprise AI adoption in financial services, 2026&rdquo;). Don&rsquo;t start with &ldquo;Image of&rdquo; or &ldquo;Photo of&rdquo; &mdash; the context already implies it&rsquo;s an image. Include your target keyword naturally when relevant, but never keyword-stuff.</p>
+            <p><strong className="text-purple-300">Lazy Loading Gotcha:</strong> Enable <code className="text-xs bg-purple-500/15 px-1 py-0.5 rounded">loading=&quot;lazy&quot;</code> for images below the fold, but <strong className="text-white/90">never lazy-load above-the-fold images</strong> (hero banners, logos). Lazy-loading the LCP image will tank your Largest Contentful Paint score. The browser needs to start downloading that first image immediately.</p>
+            <p><strong className="text-purple-300">Responsive Images (<code className="text-xs">srcset</code>):</strong> Serve different image sizes for different screen widths using <code className="text-xs bg-purple-500/15 px-1 py-0.5 rounded">srcset</code> and <code className="text-xs bg-purple-500/15 px-1 py-0.5 rounded">sizes</code> attributes. A mobile user on a 400px screen shouldn&rsquo;t download a 2000px-wide hero image. HubSpot may handle this automatically for CMS images &mdash; verify in page source.</p>
+            <p><strong className="text-purple-300">Image Sitemaps:</strong> If GAI Insights has important infographics, diagrams, or original photos, consider adding an <Tip def="An XML file that tells Google specifically about images on your site, helping them appear in Google Images search results.">image sitemap</Tip>. This tells Google explicitly about your images and can drive traffic from Google Images search. Particularly valuable for original charts, conference photos, and framework diagrams.</p>
+          </DeepDive>
         </Section>
 
         {/* ─── 15 CORE WEB VITALS ─── */}
@@ -1193,6 +1269,14 @@ export default function SEOPlanPage() {
               HubSpot\u2019s CDN generally provides good baseline performance, but large images and third-party scripts (chat widgets, analytics) can slow things down.
             </p>
           </Card>
+
+          <DeepDive title="Core Web Vitals Deep Dive — Benchmarks, Business Impact & INP Explained">
+            <p><strong className="text-purple-300">How Many Sites Actually Pass?</strong> Only <strong className="text-white/90">47-54% of websites</strong> pass all three Core Web Vitals thresholds simultaneously. This means if GAI Insights passes, you&rsquo;re immediately ahead of roughly half the web. CLS is the easiest to pass (~93% of sites do). INP is the hardest &mdash; only about 65% pass.</p>
+            <p><strong className="text-purple-300">Business Impact:</strong> Moving from &ldquo;Poor&rdquo; to &ldquo;Good&rdquo; Core Web Vitals scores has been correlated with up to a <strong className="text-white/90">25% increase in conversions</strong> and measurably lower bounce rates. For a B2B consulting site where each lead is worth thousands, even a small improvement in conversion rate has outsized ROI.</p>
+            <p><strong className="text-purple-300">INP Replaced FID in March 2024:</strong> <Tip def="Interaction to Next Paint — measures responsiveness of your page to user clicks, taps, and keyboard input.">INP</Tip> (Interaction to Next Paint) replaced FID (First Input Delay) as the official responsiveness metric. INP is stricter &mdash; it measures the responsiveness of <em>all</em> interactions on the page, not just the first one. Target <strong className="text-white/90">sub-150ms INP</strong> for a best-in-class experience. Heavy JavaScript (analytics, chat widgets, marketing trackers) is the most common INP killer.</p>
+            <p><strong className="text-purple-300">Field Data vs Lab Data:</strong> Google uses <strong className="text-white/90">field data</strong> (real users via the Chrome User Experience Report) for ranking, not lab data (Lighthouse simulations). Your PageSpeed Insights report shows both &mdash; the &ldquo;field data&rdquo; section at the top is what actually affects your rankings. If you have low traffic, you may not have enough field data, and Google will estimate based on similar sites.</p>
+            <p><strong className="text-purple-300">HubSpot-Specific Tips:</strong> HubSpot&rsquo;s CDN handles caching well, but watch out for: (1) excessive HubSpot tracking scripts, (2) third-party chat widgets loading on every page, (3) large hero images without proper sizing hints, and (4) custom CSS/JS modules that block rendering. Use <code className="text-xs bg-purple-500/15 px-1 py-0.5 rounded">defer</code> or <code className="text-xs bg-purple-500/15 px-1 py-0.5 rounded">async</code> on non-critical scripts where HubSpot allows it.</p>
+          </DeepDive>
         </Section>
 
         {/* ─── 16 BACKLINKS ─── */}
@@ -1221,6 +1305,14 @@ export default function SEOPlanPage() {
               ))}
             </div>
           </Card>
+
+          <DeepDive title="Backlink Deep Dive — HARO Alternatives, Podcast Strategy & Link-Worthy Content">
+            <p><strong className="text-purple-300">HARO Is Dead, Long Live Connectively:</strong> HARO (Help A Reporter Out) was the gold standard for getting journalist backlinks, but it shut down in late 2024. The successors: <strong className="text-white/90">Connectively</strong> (by the HARO founders), <strong className="text-white/90">Featured.com</strong>, <strong className="text-white/90">Qwoted</strong>, and <strong className="text-white/90">SourceBottle</strong>. Sign up Paul Baier as an expert source on AI strategy. Response rate to journalist queries is typically 3-5%, but each successful placement can yield DA 60-90 backlinks from major publications.</p>
+            <p><strong className="text-purple-300">Podcast Guest Strategy:</strong> <strong className="text-white/90">75% of B2B decision-makers</strong> listen to podcasts regularly. Every podcast appearance typically generates at least one backlink (show notes page). Target AI-focused podcasts (The AI Podcast, Practical AI, AI in Business) and business strategy shows. A single appearance on a top-100 business podcast can generate more referral traffic than months of blog posts.</p>
+            <p><strong className="text-purple-300">Most Linkable Content Types:</strong> Original research is the #1 most-linked content type in B2B. Specifically: proprietary survey data, benchmark reports, and industry-specific statistics. GAI Insights&rsquo; RISE Assessment data (anonymized and aggregated) would be extremely linkable. &ldquo;State of Enterprise AI 2026&rdquo; reports with original data points get referenced by journalists, analysts, and competitors alike.</p>
+            <p><strong className="text-purple-300">Unlinked Brand Mentions:</strong> Monitor for mentions of &ldquo;GAI Insights,&rdquo; &ldquo;Paul Baier,&rdquo; or &ldquo;GAI World&rdquo; across the web that don&rsquo;t include a hyperlink. Tools like Ahrefs Brand Radar, Google Alerts, or Mention.com can find these. A simple outreach email (&ldquo;Thanks for mentioning us! Would you mind adding a link?&rdquo;) converts <strong className="text-white/90">~40-60% of the time</strong> because the author already knows and values your brand.</p>
+            <p><strong className="text-purple-300">Link Toxicity Warning:</strong> Avoid buying links, link farms, or PBNs (Private Blog Networks). Google&rsquo;s SpamBrain AI is extremely good at detecting unnatural link patterns. A single manual penalty can drop your entire site from search results. Focus on earning links through genuine expertise, data, and relationships. Quality over quantity &mdash; always.</p>
+          </DeepDive>
         </Section>
 
         {/* ─── 17 CONTENT FRESHNESS ─── */}
@@ -1239,6 +1331,14 @@ export default function SEOPlanPage() {
               <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"\u2022"}</span><span><strong className="text-white/90">Archive old content gracefully.</strong> Don&rsquo;t delete old articles \u2014 add a &ldquo;This article was written in [year]&rdquo; banner and link to the updated version.</span></li>
             </ul>
           </Card>
+
+          <DeepDive title="Content Freshness Deep Dive — QDF, AI Citations & the Evergreen-Living Strategy">
+            <p><strong className="text-purple-300">AI Overviews Love Fresh Content:</strong> <strong className="text-white/90">68% of AI Overview citations</strong> come from content updated within the past 12 months. Sites that maintain a consistent content update cadence see <strong className="text-white/90">43% higher AI Overview visibility</strong> compared to static sites. This is huge for GAI Insights &mdash; your daily news cadence is already a massive advantage that most competitors lack.</p>
+            <p><strong className="text-purple-300">Query Deserves Freshness (QDF):</strong> Google has an algorithm called <Tip def="Query Deserves Freshness &mdash; Google's mechanism to prioritize recent content for time-sensitive search queries like news, trends, and recurring events.">QDF</Tip> that detects when a query needs fresh results. For &ldquo;enterprise AI trends 2026&rdquo; or &ldquo;best GenAI tools,&rdquo; Google will aggressively prioritize recently published or updated content. This means GAI Insights&rsquo; competitive pages should be updated at least quarterly with new data points, stats, or examples.</p>
+            <p><strong className="text-purple-300">Google&rsquo;s Dec 2025 Core Update:</strong> The most recent core update placed increased emphasis on <strong className="text-white/90">consistent content publishing cadence</strong>. Sites that publish sporadically (5 posts one month, zero the next) are penalized compared to sites with steady output. A predictable publishing schedule (e.g., daily news + 2 blog posts/week + monthly deep dive) signals editorial commitment.</p>
+            <p><strong className="text-purple-300">The &ldquo;Evergreen + Living&rdquo; Strategy:</strong> The most effective B2B content strategy combines <strong className="text-white/90">evergreen foundations</strong> (comprehensive guides that remain relevant for years) with <strong className="text-white/90">living updates</strong> (periodic refreshes with new data). For example: &ldquo;The Complete Guide to Enterprise AI Strategy&rdquo; is evergreen, but you update the statistics, case studies, and tool recommendations every quarter. Google sees the URL accumulating authority AND staying fresh.</p>
+            <p><strong className="text-purple-300">Content Decay Detection:</strong> Monitor your top-performing pages for traffic decline. When a page starts losing organic traffic (typically 3-6 months after publication), it&rsquo;s entering &ldquo;content decay.&rdquo; The fix: update the title tag with the current year, refresh statistics, add new sections, and re-submit to Google Search Console. This &ldquo;content refresh&rdquo; cycle typically recovers <strong className="text-white/90">50-80% of lost traffic</strong> within 4-6 weeks.</p>
+          </DeepDive>
         </Section>
 
 
