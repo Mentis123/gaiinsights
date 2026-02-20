@@ -34,7 +34,7 @@ function StatusPill({ status }: { status: "done" | "todo" | "needs-access" | "in
     todo: "bg-white/5 text-white/40 border-white/10",
   };
   const labels = { done: "DONE", "in-progress": "IN PROGRESS", "needs-access": "NEEDS ACCESS", todo: "TODO" };
-  const icons = { done: "\u2713", "in-progress": "\u25CB", "needs-access": "\u26A0", todo: "\u2014" };
+  const icons = { done: "✓", "in-progress": "○", "needs-access": "⚠", todo: "—" };
   return (
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold tracking-wider rounded-full border ${styles[status]}`}>
       <span>{icons[status]}</span>
@@ -106,7 +106,7 @@ function Explainer({ title, children }: { title: string; children: React.ReactNo
   return (
     <details className="group/exp rounded-xl border border-cyan-500/12 bg-cyan-500/[0.025] overflow-hidden backdrop-blur-sm">
       <summary className="flex items-center gap-2.5 cursor-pointer p-4 text-sm font-medium text-cyan-400 hover:text-cyan-300 transition-colors [&::-webkit-details-marker]:hidden list-none">
-        <span className="transition-transform duration-200 group-open/exp:rotate-90 text-[10px] opacity-60">{"\u25B6"}</span>
+        <span className="transition-transform duration-200 group-open/exp:rotate-90 text-[10px] opacity-60">{"▶"}</span>
         <span className="flex items-center gap-2.5">
           <span className="inline-block w-1.5 h-1.5 rounded-full bg-cyan-400/60 shrink-0" />
           {title}
@@ -124,7 +124,7 @@ function DeepDive({ title, children }: { title: string; children: React.ReactNod
   return (
     <details className="group/dd rounded-xl border border-purple-500/12 overflow-hidden" style={{ background: "linear-gradient(135deg, rgba(67,21,125,0.04) 0%, rgba(155,105,255,0.02) 100%)" }}>
       <summary className="flex items-center gap-2.5 cursor-pointer p-4 text-sm font-medium text-purple-400/90 hover:text-purple-300 transition-colors [&::-webkit-details-marker]:hidden list-none">
-        <span className="transition-transform duration-200 group-open/dd:rotate-90 text-[10px] opacity-60">{"\u25B6"}</span>
+        <span className="transition-transform duration-200 group-open/dd:rotate-90 text-[10px] opacity-60">{"▶"}</span>
         <span className="flex items-center gap-2.5">
           <span className="px-2 py-0.5 text-[9px] font-bold tracking-[0.12em] uppercase rounded-md border text-purple-300/90" style={{ background: "linear-gradient(135deg, rgba(67,21,125,0.3) 0%, rgba(155,105,255,0.2) 100%)", borderColor: "rgba(155,105,255,0.25)" }}>LVL 2</span>
           {title}
@@ -181,37 +181,37 @@ function SectionDivider({ title }: { title: string }) {
    ═══════════════════════════════════════════════════ */
 
 const GLOSSARY: [string, string][] = [
-  ["SEO", "Search Engine Optimization \u2014 the practice of improving your website so it ranks higher in Google, Bing, and AI search engines. Higher rankings = more visitors = more leads."],
-  ["SERP", "Search Engine Results Page \u2014 the page you see after Googling something. Your goal is to appear as high as possible on this page."],
-  ["Schema Markup", "Invisible code added to your website that tells search engines exactly what your content is about. Think of it as a label that says \u2018this is a service\u2019 or \u2018this is an event.\u2019"],
-  ["JSON-LD", "JavaScript Object Notation for Linked Data \u2014 the recommended format for schema markup. It\u2019s a small code snippet placed in your page\u2019s HTML <head> section."],
-  ["E-E-A-T", "Experience, Expertise, Authoritativeness, Trustworthiness \u2014 Google\u2019s framework for evaluating content quality. Having real experts write/review content boosts E-E-A-T."],
-  ["CTR", "Click-Through Rate \u2014 the percentage of people who see your link in search results and actually click it. Higher CTR = your title/description is compelling."],
-  ["GBP", "Google Business Profile \u2014 your free business listing on Google Maps and Search. Even for national B2B companies, it\u2019s valuable for credibility."],
-  ["Impressions", "How many times your website appeared in search results \u2014 even if nobody clicked. High impressions + low clicks = your title/description needs work."],
-  ["Backlinks", "Links from other websites pointing to yours. They\u2019re like \u2018votes of confidence\u2019 \u2014 the more quality sites that link to you, the more Google trusts you."],
+  ["SEO", "Search Engine Optimization — the practice of improving your website so it ranks higher in Google, Bing, and AI search engines. Higher rankings = more visitors = more leads."],
+  ["SERP", "Search Engine Results Page — the page you see after Googling something. Your goal is to appear as high as possible on this page."],
+  ["Schema Markup", "Invisible code added to your website that tells search engines exactly what your content is about. Think of it as a label that says ‘this is a service’ or ‘this is an event.’"],
+  ["JSON-LD", "JavaScript Object Notation for Linked Data — the recommended format for schema markup. It’s a small code snippet placed in your page’s HTML <head> section."],
+  ["E-E-A-T", "Experience, Expertise, Authoritativeness, Trustworthiness — Google’s framework for evaluating content quality. Having real experts write/review content boosts E-E-A-T."],
+  ["CTR", "Click-Through Rate — the percentage of people who see your link in search results and actually click it. Higher CTR = your title/description is compelling."],
+  ["GBP", "Google Business Profile — your free business listing on Google Maps and Search. Even for national B2B companies, it’s valuable for credibility."],
+  ["Impressions", "How many times your website appeared in search results — even if nobody clicked. High impressions + low clicks = your title/description needs work."],
+  ["Backlinks", "Links from other websites pointing to yours. They’re like ‘votes of confidence’ — the more quality sites that link to you, the more Google trusts you."],
   ["Internal Links", "Links between pages on your own website. They help visitors navigate and help Google understand your site structure."],
-  ["Meta Description", "The 150\u2013160 character summary that appears below your page title in Google results. It doesn\u2019t directly affect ranking but heavily impacts CTR."],
+  ["Meta Description", "The 150\u2013160 character summary that appears below your page title in Google results. It doesn’t directly affect ranking but heavily impacts CTR."],
   ["Title Tag", "The clickable headline that appears in search results. Arguably the single most important on-page SEO element. Keep it under 60 characters."],
   ["Alt Text", "A text description of an image that helps search engines understand what the image shows. Also critical for accessibility (screen readers)."],
-  ["Core Web Vitals", "Three metrics Google uses to measure your website\u2019s speed and user experience: LCP (loading speed), INP (interactivity), CLS (visual stability)."],
+  ["Core Web Vitals", "Three metrics Google uses to measure your website’s speed and user experience: LCP (loading speed), INP (interactivity), CLS (visual stability)."],
   ["Rich Results", "Enhanced search listings with extra info like star ratings, FAQ dropdowns, event dates, or prices. Schema markup enables these."],
-  ["Knowledge Graph", "Google\u2019s database of facts about businesses, people, and things. Organization schema helps your business appear in the Knowledge Graph panel."],
-  ["AI Overviews", "Google\u2019s AI-generated summaries at the top of search results. Getting cited here means massive visibility \u2014 structured content helps."],
-  ["GEO", "Generative Engine Optimization \u2014 optimizing your content to be cited by AI tools like Google AI Overviews, Perplexity, and ChatGPT Search."],
-  ["Canonical Tag", "An HTML tag that tells search engines \u2018this is the main version of this page\u2019 \u2014 prevents issues when similar content appears at multiple URLs."],
-  ["XML Sitemap", "A file that lists all your website\u2019s pages so search engines can find and crawl them efficiently. Like a table of contents for Google."],
+  ["Knowledge Graph", "Google’s database of facts about businesses, people, and things. Organization schema helps your business appear in the Knowledge Graph panel."],
+  ["AI Overviews", "Google’s AI-generated summaries at the top of search results. Getting cited here means massive visibility — structured content helps."],
+  ["GEO", "Generative Engine Optimization — optimizing your content to be cited by AI tools like Google AI Overviews, Perplexity, and ChatGPT Search."],
+  ["Canonical Tag", "An HTML tag that tells search engines ‘this is the main version of this page’ — prevents issues when similar content appears at multiple URLs."],
+  ["XML Sitemap", "A file that lists all your website’s pages so search engines can find and crawl them efficiently. Like a table of contents for Google."],
   ["Breadcrumbs", "Navigation links showing where a page sits in your site hierarchy (e.g. Home > Blog > AI Strategy). Helps both users and search engines."],
   ["Featured Snippet", "The boxed answer that appears at position zero in Google results. Structured content (lists, tables, definitions) has the best chance of winning these."],
   ["Keyword Difficulty", "A score (0\u2013100) estimating how hard it is to rank for a particular keyword. Lower difficulty = easier to rank = better target for new sites."],
-  ["Search Intent", "The reason behind a search query. Informational (\u2018what is AI\u2019), Commercial (\u2018best AI consulting\u2019), Transactional (\u2018hire AI consultant\u2019), Navigational (\u2018GAI Insights login\u2019)."],
-  ["Long-tail Keywords", "Longer, more specific search phrases (e.g. \u2018enterprise GenAI training programs for financial services\u2019). Less competition, higher conversion rates."],
+  ["Search Intent", "The reason behind a search query. Informational (‘what is AI’), Commercial (‘best AI consulting’), Transactional (‘hire AI consultant’), Navigational (‘GAI Insights login’)."],
+  ["Long-tail Keywords", "Longer, more specific search phrases (e.g. ‘enterprise GenAI training programs for financial services’). Less competition, higher conversion rates."],
   ["Organic Traffic", "Visitors who find your site through unpaid search results (not ads). The main goal of SEO."],
   ["Domain Authority", "A score (0\u2013100) predicting how well a website will rank in search engines. Built over time through quality content and backlinks."],
   ["Crawl Budget", "The number of pages Google will crawl on your site in a given time period. Large sites need to optimize which pages get crawled first."],
-  ["Indexing", "When Google adds your page to its database (index) so it can appear in search results. If a page isn\u2019t indexed, it won\u2019t show up in Google."],
+  ["Indexing", "When Google adds your page to its database (index) so it can appear in search results. If a page isn’t indexed, it won’t show up in Google."],
   ["Information Gain", "A ranking concept where Google rewards content that provides unique facts, data, or perspectives not found elsewhere on the web."],
-  ["Robots.txt", "A file at your website\u2019s root that tells search engine bots which pages they can and cannot crawl. Misconfiguration can block important pages."],
+  ["Robots.txt", "A file at your website’s root that tells search engine bots which pages they can and cannot crawl. Misconfiguration can block important pages."],
   ["Heading Hierarchy", "The structure of headings on a page: H1 (main title, one per page), H2 (major sections), H3 (subsections). Helps search engines understand content structure."],
 ];
 
@@ -228,7 +228,7 @@ const COMPETITORS = [
     name: "RTS Labs",
     url: "rtslabs.com",
     type: "Enterprise AI Consulting",
-    strengths: "230+ blog posts, aggressive SEO (\u2018alternatives to X\u2019 content), cost guides, strong organic presence",
+    strengths: "230+ blog posts, aggressive SEO (‘alternatives to X’ content), cost guides, strong organic presence",
     weaknesses: "Smaller brand recognition, no conferences or proprietary frameworks",
     content: "Blog-heavy strategy, comparison posts, industry-specific landing pages",
   },
@@ -253,7 +253,7 @@ const COMPETITORS = [
 const CONTENT_GAPS = [
   {
     title: "AI Consulting Cost & Pricing Guide",
-    description: "Competitors like RTS Labs rank highly for \u2018AI consulting pricing\u2019 and \u2018how much does AI consulting cost.\u2019 GAI Insights has no pricing/cost content.",
+    description: "Competitors like RTS Labs rank highly for ‘AI consulting pricing’ and ‘how much does AI consulting cost.’ GAI Insights has no pricing/cost content.",
     priority: "HIGH",
     action: "Create a detailed guide covering typical AI consulting engagement costs, pricing models (retainer vs project), and ROI expectations.",
   },
@@ -264,38 +264,38 @@ const CONTENT_GAPS = [
     action: "Create dedicated landing pages for Financial Services, Healthcare, Retail, and Manufacturing with industry-specific AI use cases and case studies.",
   },
   {
-    title: "\u2018Alternatives to\u2019 & Comparison Content",
-    description: "RTS Labs aggressively targets \u2018alternatives to [tool]\u2019 keywords. This content captures buyers actively evaluating options.",
+    title: "‘Alternatives to’ & Comparison Content",
+    description: "RTS Labs aggressively targets ‘alternatives to [tool]’ keywords. This content captures buyers actively evaluating options.",
     priority: "MEDIUM",
-    action: "Create comparison guides: \u2018Best Enterprise AI Platforms Compared\u2019, \u2018GenAI Training Providers Compared\u2019 leveraging buyer\u2019s guide expertise.",
+    action: "Create comparison guides: ‘Best Enterprise AI Platforms Compared’, ‘GenAI Training Providers Compared’ leveraging buyer’s guide expertise.",
   },
   {
     title: "Agentic AI / AI Agents Pillar Content",
-    description: "Agentic AI is the hottest enterprise AI topic in 2026. No competitor has comprehensive pillar content on this yet \u2014 first-mover advantage.",
+    description: "Agentic AI is the hottest enterprise AI topic in 2026. No competitor has comprehensive pillar content on this yet — first-mover advantage.",
     priority: "HIGH",
-    action: "Create a comprehensive pillar page: \u2018Enterprise Agentic AI: Strategy, Implementation & Governance\u2019 with links to supporting articles.",
+    action: "Create a comprehensive pillar page: ‘Enterprise Agentic AI: Strategy, Implementation & Governance’ with links to supporting articles.",
   },
   {
     title: "Proprietary Framework Content (RISE & WINS)",
-    description: "GAI Insights has proprietary frameworks (RISE Maturity Assessment, WINS Framework) but they\u2019re barely visible in search. Competitors would love to have branded IP like this.",
+    description: "GAI Insights has proprietary frameworks (RISE Maturity Assessment, WINS Framework) but they’re barely visible in search. Competitors would love to have branded IP like this.",
     priority: "HIGH",
     action: "Create dedicated pages for RISE and WINS with full methodology explanations, sample outputs, and gated assessment tools.",
   },
 ];
 
 const GBP_POSTS = [
-  { type: "What\u2019s New", title: "Your 2026 Enterprise GenAI Buyer\u2019s Guide Is Here", body: "Our latest buyer\u2019s guide compares 40+ enterprise GenAI platforms across security, compliance, and ROI metrics. Trusted by AI leaders at AWS, IBM, and Fortune 500 companies, this is the resource your team needs before making your next AI investment.", cta: "Learn more" },
-  { type: "Event", title: "GAI World 2026: Where Enterprise AI Leaders Connect", body: "Join 500+ enterprise AI leaders at the premier GenAI conference. Hear from practitioners who\u2019ve implemented AI at scale, participate in hands-on workshops, and network with peers facing the same challenges. Early bird registration now open.", cta: "Sign up" },
-  { type: "Offer", title: "Free AI Maturity Assessment for Your Organization", body: "Where does your organization stand on the AI adoption curve? Our RISE Maturity Assessment benchmarks your AI capabilities against 200+ enterprises. Get a personalized scorecard with actionable recommendations \u2014 complimentary for qualified enterprises.", cta: "Book" },
-  { type: "What\u2019s New", title: "This Week in Enterprise AI: Agentic AI Goes Mainstream", body: "In this week\u2019s daily AI briefing, we break down why agentic AI is the biggest shift since ChatGPT, which enterprises are deploying it successfully, and what governance frameworks you need. Join 35,000+ AI leaders who start their morning with our briefing.", cta: "Learn more" },
-  { type: "Event", title: "Hands-On GenAI Workshop: From Copilot to Custom Agents", body: "This month\u2019s Learning Lab is all about building practical GenAI workflows. From Microsoft Copilot configuration to custom AI agent development, our Newton, MA workshops give your team hands-on skills they can use Monday morning.", cta: "Sign up" },
-  { type: "Offer", title: "Free 30-Minute AI Strategy Consultation", body: "Not sure where to start with GenAI? Book a complimentary strategy session with our analysts. We\u2019ll review your current AI initiatives, identify quick wins, and outline a 90-day roadmap. No sales pitch \u2014 just actionable advice from enterprise AI experts based in the Boston area.", cta: "Book" },
-  { type: "What\u2019s New", title: "New Report: Enterprise ChatGPT Adoption \u2014 What the Data Shows", body: "Our analysis of ChatGPT Enterprise adoption across 150+ organizations reveals surprising patterns. Which departments see the highest ROI? What security configurations matter most? The answers may challenge your assumptions.", cta: "Learn more" },
-  { type: "Event", title: "Executive Roundtable: AI Governance in Financial Services", body: "An intimate discussion for CIOs and CAIOs in financial services. We\u2019ll cover regulatory requirements, model risk management, and practical governance frameworks that don\u2019t slow innovation. Limited to 20 seats for candid conversation.", cta: "Sign up" },
-  { type: "Offer", title: "Download: AI Implementation Readiness Checklist", body: "Before launching your next AI initiative, make sure you\u2019ve covered all the bases. Our checklist covers data readiness, infrastructure requirements, change management, and governance essentials. Used by 500+ enterprise teams worldwide.", cta: "Learn more" },
-  { type: "What\u2019s New", title: "How Top Enterprises Are Measuring GenAI ROI in 2026", body: "Measuring AI ROI remains the #1 challenge for enterprise leaders. Our latest research reveals the metrics that matter, the measurement frameworks that work, and the pitfalls that make AI investments look worse than they are.", cta: "Learn more" },
-  { type: "Event", title: "Boston AI Leaders Meetup at GAI Insights HQ", body: "Connect with fellow AI leaders in the greater Boston area at our Newton headquarters. Casual networking, lightning talks from practitioners, and honest conversations about what\u2019s working (and what\u2019s not) in enterprise AI deployment.", cta: "Sign up" },
-  { type: "Offer", title: "Subscribe to Daily AI Briefing \u2014 Join 35,000+ Leaders", body: "Start every morning informed. Our daily AI briefing curates the most important enterprise AI developments, cuts through the hype, and delivers actionable insights in a 3-minute read. Free for enterprise AI professionals.", cta: "Sign up" },
+  { type: "What’s New", title: "Your 2026 Enterprise GenAI Buyer’s Guide Is Here", body: "Our latest buyer’s guide compares 40+ enterprise GenAI platforms across security, compliance, and ROI metrics. Trusted by AI leaders at AWS, IBM, and Fortune 500 companies, this is the resource your team needs before making your next AI investment.", cta: "Learn more" },
+  { type: "Event", title: "GAI World 2026: Where Enterprise AI Leaders Connect", body: "Join 500+ enterprise AI leaders at the premier GenAI conference. Hear from practitioners who’ve implemented AI at scale, participate in hands-on workshops, and network with peers facing the same challenges. Early bird registration now open.", cta: "Sign up" },
+  { type: "Offer", title: "Free AI Maturity Assessment for Your Organization", body: "Where does your organization stand on the AI adoption curve? Our RISE Maturity Assessment benchmarks your AI capabilities against 200+ enterprises. Get a personalized scorecard with actionable recommendations — complimentary for qualified enterprises.", cta: "Book" },
+  { type: "What’s New", title: "This Week in Enterprise AI: Agentic AI Goes Mainstream", body: "In this week’s daily AI briefing, we break down why agentic AI is the biggest shift since ChatGPT, which enterprises are deploying it successfully, and what governance frameworks you need. Join 35,000+ AI leaders who start their morning with our briefing.", cta: "Learn more" },
+  { type: "Event", title: "Hands-On GenAI Workshop: From Copilot to Custom Agents", body: "This month’s Learning Lab is all about building practical GenAI workflows. From Microsoft Copilot configuration to custom AI agent development, our Newton, MA workshops give your team hands-on skills they can use Monday morning.", cta: "Sign up" },
+  { type: "Offer", title: "Free 30-Minute AI Strategy Consultation", body: "Not sure where to start with GenAI? Book a complimentary strategy session with our analysts. We’ll review your current AI initiatives, identify quick wins, and outline a 90-day roadmap. No sales pitch — just actionable advice from enterprise AI experts based in the Boston area.", cta: "Book" },
+  { type: "What’s New", title: "New Report: Enterprise ChatGPT Adoption — What the Data Shows", body: "Our analysis of ChatGPT Enterprise adoption across 150+ organizations reveals surprising patterns. Which departments see the highest ROI? What security configurations matter most? The answers may challenge your assumptions.", cta: "Learn more" },
+  { type: "Event", title: "Executive Roundtable: AI Governance in Financial Services", body: "An intimate discussion for CIOs and CAIOs in financial services. We’ll cover regulatory requirements, model risk management, and practical governance frameworks that don’t slow innovation. Limited to 20 seats for candid conversation.", cta: "Sign up" },
+  { type: "Offer", title: "Download: AI Implementation Readiness Checklist", body: "Before launching your next AI initiative, make sure you’ve covered all the bases. Our checklist covers data readiness, infrastructure requirements, change management, and governance essentials. Used by 500+ enterprise teams worldwide.", cta: "Learn more" },
+  { type: "What’s New", title: "How Top Enterprises Are Measuring GenAI ROI in 2026", body: "Measuring AI ROI remains the #1 challenge for enterprise leaders. Our latest research reveals the metrics that matter, the measurement frameworks that work, and the pitfalls that make AI investments look worse than they are.", cta: "Learn more" },
+  { type: "Event", title: "Boston AI Leaders Meetup at GAI Insights HQ", body: "Connect with fellow AI leaders in the greater Boston area at our Newton headquarters. Casual networking, lightning talks from practitioners, and honest conversations about what’s working (and what’s not) in enterprise AI deployment.", cta: "Sign up" },
+  { type: "Offer", title: "Subscribe to Daily AI Briefing — Join 35,000+ Leaders", body: "Start every morning informed. Our daily AI briefing curates the most important enterprise AI developments, cuts through the hype, and delivers actionable insights in a 3-minute read. Free for enterprise AI professionals.", cta: "Sign up" },
 ];
 
 /* ═══════════════════════════════════════════════════
@@ -381,9 +381,9 @@ export default function SEOPlanPage() {
 
       {/* ─── Quick SEO Primer ─── */}
       <div className="max-w-5xl mx-auto px-6 pb-6">
-        <Explainer title="New to SEO? Start here \u2014 60-second primer">
+        <Explainer title="New to SEO? Start here — 60-second primer">
           <p><strong className="text-white/90">SEO (Search Engine Optimization)</strong> is the practice of making your website show up higher in Google (and AI search tools like Perplexity and ChatGPT). Higher rankings = more people find you = more leads.</p>
-          <p className="mt-2">This playbook covers <strong className="text-white/90">everything</strong> your website needs to rank well. The most impactful items are at the top. Green badges mean we&rsquo;ve already done the work \u2014 you just need to paste the code into HubSpot. Orange badges mean you need to grant us access to a tool first.</p>
+          <p className="mt-2">This playbook covers <strong className="text-white/90">everything</strong> your website needs to rank well. The most impactful items are at the top. Green badges mean we&rsquo;ve already done the work — you just need to paste the code into HubSpot. Orange badges mean you need to grant us access to a tool first.</p>
         </Explainer>
       </div>
 
@@ -511,7 +511,7 @@ export default function SEOPlanPage() {
       <div className="max-w-5xl mx-auto px-6 pb-24 space-y-20">
 
         {/* ═══ PART 1: AUDIT FINDINGS ═══ */}
-        <SectionDivider title="Part 1 \u2014 Audit Findings" />
+        <SectionDivider title="Part 1 — Audit Findings" />
 
         {/* ─── 01 SCHEMA AUDIT ─── */}
         <Section id="section-01" number="01" title="Schema Markup Audit" status="done">
@@ -520,13 +520,13 @@ export default function SEOPlanPage() {
           </Quote>
 
           <Explainer title="What is Schema Markup and why should I care?">
-            <p><Tip def="Invisible code added to your website that tells search engines exactly what your content is about.">Schema Markup</Tip> is like putting labels on your website that only search engines can read. When Google sees schema that says &ldquo;this is a consulting service&rdquo; or &ldquo;this is a conference,&rdquo; it can display <Tip def="Enhanced search listings with extra info like star ratings, FAQ dropdowns, event dates, or prices.">Rich Results</Tip> \u2014 those enhanced search listings with extra details.</p>
-            <p>Without schema, Google has to guess what your content is about. With schema, you&rsquo;re telling it explicitly. This is especially important for <Tip def="Google\u2019s AI-generated summaries at the top of search results. Getting cited here means massive visibility.">AI Overviews</Tip> which rely on structured data to cite sources.</p>
+            <p><Tip def="Invisible code added to your website that tells search engines exactly what your content is about.">Schema Markup</Tip> is like putting labels on your website that only search engines can read. When Google sees schema that says &ldquo;this is a consulting service&rdquo; or &ldquo;this is a conference,&rdquo; it can display <Tip def="Enhanced search listings with extra info like star ratings, FAQ dropdowns, event dates, or prices.">Rich Results</Tip> — those enhanced search listings with extra details.</p>
+            <p>Without schema, Google has to guess what your content is about. With schema, you&rsquo;re telling it explicitly. This is especially important for <Tip def="Google’s AI-generated summaries at the top of search results. Getting cited here means massive visibility.">AI Overviews</Tip> which rely on structured data to cite sources.</p>
           </Explainer>
 
           <Card>
             <h3 className="text-sm font-semibold text-red-400 uppercase tracking-wide mb-3">
-              {"\u26A0"} Issues Found
+              {"⚠"} Issues Found
             </h3>
             <div className="space-y-3 text-sm text-white/70">
               <div className="flex gap-3 items-start p-3 rounded-lg bg-red-500/5 border border-red-500/10">
@@ -538,7 +538,7 @@ export default function SEOPlanPage() {
               <div className="flex gap-3 items-start p-3 rounded-lg bg-green-500/5 border border-green-500/10">
                 <Badge color="green">GOOD</Badge>
                 <span>
-                  Has <code className="text-xs bg-white/10 px-1.5 py-0.5 rounded">FAQPage</code> schema with 12 Q&amp;As \u2014 this is working correctly and driving <Tip def="Enhanced search listings with extra info like FAQ dropdowns.">Rich Results</Tip>.
+                  Has <code className="text-xs bg-white/10 px-1.5 py-0.5 rounded">FAQPage</code> schema with 12 Q&amp;As — this is working correctly and driving <Tip def="Enhanced search listings with extra info like FAQ dropdowns.">Rich Results</Tip>.
                 </span>
               </div>
             </div>
@@ -560,13 +560,13 @@ export default function SEOPlanPage() {
                 </thead>
                 <tbody className="text-white/70">
                   {([
-                    ["Organization", "MISSING", "red", "CRITICAL", "Foundation for Google\u2019s Knowledge Graph. Without this, Google doesn\u2019t \u2018know\u2019 GAI Insights as an entity."],
+                    ["Organization", "MISSING", "red", "CRITICAL", "Foundation for Google’s Knowledge Graph. Without this, Google doesn’t ‘know’ GAI Insights as an entity."],
                     ["Service", "MISSING", "orange", "HIGH", "Tells search engines what you sell. Each service gets its own searchable entry."],
-                    ["FAQPage", "\u2713 PRESENT", "green", "DONE", "Already implemented with 12 Q&As. Driving FAQ rich results in search."],
-                    ["Article", "MISSING", "orange", "HIGH", "Blog posts, daily news, buyer\u2019s guides should all have this for authorship + dates."],
+                    ["FAQPage", "✓ PRESENT", "green", "DONE", "Already implemented with 12 Q&As. Driving FAQ rich results in search."],
+                    ["Article", "MISSING", "orange", "HIGH", "Blog posts, daily news, buyer’s guides should all have this for authorship + dates."],
                     ["Event", "MISSING", "orange", "HIGH", "GAI World 2026 should have event schema for event-specific rich results."],
                     ["BreadcrumbList", "MISSING", "yellow", "MEDIUM", "Helps Google understand your site hierarchy. Shows breadcrumb trail in search results."],
-                    ["Person", "MISSING", "yellow", "MEDIUM", "Paul Baier\u2019s profile should have this for E-E-A-T author authority signals."],
+                    ["Person", "MISSING", "yellow", "MEDIUM", "Paul Baier’s profile should have this for E-E-A-T author authority signals."],
                     ["ProfessionalService", "DEPRECATED", "red", "REMOVE", "Currently on site but deprecated by Google. Must be replaced with Organization + Service."],
                   ] as const).map(([schema, status, statusColor, priority, why], i) => (
                     <tr key={i} className="border-b border-white/5">
@@ -586,7 +586,7 @@ export default function SEOPlanPage() {
           </Card>
 
           <div className="text-sm text-white/40 flex items-center gap-2">
-            <span className="text-green-400">{"\u2713"}</span>
+            <span className="text-green-400">{"✓"}</span>
             Ready-to-paste code for all missing schema is in <a href="#section-05" className="text-cyan-500/60 hover:text-cyan-400 transition-colors">Section 05</a>.
           </div>
         </Section>
@@ -598,7 +598,7 @@ export default function SEOPlanPage() {
           </Quote>
 
           <Explainer title="How does competitive analysis help SEO?">
-            <p>By studying what your competitors publish, rank for, and how they structure their sites, you discover <Tip def="Topics and keywords your competitors rank for that you don\u2019t cover yet.">content gaps</Tip> \u2014 topics you should cover. You also learn which strategies work in your industry so you can adapt (not copy) them.</p>
+            <p>By studying what your competitors publish, rank for, and how they structure their sites, you discover <Tip def="Topics and keywords your competitors rank for that you don’t cover yet.">content gaps</Tip> — topics you should cover. You also learn which strategies work in your industry so you can adapt (not copy) them.</p>
           </Explainer>
 
           <Card>
@@ -615,7 +615,7 @@ export default function SEOPlanPage() {
                   </div>
                   <div className="grid sm:grid-cols-3 gap-3 text-xs">
                     <div>
-                      <p className="text-green-400/80 font-medium mb-1">{"\u2713"} Strengths</p>
+                      <p className="text-green-400/80 font-medium mb-1">{"✓"} Strengths</p>
                       <p className="text-white/50">{c.strengths}</p>
                     </div>
                     <div>
@@ -623,7 +623,7 @@ export default function SEOPlanPage() {
                       <p className="text-white/50">{c.weaknesses}</p>
                     </div>
                     <div>
-                      <p className="text-cyan-400/80 font-medium mb-1">{"\u25CB"} Content</p>
+                      <p className="text-cyan-400/80 font-medium mb-1">{"○"} Content</p>
                       <p className="text-white/50">{c.content}</p>
                     </div>
                   </div>
@@ -639,14 +639,14 @@ export default function SEOPlanPage() {
             <div className="grid sm:grid-cols-2 gap-3 text-sm">
               {[
                 ["Daily AI News Briefing", "No competitor has a daily content engine like this. 35K+ subscribers is a massive distribution advantage."],
-                ["Enterprise Buyer Community", "Direct access to AI buyers \u2014 competitors don\u2019t have this feedback loop."],
-                ["Proprietary Frameworks", "RISE Maturity Assessment and WINS Framework are branded IP that competitors can\u2019t replicate."],
+                ["Enterprise Buyer Community", "Direct access to AI buyers — competitors don’t have this feedback loop."],
+                ["Proprietary Frameworks", "RISE Maturity Assessment and WINS Framework are branded IP that competitors can’t replicate."],
                 ["GAI World Conference", "Annual conference creates authority and generates content/backlinks."],
-                ["HBR Contributions", "Paul Baier\u2019s HBR articles provide unmatched credibility signals."],
-                ["Client Logo Social Proof", "AWS, IBM, Crocs, WEX \u2014 enterprise trust signals that build authority."],
+                ["HBR Contributions", "Paul Baier’s HBR articles provide unmatched credibility signals."],
+                ["Client Logo Social Proof", "AWS, IBM, Crocs, WEX — enterprise trust signals that build authority."],
               ].map(([title, desc], i) => (
                 <div key={i} className="flex gap-3 items-start">
-                  <span className="text-cyan-500 mt-0.5 shrink-0">{"\u2713"}</span>
+                  <span className="text-cyan-500 mt-0.5 shrink-0">{"✓"}</span>
                   <div>
                     <p className="text-white/90 font-medium text-sm">{title}</p>
                     <p className="text-white/50 text-xs mt-0.5">{desc}</p>
@@ -660,7 +660,7 @@ export default function SEOPlanPage() {
         {/* ─── 03 CONTENT GAPS ─── */}
         <Section id="section-03" number="03" title="Content Gap Analysis" status="done">
           <Explainer title="What is a content gap and why does it matter?">
-            <p>A <Tip def="Topics and keywords your competitors rank for that you don\u2019t cover yet.">content gap</Tip> is a topic your potential customers are searching for but your website doesn&rsquo;t cover. Every gap is a missed opportunity for <Tip def="Visitors who find your site through unpaid search results.">organic traffic</Tip> and leads. Filling gaps with quality content is one of the fastest ways to grow.</p>
+            <p>A <Tip def="Topics and keywords your competitors rank for that you don’t cover yet.">content gap</Tip> is a topic your potential customers are searching for but your website doesn&rsquo;t cover. Every gap is a missed opportunity for <Tip def="Visitors who find your site through unpaid search results.">organic traffic</Tip> and leads. Filling gaps with quality content is one of the fastest ways to grow.</p>
           </Explainer>
 
           <div className="space-y-4">
@@ -718,14 +718,14 @@ export default function SEOPlanPage() {
 
 
         {/* ═══ PART 2: DELIVERABLES ═══ */}
-        <SectionDivider title="Part 2 \u2014 Ready-to-Use Deliverables" />
+        <SectionDivider title="Part 2 — Ready-to-Use Deliverables" />
 
         {/* ─── 05 SCHEMA CODE ─── */}
         <Section id="section-05" number="05" title="Schema Implementation (JSON-LD)" status="done">
           <Explainer title="How do I add these to the website?">
-            <p>Each code block below is a <Tip def="The recommended format for schema markup \u2014 a code snippet placed in your page\u2019s HTML head section.">JSON-LD</Tip> snippet. In <strong className="text-white/90">HubSpot</strong>:</p>
+            <p>Each code block below is a <Tip def="The recommended format for schema markup — a code snippet placed in your page’s HTML head section.">JSON-LD</Tip> snippet. In <strong className="text-white/90">HubSpot</strong>:</p>
             <ol className="list-decimal list-inside space-y-1 mt-2">
-              <li>Go to <strong className="text-white/90">Settings {"\u2192"} Website {"\u2192"} Pages</strong></li>
+              <li>Go to <strong className="text-white/90">Settings {"→"} Website {"→"} Pages</strong></li>
               <li>Click <strong className="text-white/90">Site Header HTML</strong> (for site-wide schema like Organization)</li>
               <li>Paste the code block exactly as shown</li>
               <li>For page-specific schema (Article, Event), add to individual page settings</li>
@@ -735,7 +735,7 @@ export default function SEOPlanPage() {
           </Explainer>
 
           <CodeBlock
-            title="Organization Schema \u2014 Add to Site Header (replaces deprecated ProfessionalService)"
+            title="Organization Schema — Add to Site Header (replaces deprecated ProfessionalService)"
             code={`<script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -788,7 +788,7 @@ export default function SEOPlanPage() {
           />
 
           <CodeBlock
-            title="Service Schema \u2014 Add to Site Header (covers all service offerings)"
+            title="Service Schema — Add to Site Header (covers all service offerings)"
             code={`<script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -846,7 +846,7 @@ export default function SEOPlanPage() {
           />
 
           <CodeBlock
-            title="Event Schema \u2014 Add to GAI World 2026 page"
+            title="Event Schema — Add to GAI World 2026 page"
             code={`<script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -882,7 +882,7 @@ export default function SEOPlanPage() {
           />
 
           <CodeBlock
-            title="Article Schema \u2014 Add to blog post template in HubSpot"
+            title="Article Schema — Add to blog post template in HubSpot"
             code={`<script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -913,7 +913,7 @@ export default function SEOPlanPage() {
           />
 
           <CodeBlock
-            title="BreadcrumbList Schema \u2014 Add to Site Header"
+            title="BreadcrumbList Schema — Add to Site Header"
             code={`<script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -943,7 +943,7 @@ export default function SEOPlanPage() {
           />
 
           <CodeBlock
-            title="Person Schema \u2014 Add to Paul Baier's team/about page"
+            title="Person Schema — Add to Paul Baier's team/about page"
             code={`<script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -974,7 +974,7 @@ export default function SEOPlanPage() {
         {/* ─── 06 GBP POSTS ─── */}
         <Section id="section-06" number="06" title="Google Business Profile Posts (12 Drafted)" status="done">
           <Explainer title="What is Google Business Profile and why do we need it?">
-            <p><Tip def="Your free business listing on Google Maps and Search. Even for national B2B companies, it\u2019s valuable for credibility.">Google Business Profile (GBP)</Tip> is your free listing on Google Maps and Search. Even though GAI Insights is a national/global firm, GBP serves as a digital storefront that feeds into Google&rsquo;s AI systems.</p>
+            <p><Tip def="Your free business listing on Google Maps and Search. Even for national B2B companies, it’s valuable for credibility.">Google Business Profile (GBP)</Tip> is your free listing on Google Maps and Search. Even though GAI Insights is a national/global firm, GBP serves as a digital storefront that feeds into Google&rsquo;s AI systems.</p>
             <p className="mt-2">Key stats: <strong className="text-white/90">Event posts</strong> get ~2x engagement. Posts expire after 6 months. Aim for 1-2 posts per week. These 12 posts cover 6 weeks of content.</p>
           </Explainer>
 
@@ -987,7 +987,7 @@ export default function SEOPlanPage() {
                     {post.type}
                   </Badge>
                   <span className="text-sm text-white/80 font-medium flex-1">{post.title}</span>
-                  <span className="text-xs text-white/30 transition-transform duration-200 group-open/post:rotate-90">{"\u25B6"}</span>
+                  <span className="text-xs text-white/30 transition-transform duration-200 group-open/post:rotate-90">{"▶"}</span>
                 </summary>
                 <div className="px-4 pb-4 border-t border-white/[0.04] pt-3">
                   <p className="text-sm text-white/60 mb-3">{post.body}</p>
@@ -1034,7 +1034,7 @@ export default function SEOPlanPage() {
                   {[
                     ["Enterprise AI Strategy", "enterprise AI strategy consulting, GenAI roadmap for enterprises", "Commercial"],
                     ["AI Training/Upskilling", "GenAI employee training programs, ChatGPT training for enterprise", "Commercial"],
-                    ["AI Vendor Comparison", "best GenAI tools comparison 2026, LLM buyer\u2019s guide", "Commercial"],
+                    ["AI Vendor Comparison", "best GenAI tools comparison 2026, LLM buyer’s guide", "Commercial"],
                     ["AI Governance/Risk", "AI governance consulting, responsible AI framework", "Informational"],
                     ["Industry-Specific AI", "AI for financial services, GenAI for healthcare", "Commercial"],
                     ["AI Events/Community", "GenAI conference 2026, enterprise AI networking", "Navigational"],
@@ -1057,7 +1057,7 @@ export default function SEOPlanPage() {
           </Card>
 
           <Card accent>
-            <h3 className="text-sm font-semibold text-white/90 mb-3">{"\u26A0"} Quick Win: Low-Hanging Fruit Keywords</h3>
+            <h3 className="text-sm font-semibold text-white/90 mb-3">{"⚠"} Quick Win: Low-Hanging Fruit Keywords</h3>
             <p className="text-sm text-white/70 mb-3">
               The fastest way to grow <Tip def="Visitors who find your site through unpaid search results.">organic traffic</Tip> is to optimize pages that <em>already</em> rank on page 2 (positions 11-30). They just need a push to reach page 1.
             </p>
@@ -1070,7 +1070,7 @@ export default function SEOPlanPage() {
 
 
         {/* ═══ PART 3: BEST PRACTICES ═══ */}
-        <SectionDivider title="Part 3 \u2014 SEO Best Practices Guide" />
+        <SectionDivider title="Part 3 — SEO Best Practices Guide" />
 
         {/* ─── 08 META TAGS ─── */}
         <Section id="section-08" number="08" title="Meta Tags & Titles">
@@ -1081,20 +1081,20 @@ export default function SEOPlanPage() {
           <Card>
             <h3 className="text-sm font-semibold text-cyan-400 uppercase tracking-wide mb-3">Title Tag Best Practices</h3>
             <ul className="space-y-2 text-sm text-white/70">
-              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"\u2022"}</span><span><strong className="text-white/90">Keep under 60 characters</strong> \u2014 anything longer gets truncated (&ldquo;...&rdquo;) in search results</span></li>
-              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"\u2022"}</span><span><strong className="text-white/90">Put the keyword first</strong> \u2014 e.g. &ldquo;AI Strategy Consulting | GAI Insights&rdquo; not &ldquo;GAI Insights - AI Strategy&rdquo;</span></li>
-              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"\u2022"}</span><span><strong className="text-white/90">Include brand name</strong> \u2014 adds recognition and builds brand searches over time</span></li>
-              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"\u2022"}</span><span><strong className="text-white/90">Make each title unique</strong> \u2014 no two pages should have the same title tag</span></li>
+              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"•"}</span><span><strong className="text-white/90">Keep under 60 characters</strong> — anything longer gets truncated (&ldquo;...&rdquo;) in search results</span></li>
+              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"•"}</span><span><strong className="text-white/90">Put the keyword first</strong> — e.g. &ldquo;AI Strategy Consulting | GAI Insights&rdquo; not &ldquo;GAI Insights - AI Strategy&rdquo;</span></li>
+              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"•"}</span><span><strong className="text-white/90">Include brand name</strong> — adds recognition and builds brand searches over time</span></li>
+              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"•"}</span><span><strong className="text-white/90">Make each title unique</strong> — no two pages should have the same title tag</span></li>
             </ul>
           </Card>
 
           <Card>
             <h3 className="text-sm font-semibold text-cyan-400 uppercase tracking-wide mb-3">Meta Description Best Practices</h3>
             <ul className="space-y-2 text-sm text-white/70">
-              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"\u2022"}</span><span><strong className="text-white/90">150-160 characters</strong> \u2014 any longer gets cut off</span></li>
-              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"\u2022"}</span><span><strong className="text-white/90">Include a clear CTA</strong> \u2014 &ldquo;Learn how...&rdquo; &ldquo;Discover why...&rdquo; &ldquo;Get your free...&rdquo;</span></li>
-              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"\u2022"}</span><span><strong className="text-white/90">Include target keyword naturally</strong> \u2014 Google bolds matching keywords in results</span></li>
-              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"\u2022"}</span><span>Doesn&rsquo;t directly impact rankings, but <strong className="text-white/90">heavily impacts <Tip def="The percentage of people who click your link after seeing it in search results.">CTR</Tip></strong></span></li>
+              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"•"}</span><span><strong className="text-white/90">150-160 characters</strong> — any longer gets cut off</span></li>
+              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"•"}</span><span><strong className="text-white/90">Include a clear CTA</strong> — &ldquo;Learn how...&rdquo; &ldquo;Discover why...&rdquo; &ldquo;Get your free...&rdquo;</span></li>
+              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"•"}</span><span><strong className="text-white/90">Include target keyword naturally</strong> — Google bolds matching keywords in results</span></li>
+              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"•"}</span><span>Doesn&rsquo;t directly impact rankings, but <strong className="text-white/90">heavily impacts <Tip def="The percentage of people who click your link after seeing it in search results.">CTR</Tip></strong></span></li>
             </ul>
           </Card>
 
@@ -1102,9 +1102,9 @@ export default function SEOPlanPage() {
             <h3 className="text-sm font-semibold text-cyan-400 uppercase tracking-wide mb-3">Open Graph & Social Tags</h3>
             <p className="text-sm text-white/60 mb-3">These control how your pages look when shared on LinkedIn, X/Twitter, and Slack. Essential for a B2B firm where content gets shared in professional networks.</p>
             <ul className="space-y-1 text-sm text-white/70">
-              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"\u2022"}</span><span><code className="text-xs bg-white/10 px-1 py-0.5 rounded">og:title</code>, <code className="text-xs bg-white/10 px-1 py-0.5 rounded">og:description</code>, <code className="text-xs bg-white/10 px-1 py-0.5 rounded">og:image</code> \u2014 controls LinkedIn/Facebook previews</span></li>
-              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"\u2022"}</span><span><code className="text-xs bg-white/10 px-1 py-0.5 rounded">twitter:card</code> = <code className="text-xs bg-white/10 px-1 py-0.5 rounded">summary_large_image</code> for visual tweets</span></li>
-              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"\u2022"}</span><span>Use a branded 1200x630px image with your logo \u2014 makes shares look professional</span></li>
+              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"•"}</span><span><code className="text-xs bg-white/10 px-1 py-0.5 rounded">og:title</code>, <code className="text-xs bg-white/10 px-1 py-0.5 rounded">og:description</code>, <code className="text-xs bg-white/10 px-1 py-0.5 rounded">og:image</code> — controls LinkedIn/Facebook previews</span></li>
+              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"•"}</span><span><code className="text-xs bg-white/10 px-1 py-0.5 rounded">twitter:card</code> = <code className="text-xs bg-white/10 px-1 py-0.5 rounded">summary_large_image</code> for visual tweets</span></li>
+              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"•"}</span><span>Use a branded 1200x630px image with your logo — makes shares look professional</span></li>
             </ul>
           </Card>
 
@@ -1144,11 +1144,11 @@ export default function SEOPlanPage() {
             <h3 className="text-sm font-semibold text-white/90 mb-3">Featured Snippet Optimization</h3>
             <p className="text-sm text-white/60 mb-3">To win the coveted &ldquo;position zero&rdquo; box in Google:</p>
             <ul className="space-y-1.5 text-sm text-white/70">
-              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"\u2022"}</span>Answer the question directly in 40-60 words right after the H2</li>
-              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"\u2022"}</span>Use numbered/bulleted lists for &ldquo;how to&rdquo; and &ldquo;best of&rdquo; queries</li>
-              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"\u2022"}</span>Use tables for comparison content (your buyer&rsquo;s guides are perfect for this)</li>
-              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"\u2022"}</span>Include a table of contents with anchor links on long articles</li>
-              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"\u2022"}</span>Add an FAQ section at the bottom of every major article</li>
+              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"•"}</span>Answer the question directly in 40-60 words right after the H2</li>
+              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"•"}</span>Use numbered/bulleted lists for &ldquo;how to&rdquo; and &ldquo;best of&rdquo; queries</li>
+              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"•"}</span>Use tables for comparison content (your buyer&rsquo;s guides are perfect for this)</li>
+              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"•"}</span>Include a table of contents with anchor links on long articles</li>
+              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"•"}</span>Add an FAQ section at the bottom of every major article</li>
             </ul>
           </Card>
 
@@ -1184,11 +1184,11 @@ export default function SEOPlanPage() {
           <Card accent>
             <h3 className="text-sm font-semibold text-white/90 mb-3">Quick Rules</h3>
             <ul className="space-y-1.5 text-sm text-white/70">
-              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"\u2022"}</span><strong className="text-white/90">3-5 internal links per article</strong> minimum</li>
-              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"\u2022"}</span>Use <strong className="text-white/90">descriptive anchor text</strong> (&ldquo;AI governance framework&rdquo; not &ldquo;click here&rdquo;)</li>
-              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"\u2022"}</span>Link from high-traffic pages to pages you want to rank higher</li>
-              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"\u2022"}</span>Every new article should link to at least one existing article, and vice versa</li>
-              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"\u2022"}</span>Your daily news briefings are link-building goldmines \u2014 link to your own resources</li>
+              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"•"}</span><strong className="text-white/90">3-5 internal links per article</strong> minimum</li>
+              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"•"}</span>Use <strong className="text-white/90">descriptive anchor text</strong> (&ldquo;AI governance framework&rdquo; not &ldquo;click here&rdquo;)</li>
+              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"•"}</span>Link from high-traffic pages to pages you want to rank higher</li>
+              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"•"}</span>Every new article should link to at least one existing article, and vice versa</li>
+              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"•"}</span>Your daily news briefings are link-building goldmines — link to your own resources</li>
             </ul>
           </Card>
 
@@ -1204,7 +1204,7 @@ export default function SEOPlanPage() {
         {/* ─── 11 E-E-A-T ─── */}
         <Section id="section-11" number="11" title="E-E-A-T Signals">
           <Explainer title="What is E-E-A-T and why does Google care about it?">
-            <p><Tip def="Experience, Expertise, Authoritativeness, Trustworthiness \u2014 Google\u2019s framework for evaluating content quality.">E-E-A-T</Tip> stands for Experience, Expertise, Authoritativeness, and Trustworthiness. It&rsquo;s Google&rsquo;s quality framework. For a consulting firm giving business advice, E-E-A-T is <strong className="text-white/90">especially critical</strong> \u2014 Google calls this a &ldquo;Your Money or Your Life&rdquo; (YMYL) topic area where quality standards are highest.</p>
+            <p><Tip def="Experience, Expertise, Authoritativeness, Trustworthiness — Google’s framework for evaluating content quality.">E-E-A-T</Tip> stands for Experience, Expertise, Authoritativeness, and Trustworthiness. It&rsquo;s Google&rsquo;s quality framework. For a consulting firm giving business advice, E-E-A-T is <strong className="text-white/90">especially critical</strong> — Google calls this a &ldquo;Your Money or Your Life&rdquo; (YMYL) topic area where quality standards are highest.</p>
             <p className="mt-2">The good news: GAI Insights already has strong E-E-A-T signals (HBR articles, Fortune 500 clients, Paul Baier&rsquo;s expertise). You just need to make them more visible to Google.</p>
           </Explainer>
 
@@ -1212,9 +1212,9 @@ export default function SEOPlanPage() {
             <h3 className="text-sm font-semibold text-cyan-400 uppercase tracking-wide mb-3">E-E-A-T Action Items for GAI Insights</h3>
             <div className="space-y-3">
               {[
-                ["Experience", "Add real examples from actual client engagements (anonymized if needed). \u2018We helped a Fortune 500 retailer...\u2019 beats generic advice every time.", "Already have client logos \u2014 add case study snippets to blog posts"],
-                ["Expertise", "Every article/blog should have an author byline with credentials. Paul Baier\u2019s HBR contributions should be prominently linked.", "Add Person schema (done in Section 05), visible author bios on all content"],
-                ["Authoritativeness", "Your 35K newsletter, conference, and buyer\u2019s guides ARE authority. Make this visible on every page \u2014 not just the homepage.", "Add trust bar (logos + \u201835K leaders\u2019) to blog template sidebar"],
+                ["Experience", "Add real examples from actual client engagements (anonymized if needed). ‘We helped a Fortune 500 retailer...’ beats generic advice every time.", "Already have client logos — add case study snippets to blog posts"],
+                ["Expertise", "Every article/blog should have an author byline with credentials. Paul Baier’s HBR contributions should be prominently linked.", "Add Person schema (done in Section 05), visible author bios on all content"],
+                ["Authoritativeness", "Your 35K newsletter, conference, and buyer’s guides ARE authority. Make this visible on every page — not just the homepage.", "Add trust bar (logos + ‘35K leaders’) to blog template sidebar"],
                 ["Trustworthiness", "Clear contact info, physical address, privacy policy, editorial standards. The Organization schema helps here too.", "Verify address/contact visible on every page, add editorial policy"],
               ].map(([letter, action, gaiSpecific], i) => (
                 <div key={i} className="rounded-lg bg-white/[0.02] border border-white/[0.05] p-4">
@@ -1245,19 +1245,19 @@ export default function SEOPlanPage() {
         {/* ─── 12 AI SEARCH / GEO ─── */}
         <Section id="section-12" number="12" title="AI Search Optimization (GEO)">
           <Explainer title="What is GEO and why is it the future of SEO?">
-            <p><Tip def="Generative Engine Optimization \u2014 optimizing content to be cited by AI tools like Google AI Overviews, Perplexity, and ChatGPT Search.">GEO (Generative Engine Optimization)</Tip> is the practice of optimizing your content so AI search engines cite it. When someone asks Perplexity &ldquo;What are the best AI consulting firms?&rdquo;, you want GAI Insights to be in the answer.</p>
+            <p><Tip def="Generative Engine Optimization — optimizing content to be cited by AI tools like Google AI Overviews, Perplexity, and ChatGPT Search.">GEO (Generative Engine Optimization)</Tip> is the practice of optimizing your content so AI search engines cite it. When someone asks Perplexity &ldquo;What are the best AI consulting firms?&rdquo;, you want GAI Insights to be in the answer.</p>
             <p className="mt-2">This is where GAI Insights has a massive opportunity. AI search tools prefer content with: unique data, clear claims, proper attribution, and structured formatting.</p>
           </Explainer>
 
           <Card>
             <h3 className="text-sm font-semibold text-cyan-400 uppercase tracking-wide mb-3">How to Get Cited by AI Search</h3>
             <ul className="space-y-2 text-sm text-white/70">
-              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"\u2022"}</span><span><strong className="text-white/90">Lead with unique data.</strong> &ldquo;Our analysis of 200+ enterprises found that 67% have deployed GenAI in at least one department.&rdquo; AI engines love citable statistics.</span></li>
-              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"\u2022"}</span><span><strong className="text-white/90">Make clear, quotable claims.</strong> Use definitive language that AI can extract: &ldquo;The top 3 challenges are...&rdquo; not &ldquo;There might be some challenges...&rdquo;</span></li>
-              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"\u2022"}</span><span><strong className="text-white/90">Structure with headers and lists.</strong> AI parses structured content much better than wall-of-text paragraphs.</span></li>
-              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"\u2022"}</span><span><strong className="text-white/90">Add schema markup</strong> (done in Section 05). Structured data is the #1 technical signal for AI citation.</span></li>
-              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"\u2022"}</span><span><strong className="text-white/90">Include author attribution.</strong> AI engines prefer content from identified experts over anonymous posts.</span></li>
-              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"\u2022"}</span><span><strong className="text-white/90">Provide <Tip def="Content that provides unique facts, data, or perspectives not found elsewhere on the web.">Information Gain</Tip>.</strong> Don&rsquo;t just rehash what everyone else says \u2014 add your proprietary data (RISE benchmarks, buyer survey results).</span></li>
+              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"•"}</span><span><strong className="text-white/90">Lead with unique data.</strong> &ldquo;Our analysis of 200+ enterprises found that 67% have deployed GenAI in at least one department.&rdquo; AI engines love citable statistics.</span></li>
+              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"•"}</span><span><strong className="text-white/90">Make clear, quotable claims.</strong> Use definitive language that AI can extract: &ldquo;The top 3 challenges are...&rdquo; not &ldquo;There might be some challenges...&rdquo;</span></li>
+              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"•"}</span><span><strong className="text-white/90">Structure with headers and lists.</strong> AI parses structured content much better than wall-of-text paragraphs.</span></li>
+              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"•"}</span><span><strong className="text-white/90">Add schema markup</strong> (done in Section 05). Structured data is the #1 technical signal for AI citation.</span></li>
+              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"•"}</span><span><strong className="text-white/90">Include author attribution.</strong> AI engines prefer content from identified experts over anonymous posts.</span></li>
+              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"•"}</span><span><strong className="text-white/90">Provide <Tip def="Content that provides unique facts, data, or perspectives not found elsewhere on the web.">Information Gain</Tip>.</strong> Don&rsquo;t just rehash what everyone else says — add your proprietary data (RISE benchmarks, buyer survey results).</span></li>
             </ul>
           </Card>
 
@@ -1266,7 +1266,7 @@ export default function SEOPlanPage() {
             <p className="text-sm text-white/70">
               Your daily news briefing, buyer&rsquo;s guides, and RISE Assessment data are exactly what AI search engines want to cite.
               The key is making this content publicly accessible (not all behind gated forms) and structured with proper schema.
-              Even gating 80% of the content is fine \u2014 but the executive summary and key statistics should be crawlable.
+              Even gating 80% of the content is fine — but the executive summary and key statistics should be crawlable.
             </p>
           </Card>
 
@@ -1282,20 +1282,20 @@ export default function SEOPlanPage() {
         {/* ─── 13 TECHNICAL SEO ─── */}
         <Section id="section-13" number="13" title="Technical SEO Checklist">
           <Explainer title="What is technical SEO?">
-            <p>Technical SEO covers the &ldquo;plumbing&rdquo; of your website \u2014 everything that helps search engines crawl and <Tip def="When Google adds your page to its database so it can appear in search results.">index</Tip> your pages efficiently. Think of it as making sure Google can actually find and read all your content. HubSpot handles many of these automatically, but some need manual verification.</p>
+            <p>Technical SEO covers the &ldquo;plumbing&rdquo; of your website — everything that helps search engines crawl and <Tip def="When Google adds your page to its database so it can appear in search results.">index</Tip> your pages efficiently. Think of it as making sure Google can actually find and read all your content. HubSpot handles many of these automatically, but some need manual verification.</p>
           </Explainer>
 
           <Card>
             <h3 className="text-sm font-semibold text-cyan-400 uppercase tracking-wide mb-3">Checklist</h3>
             <div className="space-y-2">
               {[
-                ["robots.txt", "Verify at gaiinsights.com/robots.txt \u2014 make sure it\u2019s not blocking important pages. HubSpot generates this automatically but custom rules may override.", "Check"],
-                ["XML Sitemap", "Verify at gaiinsights.com/sitemap.xml \u2014 should list all important pages. Submit to Google Search Console.", "Check"],
+                ["robots.txt", "Verify at gaiinsights.com/robots.txt — make sure it’s not blocking important pages. HubSpot generates this automatically but custom rules may override.", "Check"],
+                ["XML Sitemap", "Verify at gaiinsights.com/sitemap.xml — should list all important pages. Submit to Google Search Console.", "Check"],
                 ["Canonical Tags", "Every page should have a <link rel=\"canonical\"> tag pointing to itself. Prevents duplicate content issues. HubSpot adds these by default.", "Auto"],
                 ["HTTPS", "All pages must be served over HTTPS (not HTTP). HubSpot handles this.", "Auto"],
-                ["Mobile-Friendly", "Test with Google\u2019s Mobile-Friendly Test. All content should be readable without zooming.", "Test"],
+                ["Mobile-Friendly", "Test with Google’s Mobile-Friendly Test. All content should be readable without zooming.", "Test"],
                 ["404 Error Pages", "Broken links hurt SEO. Use a tool like Screaming Frog to find 404s, then fix or redirect them.", "Audit"],
-                ["Redirect Chains", "Avoid chains like A \u2192 B \u2192 C. Each redirect should go directly to the final URL.", "Audit"],
+                ["Redirect Chains", "Avoid chains like A → B → C. Each redirect should go directly to the final URL.", "Audit"],
                 ["Page Speed", "Aim for under 3 seconds load time. Use Google PageSpeed Insights to check. HubSpot CDN helps here.", "Test"],
               ].map(([item, desc, action], i) => (
                 <div key={i} className="flex gap-3 items-start p-3 rounded-lg bg-white/[0.02] border border-white/[0.05]">
@@ -1311,7 +1311,7 @@ export default function SEOPlanPage() {
 
           <DeepDive title="Deep dive: 75% of SEO issues are technical, redirect equity loss, and crawl budget">
             <p><strong className="text-white/90">Research suggests 75% of SEO issues are technical, not content-related.</strong> A perfectly written article won&rsquo;t rank if Google can&rsquo;t crawl, index, or render it properly.</p>
-            <p><strong className="text-white/90">Redirect equity loss:</strong> Each redirect hop loses some link equity (ranking power). A chain of A {"\u2192"} B {"\u2192"} C loses roughly 15-20% more equity than a direct A {"\u2192"} C redirect. Audit for chains periodically using Screaming Frog or Sitebulb.</p>
+            <p><strong className="text-white/90">Redirect equity loss:</strong> Each redirect hop loses some link equity (ranking power). A chain of A {"→"} B {"→"} C loses roughly 15-20% more equity than a direct A {"→"} C redirect. Audit for chains periodically using Screaming Frog or Sitebulb.</p>
             <p><strong className="text-white/90">Crawl budget optimization:</strong> Google allocates a limited <Tip def="The number of pages Google will crawl on your site in a given time period.">crawl budget</Tip> to each site. Don&rsquo;t waste it on duplicate pages, pagination, or session-based URLs. Use robots.txt and noindex tags to exclude low-value pages.</p>
             <p><strong className="text-white/90">Security headers to implement:</strong> HSTS (HTTP Strict Transport Security), X-Content-Type-Options, X-Frame-Options. These are both security best practices and minor trust signals. Check your headers at securityheaders.com.</p>
             <p><strong className="text-white/90">HubSpot-specific tip:</strong> HubSpot auto-generates sitemaps and canonicals, but verify that custom pages, landing pages, and any URL variants aren&rsquo;t creating conflicts. The HubSpot URL redirect tool should be maintained whenever you rename or restructure pages.</p>
@@ -1321,17 +1321,17 @@ export default function SEOPlanPage() {
         {/* ─── 14 IMAGE SEO ─── */}
         <Section id="section-14" number="14" title="Image SEO">
           <Explainer title="Why does image SEO matter?">
-            <p>Images can drive traffic through Google Images search, and they help your pages rank better when properly optimized. <Tip def="A text description of an image that helps search engines and screen readers understand what the image shows.">Alt text</Tip> is the most important element \u2014 it tells Google what the image shows and makes your site accessible to visually impaired users.</p>
+            <p>Images can drive traffic through Google Images search, and they help your pages rank better when properly optimized. <Tip def="A text description of an image that helps search engines and screen readers understand what the image shows.">Alt text</Tip> is the most important element — it tells Google what the image shows and makes your site accessible to visually impaired users.</p>
           </Explainer>
 
           <Card>
             <h3 className="text-sm font-semibold text-cyan-400 uppercase tracking-wide mb-3">Quick Wins</h3>
             <ul className="space-y-2 text-sm text-white/70">
-              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"\u2022"}</span><span><strong className="text-white/90">Add descriptive alt text to every image.</strong> &ldquo;Paul Baier presenting at GAI World 2025&rdquo; not &ldquo;image1.jpg&rdquo;</span></li>
-              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"\u2022"}</span><span><strong className="text-white/90">Use descriptive file names.</strong> <code className="text-xs bg-white/10 px-1 py-0.5 rounded">gai-world-conference-keynote.jpg</code> not <code className="text-xs bg-white/10 px-1 py-0.5 rounded">IMG_4521.jpg</code></span></li>
-              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"\u2022"}</span><span><strong className="text-white/90">Use modern formats</strong> (WebP or AVIF) for smaller file sizes without quality loss</span></li>
-              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"\u2022"}</span><span><strong className="text-white/90">Enable lazy loading</strong> \u2014 images below the fold load only when the user scrolls to them (speeds up page load)</span></li>
-              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"\u2022"}</span><span><strong className="text-white/90">Compress images</strong> before uploading. Tools: TinyPNG, Squoosh. Aim for under 200KB per image</span></li>
+              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"•"}</span><span><strong className="text-white/90">Add descriptive alt text to every image.</strong> &ldquo;Paul Baier presenting at GAI World 2025&rdquo; not &ldquo;image1.jpg&rdquo;</span></li>
+              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"•"}</span><span><strong className="text-white/90">Use descriptive file names.</strong> <code className="text-xs bg-white/10 px-1 py-0.5 rounded">gai-world-conference-keynote.jpg</code> not <code className="text-xs bg-white/10 px-1 py-0.5 rounded">IMG_4521.jpg</code></span></li>
+              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"•"}</span><span><strong className="text-white/90">Use modern formats</strong> (WebP or AVIF) for smaller file sizes without quality loss</span></li>
+              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"•"}</span><span><strong className="text-white/90">Enable lazy loading</strong> — images below the fold load only when the user scrolls to them (speeds up page load)</span></li>
+              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"•"}</span><span><strong className="text-white/90">Compress images</strong> before uploading. Tools: TinyPNG, Squoosh. Aim for under 200KB per image</span></li>
             </ul>
           </Card>
 
@@ -1347,7 +1347,7 @@ export default function SEOPlanPage() {
         {/* ─── 15 CORE WEB VITALS ─── */}
         <Section id="section-15" number="15" title="Core Web Vitals">
           <Explainer title="What are Core Web Vitals?">
-            <p><Tip def="Three metrics Google uses to measure your website\u2019s speed and user experience: loading, interactivity, visual stability.">Core Web Vitals</Tip> are three specific metrics Google uses to grade your website&rsquo;s user experience. They are a confirmed Google ranking factor. If your site is slow or janky, it will rank lower than a fast, stable competitor.</p>
+            <p><Tip def="Three metrics Google uses to measure your website’s speed and user experience: loading, interactivity, visual stability.">Core Web Vitals</Tip> are three specific metrics Google uses to grade your website&rsquo;s user experience. They are a confirmed Google ranking factor. If your site is slow or janky, it will rank lower than a fast, stable competitor.</p>
           </Explainer>
 
           <Card>
@@ -1377,8 +1377,8 @@ export default function SEOPlanPage() {
           <Card accent>
             <h3 className="text-sm font-semibold text-white/90 mb-2">How to Check</h3>
             <p className="text-sm text-white/60">
-              Test your site at <strong className="text-white/90">pagespeed.web.dev</strong> \u2014 enter gaiinsights.com and Google will measure all three metrics.
-              HubSpot\u2019s CDN generally provides good baseline performance, but large images and third-party scripts (chat widgets, analytics) can slow things down.
+              Test your site at <strong className="text-white/90">pagespeed.web.dev</strong> — enter gaiinsights.com and Google will measure all three metrics.
+              HubSpot’s CDN generally provides good baseline performance, but large images and third-party scripts (chat widgets, analytics) can slow things down.
             </p>
           </Card>
 
@@ -1394,17 +1394,17 @@ export default function SEOPlanPage() {
         {/* ─── 16 BACKLINKS ─── */}
         <Section id="section-16" number="16" title="Backlink Strategy">
           <Explainer title="What are backlinks and why are they so important?">
-            <p><Tip def="Links from other websites pointing to yours. They\u2019re like \u2018votes of confidence\u2019 from other sites.">Backlinks</Tip> are links from other websites to yours. They&rsquo;re one of Google&rsquo;s top 3 ranking factors. Think of each backlink as a vote of confidence \u2014 the more quality sites that link to GAI Insights, the more Google trusts you. One link from HBR is worth more than 100 links from random blogs.</p>
+            <p><Tip def="Links from other websites pointing to yours. They’re like ‘votes of confidence’ from other sites.">Backlinks</Tip> are links from other websites to yours. They&rsquo;re one of Google&rsquo;s top 3 ranking factors. Think of each backlink as a vote of confidence — the more quality sites that link to GAI Insights, the more Google trusts you. One link from HBR is worth more than 100 links from random blogs.</p>
           </Explainer>
 
           <Card>
             <h3 className="text-sm font-semibold text-cyan-400 uppercase tracking-wide mb-3">B2B Backlink Strategies for GAI Insights</h3>
             <div className="space-y-3">
               {[
-                ["Leverage Existing Authority", "Paul Baier\u2019s HBR contributions and conference speaking already generate high-quality backlinks. Ensure every HBR article links back to gaiinsights.com. Every conference bio should include the website URL."],
-                ["Create Linkable Assets", "Proprietary research and data get linked. Publish the RISE Assessment methodology, anonymized benchmark data, and buyer\u2019s guide summaries publicly. Data-driven content gets 2-3x more backlinks than opinion pieces."],
+                ["Leverage Existing Authority", "Paul Baier’s HBR contributions and conference speaking already generate high-quality backlinks. Ensure every HBR article links back to gaiinsights.com. Every conference bio should include the website URL."],
+                ["Create Linkable Assets", "Proprietary research and data get linked. Publish the RISE Assessment methodology, anonymized benchmark data, and buyer’s guide summaries publicly. Data-driven content gets 2-3x more backlinks than opinion pieces."],
                 ["Guest Post on AI Publications", "Write for VentureBeat, MIT Tech Review, Forbes Tech Council, or similar. Include a bio link back to GAI Insights. One quality guest post = dozens of links as others reference it."],
-                ["Industry Partnerships", "Partner with AI vendors (already have relationships with AWS, IBM) for co-created content. Each vendor\u2019s website linking to your joint content = high-authority backlinks."],
+                ["Industry Partnerships", "Partner with AI vendors (already have relationships with AWS, IBM) for co-created content. Each vendor’s website linking to your joint content = high-authority backlinks."],
                 ["HARO / Connectively", "Sign up as a source for journalists. When reporters need AI consulting expertise, you provide quotes and get links in major publications."],
               ].map(([title, desc], i) => (
                 <div key={i} className="flex gap-3 items-start">
@@ -1430,17 +1430,17 @@ export default function SEOPlanPage() {
         {/* ─── 17 CONTENT FRESHNESS ─── */}
         <Section id="section-17" number="17" title="Content Freshness">
           <Explainer title="How does Google evaluate content freshness?">
-            <p>Google rewards fresh content, especially for rapidly evolving topics like AI. A page last updated in 2024 will lose rankings to a 2026 update. <Tip def="When Google adds your page to its database so it can appear in search results.">Indexing</Tip> happens faster for sites that update regularly. Your daily news briefing is already a massive freshness signal \u2014 Google sees GAI Insights as an actively maintained site.</p>
+            <p>Google rewards fresh content, especially for rapidly evolving topics like AI. A page last updated in 2024 will lose rankings to a 2026 update. <Tip def="When Google adds your page to its database so it can appear in search results.">Indexing</Tip> happens faster for sites that update regularly. Your daily news briefing is already a massive freshness signal — Google sees GAI Insights as an actively maintained site.</p>
           </Explainer>
 
           <Card>
             <h3 className="text-sm font-semibold text-cyan-400 uppercase tracking-wide mb-3">Freshness Strategy</h3>
             <ul className="space-y-2 text-sm text-white/70">
-              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"\u2022"}</span><span><strong className="text-white/90">Update evergreen content quarterly.</strong> Review buyer&rsquo;s guides, service pages, and FAQ at least every 3 months. Add a visible &ldquo;Last updated: [date]&rdquo; to build trust.</span></li>
-              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"\u2022"}</span><span><strong className="text-white/90">Republish with new data.</strong> When you get new RISE benchmark data, update the original article rather than creating a new one. Google rewards updated URLs more than new ones.</span></li>
-              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"\u2022"}</span><span><strong className="text-white/90">Add &ldquo;2026&rdquo; to title tags</strong> on competitive keywords (e.g. &ldquo;Best Enterprise AI Tools 2026&rdquo;). Update annually.</span></li>
-              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"\u2022"}</span><span><strong className="text-white/90">Daily news = freshness gold.</strong> Your daily briefing tells Google the site is alive. Make sure these pages are indexable, not just emails.</span></li>
-              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"\u2022"}</span><span><strong className="text-white/90">Archive old content gracefully.</strong> Don&rsquo;t delete old articles \u2014 add a &ldquo;This article was written in [year]&rdquo; banner and link to the updated version.</span></li>
+              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"•"}</span><span><strong className="text-white/90">Update evergreen content quarterly.</strong> Review buyer&rsquo;s guides, service pages, and FAQ at least every 3 months. Add a visible &ldquo;Last updated: [date]&rdquo; to build trust.</span></li>
+              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"•"}</span><span><strong className="text-white/90">Republish with new data.</strong> When you get new RISE benchmark data, update the original article rather than creating a new one. Google rewards updated URLs more than new ones.</span></li>
+              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"•"}</span><span><strong className="text-white/90">Add &ldquo;2026&rdquo; to title tags</strong> on competitive keywords (e.g. &ldquo;Best Enterprise AI Tools 2026&rdquo;). Update annually.</span></li>
+              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"•"}</span><span><strong className="text-white/90">Daily news = freshness gold.</strong> Your daily briefing tells Google the site is alive. Make sure these pages are indexable, not just emails.</span></li>
+              <li className="flex gap-2"><span className="text-cyan-500 shrink-0">{"•"}</span><span><strong className="text-white/90">Archive old content gracefully.</strong> Don&rsquo;t delete old articles — add a &ldquo;This article was written in [year]&rdquo; banner and link to the updated version.</span></li>
             </ul>
           </Card>
 
@@ -1490,7 +1490,7 @@ export default function SEOPlanPage() {
                     ["1", "Schema Markup (JSON-LD)", "done", "HIGH", "Paste code from Section 05 into HubSpot header"],
                     ["2", "Remove Deprecated ProfessionalService", "done", "HIGH", "Replace with Organization schema when adding new code"],
                     ["3", "GBP Setup + 12 Posts", "done", "MEDIUM", "Claim GBP profile, post 2x/week using Section 06 drafts"],
-                    ["4", "Content Gap: Pricing Guide", "todo", "HIGH", "Create \u2018AI Consulting Cost Guide\u2019 article"],
+                    ["4", "Content Gap: Pricing Guide", "todo", "HIGH", "Create ‘AI Consulting Cost Guide’ article"],
                     ["5", "Content Gap: Industry Pages", "todo", "HIGH", "Create Finance, Healthcare, Retail, Manufacturing landing pages"],
                     ["6", "Content Gap: RISE/WINS Pages", "todo", "HIGH", "Create dedicated framework methodology pages"],
                     ["7", "Content Gap: Agentic AI Pillar", "todo", "HIGH", "Create comprehensive agentic AI enterprise guide"],
@@ -1587,7 +1587,7 @@ export default function SEOPlanPage() {
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
                   Mentis
                 </a>
-                <span className="text-white/15 text-xs">{"\u00D7"}</span>
+                <span className="text-white/15 text-xs">{"×"}</span>
                 <span className="text-purple-400/50 text-xs font-medium">Claude Code</span>
               </div>
               <div className="h-px w-12 bg-gradient-to-l from-transparent to-purple-500/20" />
