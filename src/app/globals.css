@@ -1228,6 +1228,106 @@ textarea.brief-input:disabled {
 
 
 /* ═══════════════════════════════════════════
+   SEO PLAYBOOK — MICRO-INTERACTIONS & POLISH
+   ═══════════════════════════════════════════ */
+
+/* Smooth details/summary open animation */
+details[class*="group/"] > div {
+  animation: detailsReveal 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes detailsReveal {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Section fade-in on scroll — CSS only via animation-timeline */
+@supports (animation-timeline: view()) {
+  section[id^="section-"] {
+    animation: sectionReveal linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 20%;
+  }
+
+  @keyframes sectionReveal {
+    from { opacity: 0.4; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}
+
+/* Hero circuit SVG slow rotation */
+.seo-circuit-arc {
+  animation: circuitSpin 60s linear infinite;
+  transform-origin: center;
+}
+
+@keyframes circuitSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Glowing dot pulse for header */
+@keyframes headerDotPulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(10, 172, 220, 0.4); }
+  50% { box-shadow: 0 0 14px rgba(10, 172, 220, 0.7); }
+}
+
+.seo-header-dot {
+  animation: headerDotPulse 3s ease-in-out infinite;
+}
+
+/* Priority matrix subtle glow */
+.seo-priority-glow {
+  transition: box-shadow 0.5s ease;
+}
+
+.seo-priority-glow:hover {
+  box-shadow: 0 0 60px rgba(10, 172, 220, 0.06), 0 0 20px rgba(10, 172, 220, 0.04);
+}
+
+/* TOC link hover slide */
+nav a[href^="#section-"] {
+  position: relative;
+}
+
+nav a[href^="#section-"]::before {
+  content: "";
+  position: absolute;
+  left: -2px;
+  top: 50%;
+  transform: translateY(-50%) scaleY(0);
+  width: 2px;
+  height: 60%;
+  border-radius: 1px;
+  background: rgba(10, 172, 220, 0.5);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+nav a[href^="#section-"]:hover::before {
+  transform: translateY(-50%) scaleY(1);
+}
+
+/* Code block inner glow on hover */
+pre:hover {
+  background: rgba(0, 29, 88, 0.08);
+  transition: background 0.4s ease;
+}
+
+/* Status pill subtle shimmer for "done" */
+@keyframes doneShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Smooth scroll-margin for header compensation */
+[id^="section-"],
+#priority-matrix,
+#glossary {
+  scroll-margin-top: 5rem;
+}
+
+
+/* ═══════════════════════════════════════════
    RESPONSIVE POLISH
    ═══════════════════════════════════════════ */
 

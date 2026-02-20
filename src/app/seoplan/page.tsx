@@ -310,7 +310,7 @@ export default function SEOPlanPage() {
         <div className="max-w-5xl mx-auto px-6 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-cyan-400/80" style={{ boxShadow: "0 0 8px rgba(10,172,220,0.4)" }} />
+              <span className="seo-header-dot w-2 h-2 rounded-full bg-cyan-400/80" />
               <span className="text-[15px] font-bold tracking-tight" style={{ fontFamily: "Syne, sans-serif" }}>
                 <span className="text-cyan-400">GAI</span> <span className="text-white/85">Insights</span>
               </span>
@@ -329,7 +329,7 @@ export default function SEOPlanPage() {
       {/* ─── Hero ─── */}
       <div className="relative overflow-hidden">
         {/* Circuit-arc decorative SVG */}
-        <svg className="absolute top-6 right-0 w-[420px] h-[420px] opacity-[0.04] pointer-events-none" viewBox="0 0 420 420" fill="none" aria-hidden="true">
+        <svg className="seo-circuit-arc absolute top-6 right-0 w-[420px] h-[420px] opacity-[0.04] pointer-events-none" viewBox="0 0 420 420" fill="none" aria-hidden="true">
           <circle cx="210" cy="210" r="180" stroke="#0AACDC" strokeWidth="0.75" strokeDasharray="4 8" />
           <circle cx="210" cy="210" r="140" stroke="#0AACDC" strokeWidth="0.5" strokeDasharray="2 6" />
           <circle cx="210" cy="210" r="100" stroke="#0AACDC" strokeWidth="0.5" />
@@ -1469,7 +1469,7 @@ export default function SEOPlanPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-cyan-500/15 overflow-hidden" style={{ background: "linear-gradient(180deg, rgba(0,29,88,0.1) 0%, rgba(2,6,23,0.2) 100%)", boxShadow: "0 0 40px rgba(10,172,220,0.04)" }}>
+          <div className="seo-priority-glow rounded-2xl border border-cyan-500/15 overflow-hidden" style={{ background: "linear-gradient(180deg, rgba(0,29,88,0.1) 0%, rgba(2,6,23,0.2) 100%)", boxShadow: "0 0 40px rgba(10,172,220,0.04)" }}>
             <div className="px-6 py-4 border-b border-white/[0.05]" style={{ background: "rgba(0,29,88,0.12)" }}>
               <h3 className="text-[11px] font-bold tracking-[0.15em] uppercase text-cyan-400/60" style={{ fontFamily: "Syne, sans-serif" }}>Execution Priority</h3>
             </div>
@@ -1570,19 +1570,41 @@ export default function SEOPlanPage() {
 
 
         {/* ═══ FOOTER ═══ */}
-        <footer className="pt-10 mt-4">
+        <footer className="pt-12 mt-4">
           <div className="h-px w-full bg-gradient-to-r from-transparent via-white/[0.06] to-transparent mb-8" />
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-white/25">
+
+          {/* Co-development credit */}
+          <div className="flex flex-col items-center text-center mb-8">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="h-px w-12 bg-gradient-to-r from-transparent to-cyan-500/20" />
+              <div className="flex items-center gap-2.5 px-4 py-2 rounded-full border border-white/[0.06]" style={{ background: "linear-gradient(135deg, rgba(0,29,88,0.12) 0%, rgba(67,21,125,0.08) 100%)" }}>
+                <a
+                  href="https://www.linkedin.com/in/adam-aka-mentis/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-cyan-400/70 hover:text-cyan-300 transition-colors text-xs font-medium"
+                >
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+                  Mentis
+                </a>
+                <span className="text-white/15 text-xs">{"\u00D7"}</span>
+                <span className="text-purple-400/50 text-xs font-medium">Claude Code</span>
+              </div>
+              <div className="h-px w-12 bg-gradient-to-l from-transparent to-purple-500/20" />
+            </div>
+            <p className="text-[10px] text-white/20 tracking-wide">Synergistic AI co-development &mdash; research, analysis &amp; design</p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-white/20">
             <div className="flex items-center gap-3">
-              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400/30" />
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400/20" />
               <div>
-                <p>Generated by Claude Code &mdash; Research powered by Exa AI</p>
-                <p className="mt-0.5">Schema audit, competitive analysis, content gaps, and GBP posts completed autonomously.</p>
+                <p>Deep research powered by Exa AI &mdash; schema audit, competitive analysis, content gaps &amp; GBP posts completed autonomously</p>
               </div>
             </div>
             <p>
               Inspired by{" "}
-              <a href="https://x.com/bloggersarvesh/status/2022663312853598425" target="_blank" rel="noopener noreferrer" className="text-cyan-500/40 hover:text-cyan-400 transition-colors">
+              <a href="https://x.com/bloggersarvesh/status/2022663312853598425" target="_blank" rel="noopener noreferrer" className="text-cyan-500/35 hover:text-cyan-400 transition-colors">
                 @bloggersarvesh
               </a>
             </p>
