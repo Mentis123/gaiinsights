@@ -304,7 +304,7 @@ const GBP_POSTS = [
 
 export default function SEOPlanPage() {
   return (
-    <main className="relative z-10 min-h-screen">
+    <main id="top" className="relative z-10 min-h-screen">
       {/* ─── Header ─── */}
       <header className="border-b border-white/[0.05] sticky top-0 z-50" style={{ background: "rgba(2,6,23,0.85)", backdropFilter: "blur(16px) saturate(1.5)", WebkitBackdropFilter: "blur(16px) saturate(1.5)" }}>
         <div className="max-w-5xl mx-auto px-6 py-3.5 flex items-center justify-between">
@@ -1611,6 +1611,17 @@ export default function SEOPlanPage() {
           </div>
         </footer>
       </div>
+      {/* ─── Back to Top ─── */}
+      <a
+        href="#top"
+        aria-label="Back to top"
+        className="seo-back-to-top fixed left-5 bottom-6 z-50 w-9 h-9 rounded-full flex items-center justify-center border border-white/[0.06] text-white/25 hover:text-cyan-400 hover:border-cyan-500/30 transition-all duration-300"
+        style={{ background: "rgba(2,6,23,0.7)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}
+      >
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M7 12V2M7 2L2.5 6.5M7 2L11.5 6.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </a>
     </main>
   );
 }

@@ -1319,9 +1319,42 @@ pre:hover {
   100% { background-position: 200% 0; }
 }
 
+/* Back-to-top floating button — hidden at top, visible after scrolling */
+.seo-back-to-top {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+@supports (animation-timeline: scroll()) {
+  .seo-back-to-top {
+    animation: backToTopReveal linear both;
+    animation-timeline: scroll();
+    animation-range: 200px 400px;
+    pointer-events: auto;
+  }
+
+  @keyframes backToTopReveal {
+    from { opacity: 0; pointer-events: none; }
+    to { opacity: 1; pointer-events: auto; }
+  }
+}
+
+/* Fallback for browsers without scroll-timeline: always show after first paint */
+@supports not (animation-timeline: scroll()) {
+  .seo-back-to-top {
+    opacity: 0.6;
+    pointer-events: auto;
+  }
+  .seo-back-to-top:hover {
+    opacity: 1;
+  }
+}
+
 /* Smooth scroll-margin for header compensation */
 [id^="section-"],
 #priority-matrix,
+#top,
 #glossary {
   scroll-margin-top: 5rem;
 }
